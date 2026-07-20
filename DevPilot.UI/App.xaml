@@ -1,0 +1,17 @@
+﻿<Application x:Class="DevPilot.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:DevPilot.UI.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles/DarkTheme.xaml"/>
+                <ResourceDictionary Source="TrayIcon.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:PathToImageConverter       x:Key="PathToImageConverter"/>
+            <converters:NullToVisibilityConverter  x:Key="NullToVisibilityConverter"/>
+            <converters:BoolToAccentBrushConverter x:Key="BoolToAccentBrushConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

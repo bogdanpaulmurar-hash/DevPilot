@@ -1,0 +1,19 @@
+<!--
+    Adauga in DevPilot.UI\App.xaml, in sectiunea <Application.Resources>
+    (dupa ResourceDictionary.MergedDictionaries daca exista):
+-->
+
+<Application.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <!-- dictionaries existente ... -->
+        </ResourceDictionary.MergedDictionaries>
+
+        <!-- Phase 7 Converters -->
+        <converters:PathToImageConverter   x:Key="PathToImageConverter"/>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+    </ResourceDictionary>
+</Application.Resources>
+
+<!-- Namespace de adaugat in <Application ...> tag: -->
+<!-- xmlns:converters="clr-namespace:DevPilot.UI.Converters" -->

@@ -1,0 +1,116 @@
+﻿<Window x:Class="DevPilot.UI.Views.Dialogs.AddAppDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:DevPilot.Models;assembly=DevPilot.Models"
+        Title="Add / Edit App"
+        Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource BgCardBrush}"
+        Foreground="{DynamicResource FgPrimaryBrush}">
+
+    <Window.Resources>
+        <ObjectDataProvider x:Key="AppEntryTypes"
+                            MethodName="GetValues"
+                            ObjectType="{x:Type models:AppEntryType}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:AppEntryType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </Window.Resources>
+
+    <StackPanel Margin="20">
+
+        <!-- Name -->
+        <TextBlock Text="Name *" FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtName" Height="30" Padding="6,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 Margin="0,0,0,12"/>
+
+        <!-- Type -->
+        <TextBlock Text="Type *" FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <ComboBox x:Name="CmbType" Height="30"
+                  ItemsSource="{Binding Source={StaticResource AppEntryTypes}}"
+                  Background="{DynamicResource BgInputBrush}"
+                  Foreground="{DynamicResource FgPrimaryBrush}"
+                  BorderBrush="{DynamicResource BorderBrush}"
+                  SelectionChanged="CmbType_SelectionChanged"
+                  Margin="0,0,0,12"/>
+
+        <!-- Path / Target -->
+        <TextBlock x:Name="LblPath" Text="Path / Target *" FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TxtPath" Height="30" Padding="6,4"
+                     Background="{DynamicResource BgInputBrush}"
+                     Foreground="{DynamicResource FgPrimaryBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}"/>
+            <Button x:Name="BtnBrowse" Grid.Column="1" Content="Browse..."
+                    Width="80" Height="30" Margin="6,0,0,0"
+                    Click="BtnBrowse_Click"
+                    Style="{DynamicResource PrimaryButtonStyle}"/>
+        </Grid>
+
+        <!-- Arguments -->
+        <TextBlock Text="Arguments (optional)" FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtArgs" Height="30" Padding="6,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 Margin="0,0,0,12"/>
+
+        <!-- Description -->
+        <TextBlock Text="Description (optional)" FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtDescription" Height="30" Padding="6,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 Margin="0,0,0,12"/>
+
+        <!-- Category -->
+        <TextBlock Text="Category (optional)" FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtCategory" Height="30" Padding="6,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 Margin="0,0,0,12"/>
+
+        <!-- Checkboxes -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <CheckBox x:Name="ChkRunAsAdmin" Content="Run as Administrator"
+                      Foreground="{DynamicResource FgPrimaryBrush}"
+                      Margin="0,0,20,0"/>
+            <CheckBox x:Name="ChkIsVisible" Content="Visible in launcher"
+                      Foreground="{DynamicResource FgPrimaryBrush}"
+                      IsChecked="True"/>
+        </StackPanel>
+
+        <!-- Buttons -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel" Width="90" Height="32" Margin="0,0,10,0"
+                    Click="BtnCancel_Click"
+                    Style="{DynamicResource SecondaryButtonStyle}"/>
+            <Button Content="Save" Width="90" Height="32"
+                    Click="BtnSave_Click"
+                    Style="{DynamicResource PrimaryButtonStyle}"/>
+        </StackPanel>
+
+    </StackPanel>
+</Window>

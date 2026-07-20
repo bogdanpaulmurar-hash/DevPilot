@@ -1,0 +1,185 @@
+<!-- ============================================================
+     DevPilot — IT Automation Hub v1.0
+     HeartbeatView.xaml — Heartbeat Monitor tab
+     Phase: 10 (Fix: Romanian text → English; inline usage guide added)
+     Author: Bogdan Murar (Z003FU5C) — Siemens AG
+     ============================================================ -->
+<UserControl x:Class="DevPilot.UI.Views.HeartbeatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BgMainBrush}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Title ────────────────────────────────────────────────────── -->
+        <TextBlock Grid.Row="0"
+                   Text="&#x1F493;  Heartbeat Monitor"
+                   FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource AccentBrush}"
+                   Margin="0,0,0,12"/>
+
+        <!-- ── Quick-use guide banner ────────────────────────────────────── -->
+        <Border Grid.Row="1"
+                Background="#1A009999"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="1" CornerRadius="6"
+                Padding="14,10" Margin="0,0,0,14">
+            <StackPanel>
+                <TextBlock FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource AccentBrush}"
+                           Margin="0,0,0,4"
+                           Text="Quick Start — How to use the Heartbeat Monitor:"/>
+                <TextBlock TextWrapping="Wrap" FontSize="11"
+                           Foreground="{DynamicResource FgSecondaryBrush}"
+                           LineHeight="18">
+                    <Run FontWeight="SemiBold">1.</Run><Run> Fill in the form below: </Run>
+                    <Run FontWeight="SemiBold">Name</Run><Run> = any label &#x2022; </Run>
+                    <Run FontWeight="SemiBold">Target</Run><Run> = process name without .exe (e.g. </Run>
+                    <Run FontStyle="Italic">notepad</Run><Run>) or full URL (e.g. </Run>
+                    <Run FontStyle="Italic">https://example.com</Run><Run>) &#x2022; </Run>
+                    <Run FontWeight="SemiBold">Type</Run><Run> = Process or Url.</Run>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold">2.</Run><Run> Click </Run>
+                    <Run FontWeight="SemiBold">+ Add Target</Run><Run> &#x2022; </Run>
+                    <Run FontWeight="SemiBold">3.</Run><Run> Set check interval &#x2022; </Run>
+                    <Run FontWeight="SemiBold">4.</Run><Run> Click </Run>
+                    <Run FontWeight="SemiBold">Start Monitoring</Run><Run>. Status: </Run>
+                    <Run Foreground="#4CAF50" FontWeight="SemiBold">&#x2705; Alive</Run>
+                    <Run> / </Run>
+                    <Run Foreground="#F44336" FontWeight="SemiBold">&#x274C; Dead</Run>
+                    <Run>. See the Guide tab for full details.</Run>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <!-- ── Status bar ────────────────────────────────────────────────── -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="6"
+                Padding="12,8" Margin="0,0,0,12">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="13" FontWeight="SemiBold"
+                       Foreground="{DynamicResource FgPrimaryBrush}"/>
+        </Border>
+
+        <!-- ── Controls row ──────────────────────────────────────────────── -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal"
+                    Margin="0,0,0,12" VerticalAlignment="Center">
+
+            <Button Content="{Binding StartStopLabel}"
+                    Command="{Binding StartStopCommand}"
+                    Style="{DynamicResource PrimaryButtonStyle}"
+                    Width="160" Height="32" Margin="0,0,12,0"/>
+
+            <TextBlock Text="Check interval:"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Slider Minimum="5" Maximum="300"
+                    Value="{Binding IntervalSeconds}"
+                    Width="120" VerticalAlignment="Center"
+                    Margin="0,0,6,0"
+                    ToolTip="Seconds between checks (5–300)"/>
+            <TextBlock Text="{Binding IntervalSeconds, StringFormat={}{0} s}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       VerticalAlignment="Center" Width="44" Margin="0,0,20,0"/>
+
+            <CheckBox Content="Auto-Restart on death"
+                      IsChecked="{Binding AutoRestart}"
+                      VerticalAlignment="Center"
+                      Foreground="{DynamicResource FgPrimaryBrush}"
+                      ToolTip="If a monitored process dies, DevPilot will automatically relaunch it."/>
+        </StackPanel>
+
+        <!-- ── Targets DataGrid ───────────────────────────────────────────── -->
+        <Border Grid.Row="4"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="6"
+                Margin="0,0,0,12">
+            <DataGrid ItemsSource="{Binding Rows}"
+                      Style="{DynamicResource GridStyle}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      BorderThickness="0"
+                      Background="Transparent"
+                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name"   Binding="{Binding Name}"      Width="160"/>
+                    <DataGridTextColumn Header="Target" Binding="{Binding Target}"    Width="*"/>
+                    <DataGridTextColumn Header="Type"   Binding="{Binding TypeLabel}" Width="80"/>
+                    <DataGridTemplateColumn Header="Status" Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StatusEmoji}"
+                                           HorizontalAlignment="Center"
+                                           FontSize="16" ToolTip="{Binding StatusText}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Remove" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="&#x2715;"
+                                        Command="{Binding DataContext.RemoveTargetCommand,
+                                                  RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{DynamicResource DangerButtonStyle}"
+                                        Padding="8,3" FontSize="11"
+                                        ToolTip="Remove this target"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- ── Add target form ───────────────────────────────────────────── -->
+        <Border Grid.Row="5"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="6"
+                Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                         Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{DynamicResource InputStyle}"
+                         Height="30" Margin="0,0,8,0"
+                         ToolTip="Friendly name (e.g. My App)"/>
+                <TextBox Grid.Column="1"
+                         Text="{Binding NewTarget, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{DynamicResource InputStyle}"
+                         Height="30" Margin="0,0,8,0"
+                         ToolTip="Process name without .exe (e.g. notepad)  OR  full URL (e.g. https://example.com)"/>
+                <ComboBox Grid.Column="2"
+                          ItemsSource="{Binding TargetTypes}"
+                          SelectedItem="{Binding NewType}"
+                          Style="{DynamicResource ComboStyle}"
+                          Height="30" Margin="0,0,8,0"
+                          ToolTip="Process = check by process name / Url = HTTP GET check"/>
+                <Button Grid.Column="3"
+                        Content="+ Add Target"
+                        Command="{Binding AddTargetCommand}"
+                        Height="30"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        ToolTip="Add this entry to the monitoring list"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

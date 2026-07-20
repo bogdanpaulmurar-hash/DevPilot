@@ -1,0 +1,21 @@
+﻿## C# WPF .NET 8 - .gitignore
+bin/
+obj/
+*.user
+*.suo
+.vs/
+publish/
+UpgradeLog*.htm
+packages/
+*.nupkg
+project.lock.json
+*.lock.json
+*.log
+*.tmp
+*.cache
+Thumbs.db
+.DS_Store
+playwright-report/
+test-results/
+codeexport/
+*_Export*.txt

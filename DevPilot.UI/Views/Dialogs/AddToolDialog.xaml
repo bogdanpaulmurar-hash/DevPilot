@@ -1,0 +1,105 @@
+<!--
+    DevPilot — IT Automation Hub
+    AddToolDialog.xaml — Dialog for adding a custom tool entry
+    Author: Bogdan Murar (Z003FU5C) — Siemens AG
+-->
+<Window x:Class="DevPilot.UI.Views.Dialogs.AddToolDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Custom Tool"
+        Width="480" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource BgCardBrush}"
+        Foreground="{DynamicResource FgPrimaryBrush}">
+
+    <StackPanel Margin="24">
+
+        <!-- Name -->
+        <TextBlock Text="Tool Name *"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtName"
+                 Height="32" Padding="8,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 Margin="0,0,0,14"/>
+
+        <!-- Description -->
+        <TextBlock Text="Description  (optional)"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtDescription"
+                 Height="32" Padding="8,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 Margin="0,0,0,14"/>
+
+        <!-- Icon emoji -->
+        <TextBlock Text="Icon  (emoji, optional — default: 🔧)"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtIcon"
+                 Text="🔧"
+                 Height="32" Padding="8,4"
+                 Background="{DynamicResource BgInputBrush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
+                 MaxLength="4"
+                 Margin="0,0,0,14"/>
+
+        <!-- Exe Path -->
+        <TextBlock Text="Executable Path *"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   Margin="0,0,0,4"/>
+        <Grid Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TxtExePath"
+                     Grid.Column="0"
+                     Height="32" Padding="8,4"
+                     Background="{DynamicResource BgInputBrush}"
+                     Foreground="{DynamicResource FgPrimaryBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}"
+                     Margin="0,0,6,0"/>
+            <Button Grid.Column="1"
+                    Content="Browse…"
+                    Width="80" Height="32"
+                    Click="BtnBrowse_Click"
+                    Style="{DynamicResource SecondaryButtonStyle}"/>
+        </Grid>
+
+        <!-- Validation error -->
+        <TextBlock x:Name="TxtError"
+                   Foreground="#F44336"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   Visibility="Collapsed"
+                   Margin="0,4,0,12"/>
+
+        <!-- Buttons -->
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel"
+                    Width="90" Height="32"
+                    Margin="0,0,10,0"
+                    Click="BtnCancel_Click"
+                    Style="{DynamicResource SecondaryButtonStyle}"/>
+            <Button x:Name="BtnAction"
+                    Content="＋  Add Tool"
+                    Width="110" Height="32"
+                    Click="BtnSave_Click"
+                    Style="{DynamicResource PrimaryButtonStyle}"/>
+        </StackPanel>
+
+    </StackPanel>
+</Window>

@@ -1,0 +1,879 @@
+<!--
+    DevPilot — IT Automation Hub v1.0
+    SettingsView.xaml — Settings tab
+    Phase: 13 (+HideJigglerInTray, +TrayTypeConfigs editor, +RestartCommand,
+                tray limit raised to 20, coloured type badges)
+    Author: Bogdan Murar (Z003FU5C) — Siemens AG
+-->
+<UserControl x:Class="DevPilot.UI.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BgMainBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,20,24,24" MaxWidth="820">
+
+            <!-- ── Page title ──────────────────────────────────────────── -->
+            <TextBlock Text="⚙  Settings"
+                       FontSize="18" FontWeight="Bold"
+                       Foreground="{DynamicResource AccentBrush}"
+                       Margin="0,0,0,4"/>
+            <TextBlock Text="Configure DevPilot behaviour, paths, hotkeys, and appearance. Theme and Startup changes apply immediately."
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontSize="12" TextWrapping="Wrap"
+                       Margin="0,0,0,20"/>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 1 — General
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="🎨  General"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,14"/>
+
+                    <TextBlock Text="Application theme"
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <RadioButton Content="🌙  Dark Theme"
+                                     IsChecked="{Binding IsDarkTheme}"
+                                     GroupName="ThemeGroup"
+                                     Style="{DynamicResource RadioStyle}"
+                                     Margin="0,0,20,0"/>
+                        <RadioButton Content="☀  Light Theme"
+                                     IsChecked="{Binding IsLightTheme}"
+                                     GroupName="ThemeGroup"
+                                     Style="{DynamicResource RadioStyle}"/>
+                    </StackPanel>
+
+                    <CheckBox Content="🚀  Start with Windows"
+                              IsChecked="{Binding StartWithWindows}"
+                              Style="{DynamicResource CheckStyle}"
+                              Margin="0,0,0,8"
+                              ToolTip="Adds DevPilot to HKCU Run registry key"/>
+                    <CheckBox Content="🗕  Minimize to tray on close  (uncheck to exit on ✕)"
+                              IsChecked="{Binding MinimizeToTray}"
+                              Style="{DynamicResource CheckStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 2 — Tab Visibility
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="🗂  Tab Visibility"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,6"/>
+                    <TextBlock Text="Hidden tabs are collapsed immediately. Their services keep running in the background."
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" TextWrapping="Wrap"
+                               Margin="0,0,0,12"/>
+
+                    <UniformGrid Columns="3">
+                        <CheckBox Content="Launcher  🔒"
+                                  IsChecked="True" IsEnabled="False"
+                                  Style="{DynamicResource CheckStyle}"
+                                  Margin="0,0,0,8" ToolTip="App Launcher tab is always visible"/>
+                        <CheckBox Content="Tools"
+                                  IsChecked="{Binding IsToolsTabVisible}"
+                                  Style="{DynamicResource CheckStyle}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Jiggler"
+                                  IsChecked="{Binding IsJigglerTabVisible}"
+                                  Style="{DynamicResource CheckStyle}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Screenshot"
+                                  IsChecked="{Binding IsScreenshotTabVisible}"
+                                  Style="{DynamicResource CheckStyle}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Heartbeat"
+                                  IsChecked="{Binding IsHeartbeatTabVisible}"
+                                  Style="{DynamicResource CheckStyle}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Settings  🔒"
+                                  IsChecked="True" IsEnabled="False"
+                                  Style="{DynamicResource CheckStyle}"
+                                  Margin="0,0,0,8" ToolTip="Settings tab is always visible"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 3 — Paths
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="📁  Executable Paths"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,14"/>
+
+                    <!-- DataCleansing Solution -->
+                    <TextBlock Text="DataCleansing Solution"
+                               Foreground="{DynamicResource FgPrimaryBrush}"
+                               FontSize="12" FontWeight="SemiBold"
+                               Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding DataCleansingExePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 ToolTip="{Binding DataCleansingExePath}"
+                                 Margin="0,0,6,-6"/>
+                        <Button Grid.Column="1" Content="Browse…" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding BrowseDataCleansingCommand}"
+                                Margin="0,0,6,0"/>
+                        <Button Grid.Column="2" Content="📂" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding OpenFolderDataCleansingCommand}"
+                                ToolTip="Open containing folder" Margin="0,0,-11,0"/>
+                    </Grid>
+
+                    <!-- TestClientUtilityApp -->
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding TestClientExePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 ToolTip="{Binding TestClientExePath}"
+                                 Margin="0,0,6,-5"/>
+                        <Button Grid.Column="1" Content="Browse…" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding BrowseTestClientCommand}"
+                                Margin="0,0,6,0"/>
+                        <Button Grid.Column="2" Content="📂" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding OpenFolderTestClientCommand}"
+                                ToolTip="Open containing folder" Margin="0,0,-11,0"/>
+                    </Grid>
+
+                    <!-- TC Management Local Starter -->
+                    <TextBlock Text="TC Management Local Starter"
+                               Foreground="{DynamicResource FgPrimaryBrush}"
+                               FontSize="12" FontWeight="SemiBold"
+                               Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding TcMgmtStarterExePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 ToolTip="{Binding TcMgmtStarterExePath}"
+                                 Margin="0,0,6,-5"/>
+                        <Button Grid.Column="1" Content="Browse…" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding BrowseTcMgmtStarterCommand}"
+                                Margin="0,0,6,0"/>
+                        <Button Grid.Column="2" Content="📂" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding OpenFolderTcMgmtStarterCommand}"
+                                ToolTip="Open containing folder" Margin="0,0,-11,0"/>
+                    </Grid>
+
+                    <!-- Screenshot folder -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding ScreenshotSaveFolder, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 ToolTip="{Binding ScreenshotSaveFolder}"
+                                 Margin="0,0,6,-5"/>
+                        <Button Grid.Column="1" Content="Browse…" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding BrowseScreenshotFolderCommand}"
+                                Margin="0,0,6,0"/>
+                        <Button Grid.Column="2" Content="📂" Height="32"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding OpenFolderScreenshotCommand}"
+                                ToolTip="Open folder" Margin="0,0,-11,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 4 — Hotkeys
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="⌨  Global Hotkeys"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,4"/>
+                    <TextBlock Text="Uncheck to disable a hotkey. Changes take effect on Save."
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" Margin="0,0,0,14"/>
+
+                    <!-- Column headers -->
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="170"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="1" Text="Action"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="2" Text="Current Hotkey"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                    </Grid>
+                    <Separator Style="{DynamicResource SeparatorStyle}" Margin="0,0,0,6"/>
+
+                    <!-- Hotkey rows -->
+                    <ItemsControl ItemsSource="{Binding Hotkeys}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="170"/>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+
+                                    <!-- Enabled checkbox -->
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding IsEnabled}"
+                                              Style="{DynamicResource CheckStyle}"
+                                              VerticalAlignment="Center"
+                                              ToolTip="Enable / disable this hotkey"/>
+
+                                    <!-- Action name -->
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding DisplayName}"
+                                               Foreground="{DynamicResource FgPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+
+                                    <!-- Current hotkey -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding HotkeyDisplay}"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               FontFamily="Consolas" FontSize="13"
+                                               VerticalAlignment="Center"/>
+
+                                    <!-- Change button — opens picker -->
+                                    <Button Grid.Column="3"
+                                            Content="🎹  Change"
+                                            Height="28"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Command="{Binding ChangeCommand}"
+                                            Margin="0,0,4,0"
+                                            ToolTip="Pick a new hotkey from predefined keys"/>
+
+                                    <!-- Reset to default -->
+                                    <Button Grid.Column="4"
+                                            Content="↺ Reset"
+                                            Height="28"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Command="{Binding ResetCommand}"
+                                            ToolTip="Restore the factory default hotkey"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="💡  Hotkeys work globally even when DevPilot is minimized to tray."
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" TextWrapping="Wrap"
+                               Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 5 — Mouse Jiggler
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="🖱  Mouse Jiggler"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,14"/>
+
+                    <!-- Interval -->
+                    <TextBlock Text="Jiggler interval"
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" Margin="0,0,0,6"/>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="72"/>
+                            <ColumnDefinition Width="60"/>
+                        </Grid.ColumnDefinitions>
+                        <Slider Grid.Column="0"
+                                Minimum="10" Maximum="300"
+                                Value="{Binding JigglerIntervalSeconds}"
+                                Style="{DynamicResource SliderStyle}"
+                                VerticalAlignment="Center"
+                                Margin="0,0,10,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding JigglerIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 Height="36"
+                                 TextAlignment="Center"/>
+                        <TextBlock Grid.Column="2"
+                                   Text=" seconds"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="6,0,0,0"/>
+                    </Grid>
+
+                    <!-- Method -->
+                    <TextBlock Text="Jiggler method"
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" Margin="0,0,0,6"/>
+                    <ComboBox ItemsSource="{Binding JigglerMethods}"
+                              SelectedItem="{Binding JigglerMethod}"
+                              Style="{DynamicResource ComboStyle}"
+                              Width="200" Height="32"
+                              HorizontalAlignment="Left"
+                              Margin="0,0,0,14"/>
+
+                    <!-- Tray visibility toggle -->
+                    <Separator Style="{DynamicResource SeparatorStyle}" Margin="0,0,0,12"/>
+                    <CheckBox Content="🙈  Hide Jiggler toggle in tray menu  (Jiggler keeps running normally)"
+                              IsChecked="{Binding HideJigglerInTray}"
+                              Style="{DynamicResource CheckStyle}"
+                              ToolTip="When checked, the Jiggler item is removed from the tray right-click menu. The feature still works via hotkey."/>
+                    
+                    <!-- Sidebar Width — preview live în tray -->
+                    <Separator Style="{DynamicResource SeparatorStyle}" Margin="0,12,0,12"/>
+                    <TextBlock Text="Tray sidebar width"
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" Margin="0,0,0,6"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Slider Grid.Column="0"
+                                Minimum="16" Maximum="60"
+                                Value="{Binding TraySidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{DynamicResource SliderStyle}"
+                                TickFrequency="2"
+                                IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center"
+                                Margin="0,0,10,0"
+                                ToolTip="Lățimea sidebar-ului teal din tray menu (16–60 px). Se aplică instant."/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding TraySidebarWidth, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 Height="36" TextAlignment="Center"/>
+                        <TextBlock Grid.Column="2"
+                                   Text=" px"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="6,0,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 6 — Heartbeat
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="💓  Heartbeat Monitor"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,14"/>
+
+                    <!-- Interval -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="Default check interval:"
+                                   Foreground="{DynamicResource FgPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding HeartbeatIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 Height="36"
+                                 TextAlignment="Center"/>
+                        <TextBlock Grid.Column="2"
+                                   Text=" seconds"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="6,0,0,0"/>
+                    </Grid>
+
+                    <TextBlock Text="Monitoring Targets"
+                               Foreground="{DynamicResource FgPrimaryBrush}"
+                               FontSize="12" FontWeight="SemiBold"
+                               Margin="0,0,0,8"/>
+
+                    <ItemsControl x:Name="TargetsList"
+                                  ItemsSource="{Binding HeartbeatTargets}"
+                                  Margin="0,0,0,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource BgInputBrush}"
+                                        CornerRadius="4" Padding="8,5"
+                                        Margin="0,0,0,4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="72"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Name}"
+                                                   Foreground="{DynamicResource FgPrimaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Target}"
+                                                   Foreground="{DynamicResource FgSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="8,0"/>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Type}"
+                                                   Foreground="{DynamicResource FgSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="11"/>
+                                        <Button Grid.Column="3"
+                                                Content="✕ Remove"
+                                                Height="26" FontSize="11"
+                                                Style="{DynamicResource DangerButtonStyle}"
+                                                Command="{Binding DataContext.RemoveHeartbeatTargetCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Background="{DynamicResource BgInputBrush}"
+                            CornerRadius="6" Padding="12,10">
+                        <StackPanel>
+                            <TextBlock Text="Add Target"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource FgSecondaryBrush}"
+                                       Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding NewTargetName, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{DynamicResource InputStyle}"
+                                         Height="30" Margin="0,0,6,0"
+                                         ToolTip="Name (e.g. MyApp.exe)"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding NewTargetTarget, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{DynamicResource InputStyle}"
+                                         Height="30" Margin="0,0,6,0"
+                                         ToolTip="Process name or URL"/>
+                                <ComboBox Grid.Column="2"
+                                          ItemsSource="{Binding TargetTypes}"
+                                          SelectedItem="{Binding NewTargetType}"
+                                          Style="{DynamicResource ComboStyle}"
+                                          Height="30" Margin="0,0,6,0"/>
+                                <Button Grid.Column="3"
+                                        Content="+ Add"
+                                        Height="30"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
+                                        Command="{Binding AddHeartbeatTargetCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 7 — Tray Customizer                   [Phase 16]
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="📌  Tray Customizer"
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,6"/>
+                    <TextBlock Text="Select which App Launcher entries appear as shortcuts in the system tray menu. Maximum 20. Entries are grouped by type — if you have more than fit on screen, Windows scrolls automatically."
+                               Foreground="{DynamicResource FgSecondaryBrush}"
+                               FontSize="11" TextWrapping="Wrap"
+                               Margin="0,0,0,12"/>
+
+                    <!-- ⚠ Limit warning -->
+                    <Border Background="{DynamicResource StatusWarnBrush}"
+                            CornerRadius="4" Padding="10,6"
+                            Margin="0,0,0,10"
+                            Visibility="{Binding TrayLimitVisibility}">
+                        <TextBlock Text="{Binding TrayLimitWarning}"
+                                   Foreground="White" FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Border>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="No apps configured in App Launcher yet. Add apps in the Launcher tab first."
+                               Foreground="{DynamicResource FgMutedBrush}"
+                               FontStyle="Italic" FontSize="12"
+                               Visibility="{Binding EmptyAppsVisibility}"/>
+
+                    <!-- Column headers -->
+                    <Grid Margin="26,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="52"/>
+                            <ColumnDefinition Width="115"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="160"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Name"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="1" Text="Emoji"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="2" Text="Color (#RRGGBB)"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="3" Text="Preview"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="4" Text="Type"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="5" Text="Font Style"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FgSecondaryBrush}"
+                                   Margin="8,0,0,0"/>
+                    </Grid>
+                    <Separator Style="{DynamicResource SeparatorStyle}" Margin="0,0,0,6"/>
+
+                    <!-- App entry rows -->
+                    <ItemsControl ItemsSource="{Binding TrayEntries}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="52"/>
+                                        <ColumnDefinition Width="115"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="130"/>
+                                        <ColumnDefinition Width="160"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Col 0: Checkbox + effective emoji + name -->
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding ShowInTray}"
+                                              Style="{DynamicResource CheckStyle}"
+                                              VerticalAlignment="Center">
+                                        <CheckBox.Content>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding EffectiveEmoji}"
+                                                           FontSize="13"
+                                                           FontFamily="Segoe UI Emoji, Segoe UI Symbol, Segoe UI"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,5,0"/>
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{DynamicResource FgPrimaryBrush}"
+                                                           FontSize="13"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </CheckBox.Content>
+                                    </CheckBox>
+
+                                    <!-- Col 1: Per-app emoji override -->
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding TagEmoji, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{DynamicResource InputStyle}"
+                                             Height="37" Width="52"
+                                             FontSize="12"
+                                             FontFamily="Segoe UI Emoji, Segoe UI Symbol, Segoe UI"
+                                             TextAlignment="Center"
+                                             Margin="0,0,0,0"
+                                             ToolTip="Per-app emoji override (leave empty to use type default)"/>
+
+                                    <!-- Col 2: Per-app hex color override -->
+                                    <TextBox Grid.Column="2"
+                                             Text="{Binding TagColor, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{DynamicResource InputStyle}"
+                                             Height="37" Width="90"
+                                             FontFamily="Consolas" FontSize="12"
+                                             Margin="0,0,7,0"
+                                             ToolTip="Per-app color override, e.g. #FF5C5C (leave empty to use type default)"/>
+
+                                    <!-- Col 3: Live preview pill -->
+                                    <Border Grid.Column="3"
+                                            Background="{Binding EffectiveBrush}"
+                                            CornerRadius="10" Padding="6,3"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            MinWidth="60">
+                                        <TextBlock Text="{Binding EffectiveEmoji}"
+                                                   FontSize="13"
+                                                   FontFamily="Segoe UI Emoji, Segoe UI Symbol, Segoe UI"
+                                                   Foreground="White"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+
+                                    <!-- Col 4: Type badge pill -->
+                                    <Border Grid.Column="4"
+                                            Background="{Binding TypeBrush}"
+                                            CornerRadius="10" Padding="8,2"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Opacity="0.85">
+                                        <TextBlock Text="{Binding TypeLabel}"
+                                                   FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="White"/>
+                                    </Border>
+
+                                    <!-- Col 5: Font Style buttons (B / S / I / ~S~ / N) -->
+                                    <StackPanel Grid.Column="5"
+                                                Orientation="Horizontal"
+                                                VerticalAlignment="Center"
+                                                Margin="8,0,0,0">
+
+                                        <!-- Bold -->
+                                        <Button Command="{Binding SetBoldCommand}"
+                                                ToolTip="Bold"
+                                                Width="26" Height="26"
+                                                Margin="0,0,3,0"
+                                                Padding="0"
+                                                Style="{DynamicResource SecondaryButtonStyle}">
+                                            <TextBlock Text="B"
+                                                       FontWeight="Bold"
+                                                       FontSize="12"
+                                                       Foreground="{Binding IsStyleBold,
+                                                           Converter={StaticResource BoolToAccentBrushConverter}}"/>
+                                        </Button>
+
+                                        <!-- SemiBold -->
+                                        <Button Command="{Binding SetSemiBoldCommand}"
+                                                ToolTip="SemiBold"
+                                                Width="26" Height="26"
+                                                Margin="0,0,3,0"
+                                                Padding="0"
+                                                Style="{DynamicResource SecondaryButtonStyle}">
+                                            <TextBlock Text="S"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="12"
+                                                       Foreground="{Binding IsStyleSemiBold,
+                                                           Converter={StaticResource BoolToAccentBrushConverter}}"/>
+                                        </Button>
+
+                                        <!-- Italic -->
+                                        <Button Command="{Binding SetItalicCommand}"
+                                                ToolTip="Italic"
+                                                Width="26" Height="26"
+                                                Margin="0,0,3,0"
+                                                Padding="0"
+                                                Style="{DynamicResource SecondaryButtonStyle}">
+                                            <TextBlock Text="I"
+                                                       FontStyle="Italic"
+                                                       FontSize="12"
+                                                       Foreground="{Binding IsStyleItalic,
+                                                           Converter={StaticResource BoolToAccentBrushConverter}}"/>
+                                        </Button>
+
+                                        <!-- Strikethrough -->
+                                        <Button Command="{Binding SetStrikethroughCommand}"
+                                                ToolTip="Strikethrough"
+                                                Width="26" Height="26"
+                                                Margin="0,0,3,0"
+                                                Padding="0"
+                                                Style="{DynamicResource SecondaryButtonStyle}">
+                                            <TextBlock FontSize="11"
+                                                       Foreground="{Binding IsStyleStrikethrough,
+                                                           Converter={StaticResource BoolToAccentBrushConverter}}">
+                                                <TextBlock.TextDecorations>
+                                                    <TextDecoration Location="Strikethrough"/>
+                                                </TextBlock.TextDecorations>
+                                                S
+                                            </TextBlock>
+                                        </Button>
+
+                                        <!-- Normal (reset) -->
+                                        <Button Command="{Binding SetNormalCommand}"
+                                                ToolTip="Reset to Normal"
+                                                Width="26" Height="26"
+                                                Padding="0"
+                                                Style="{DynamicResource SecondaryButtonStyle}">
+                                            <TextBlock Text="N"
+                                                       FontSize="12"
+                                                       Foreground="{Binding IsStyleNormal,
+                                                           Converter={StaticResource BoolToAccentBrushConverter}}"/>
+                                        </Button>
+
+                                    </StackPanel>
+
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 CARD 8 — Tray Type Appearance              [Phase 14]
+            ════════════════════════════════════════════════════════ -->
+            <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="🎨  Tray Type Appearance"
+                   FontSize="14" FontWeight="SemiBold"
+                   Foreground="{DynamicResource AccentBrush}"
+                   Margin="0,0,0,6"/>
+                    <TextBlock Text="Set the emoji prefix and badge color for each type. These are the defaults — you can override individual apps in Tray Customizer above."
+                   Foreground="{DynamicResource FgSecondaryBrush}"
+                   FontSize="11" TextWrapping="Wrap"
+                   Margin="0,0,0,12"/>
+
+                    <!-- Column headers -->
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Type"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="1" Text="Emoji"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="2" Text="Color (#RRGGBB)"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+                        <TextBlock Grid.Column="3" Text="Preview"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+                    </Grid>
+                    <Separator Style="{DynamicResource SeparatorStyle}" Margin="0,0,0,4"/>
+
+                    <!-- One editable row per AppEntryType -->
+                    <ItemsControl ItemsSource="{Binding TrayTypeConfigs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Type name label -->
+                                    <TextBlock Grid.Column="0"
+                                   Text="{Binding TypeLabel}"
+                                   Foreground="{DynamicResource FgPrimaryBrush}"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"/>
+
+                                    <!-- Emoji TextBox — mai lat + mai înalt -->
+                                    <TextBox Grid.Column="1"
+                                 Text="{Binding Emoji, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 Height="37" Width="53"
+                                 FontSize="12"
+                                 FontFamily="Segoe UI Emoji, Segoe UI Symbol, Segoe UI"
+                                 TextAlignment="Center"
+                                 Margin="13,0,0,0"
+                                 ToolTip="Emoji or character prefix"/>
+
+                                    <!-- Hex color TextBox — mai lat + mai înalt -->
+                                    <TextBox Grid.Column="2"
+                                 Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource InputStyle}"
+                                 Height="37" Width="160"
+                                 FontFamily="Consolas" FontSize="16"
+                                 Margin="0,0,20,0"
+                                 ToolTip="Hex color for the type badge, e.g. #569CD6"/>
+
+                                    <!-- Live preview pill -->
+                                    <Border Grid.Column="3"
+                                Background="{Binding PreviewBrush}"
+                                CornerRadius="10" Padding="10,3"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Opacity="0.9">
+                                        <TextBlock Text="{Binding PreviewText}"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       FontFamily="Segoe UI Emoji, Segoe UI Symbol, Segoe UI"
+                                       Foreground="White"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="💡  Emoji: any single character or emoji. Color: #RRGGBB hex. Per-app overrides in Tray Customizer above."
+                   Foreground="{DynamicResource FgMutedBrush}"
+                   FontSize="11"
+                   Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════════════════
+                 Save / Restart / Reset buttons
+            ════════════════════════════════════════════════════════ -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,8,0,4">
+                <Button Content="🔄  Restart App"
+                        Width="150" Height="36"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Command="{Binding RestartCommand}"
+                        Margin="0,0,12,0"
+                        ToolTip="Saves settings then restarts DevPilot — useful after adding new apps"/>
+                <Button Content="↺  Reset to Defaults"
+                        Width="165" Height="36"
+                        Style="{DynamicResource DangerButtonStyle}"
+                        Command="{Binding ResetToDefaultsCommand}"
+                        Margin="0,0,12,0"/>
+                <Button Content="💾  Save Settings"
+                        Width="150" Height="36"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Command="{Binding SaveCommand}"/>
+            </StackPanel>
+
+            <!-- Status text -->
+            <TextBlock Text="{Binding StatusText}"
+                       Foreground="{DynamicResource StatusOkBrush}"
+                       FontSize="12" HorizontalAlignment="Right"
+                       Margin="0,6,0,20"/>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>
