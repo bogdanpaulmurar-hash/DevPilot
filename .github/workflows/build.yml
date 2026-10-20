@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -16,12 +19,11 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Restore
         run: dotnet restore DevPilot.sln
-      - name: Build
-        run: dotnet build DevPilot.sln -c Release --no-restore -warnaserror:false
       - name: Test
-        run: dotnet test DevPilot.sln -c Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+        run: dotnet test DevPilot.Tests/DevPilot.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=normal" --results-directory TestResults
+      - name: Build solution
+        run: dotnet build DevPilot.sln -c Release --no-restore
       - name: Publish app
-        if: success()
         run: dotnet publish DevPilot.UI/DevPilot.UI.csproj -c Release -r win-x64 --self-contained false -o publish/DevPilot
       - uses: actions/upload-artifact@v4
         if: always()
@@ -29,7 +31,6 @@ jobs:
           name: test-results
           path: TestResults
       - uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: DevPilot-win-x64
           path: publish/DevPilot
