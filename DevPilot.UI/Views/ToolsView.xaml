@@ -155,7 +155,7 @@
                                     <ColumnDefinition Width="16"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel>
+                                <StackPanel Visibility="{Binding HasArguments, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="Arguments" Style="{StaticResource FieldLabel}"/>
                                     <TextBox Text="{Binding Model.Arguments, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
                                 </StackPanel>

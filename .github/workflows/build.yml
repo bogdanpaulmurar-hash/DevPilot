@@ -54,7 +54,7 @@ jobs:
           if (Test-Path $errors) { Get-Content $errors | Select-Object -First 30 | ForEach-Object { Write-Output "::warning title=binding::$_" } }
           if ($p.ExitCode -ne 0) { throw "Smoke test failed (exit $($p.ExitCode))" }
       - name: Publish screenshots (ci-shots branch)
-        if: always() && github.event_name == 'push'
+        if: always() && github.event_name == 'push' && github.ref != 'refs/heads/main'
         shell: pwsh
         run: |
           $out = Join-Path $env:RUNNER_TEMP 'shots'

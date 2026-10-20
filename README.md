@@ -49,4 +49,4 @@ dotnet build DevPilot.sln -c Release
 dotnet test DevPilot.Tests
 ```
 
-The previous version is kept as the git tag `v1-legacy`.
+The previous version is kept in the branch `v1-legacy`.

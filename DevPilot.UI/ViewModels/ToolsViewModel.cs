@@ -508,6 +508,7 @@ public sealed class ToolEditorVM : ObservableObject
     public bool IsFolder => Model.IsFolderLike;
     public bool IsProcess => Model.IsProcessLike;
     public bool IsConsoleKind => Model.Kind is ToolKind.Python or ToolKind.PowerShell or ToolKind.Batch or ToolKind.ShellCommand or ToolKind.Executable;
+    public bool HasArguments => Model.Kind is not ToolKind.Url and not ToolKind.Folder and not ToolKind.NetworkShare;
     public bool HasWorkingDirectory => Model.Kind is not ToolKind.Url and not ToolKind.Folder and not ToolKind.NetworkShare;
     public string PathLabel => Model.Kind switch
     {
