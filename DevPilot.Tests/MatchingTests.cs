@@ -99,3 +99,33 @@ public class MatchingTests
         Assert.Equal(ToolKind.Python, fp.Kind);
     }
 }
+
+public class ManifestTests
+{
+    [Fact]
+    public void Manifest_is_found_and_applied()
+    {
+        using var tmp = new TempDir();
+        var script = Path.Combine(tmp.Path, "mytool.pyw");
+        File.WriteAllText(script, "");
+        File.WriteAllText(Path.Combine(tmp.Path, ToolManifest.FileName), """
+        {
+          "description": "From manifest",
+          "glyph": "E722",
+          "processMatch": "mytool.pyw",
+          "actions": [ { "label": "Do it", "kind": "Arguments", "arguments": "--do", "featured": true },
+                       { "label": "Docs", "kind": "Url", "value": "http://127.0.0.1:9000/" } ]
+        }
+        """);
+        var tool = new ToolEntry { Name = "Mine", Kind = ToolKind.Python, Path = script };
+        var found = ToolManifest.Find(tool);
+        Assert.NotNull(found);
+        ToolManifest.Load(found!).ApplyTo(tool);
+        Assert.Equal("Mine", tool.Name);
+        Assert.Equal("From manifest", tool.Description);
+        Assert.Equal("", tool.Glyph);
+        Assert.Equal(2, tool.Actions.Count);
+        Assert.Equal(ActionKind.Url, tool.Actions[1].Kind);
+        Assert.All(tool.Actions, a => Assert.False(string.IsNullOrEmpty(a.Id)));
+    }
+}

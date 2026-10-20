@@ -390,6 +390,7 @@ public sealed class ToolEditorVM : ObservableObject
     public ICommand StopCommand { get; }
     public ICommand DetectCommand { get; }
     public ICommand ApplyPresetCommand { get; }
+    public ICommand LoadManifestCommand { get; }
 
     public ToolEditorVM(ToolEntry model, ToolsViewModel owner, IConfigStore config, ILauncher launcher, IProcessMonitor monitor)
     {
@@ -447,6 +448,25 @@ public sealed class ToolEditorVM : ObservableObject
         StartCommand = new AsyncCommand(async () => { await FlyoutBuilder.Run(_launcher.StartAsync(Model), Model.Name); await DetectAsync(); });
         StopCommand = new AsyncCommand(async () => { await _launcher.StopAsync(Model); await DetectAsync(); });
         DetectCommand = new AsyncCommand(DetectAsync);
+        LoadManifestCommand = new RelayCommand(() =>
+        {
+            var path = ToolManifest.Find(Model);
+            if (path is null)
+            {
+                var dlg = new OpenFileDialog { Title = "devpilot.tool.json", Filter = "DevPilot manifest (devpilot.tool.json)|devpilot.tool.json;*.json" };
+                if (dlg.ShowDialog() != true) return;
+                path = dlg.FileName;
+            }
+            try
+            {
+                ToolManifest.Load(path).ApplyTo(Model, overwrite: true);
+                Actions.Clear();
+                foreach (var a in Model.Actions) Actions.Add(new ActionEditorVM(a));
+                RefreshAll();
+                Touch();
+            }
+            catch (Exception ex) { Notifier.Error("devpilot.tool.json", ex.Message); }
+        });
         ApplyPresetCommand = new RelayCommand(p =>
         {
             if (p is not ToolPreset preset) return;
@@ -606,6 +626,11 @@ public sealed class ToolEditorVM : ObservableObject
         if (string.IsNullOrWhiteSpace(Model.Name) || Model.Name is "New tool")
             Model.Name = System.IO.Path.GetFileNameWithoutExtension(file.FileName);
         ToolPresets.ApplyIfRecognised(Model, overwriteUserFields: false);
+        if (ToolManifest.Find(Model) is { } manifest && Model.Actions.Count == 0)
+        {
+            try { ToolManifest.Load(manifest).ApplyTo(Model); }
+            catch (Exception ex) { Notifier.Error("devpilot.tool.json", ex.Message); }
+        }
         Actions.Clear();
         foreach (var a in Model.Actions) Actions.Add(new ActionEditorVM(a));
         RefreshAll();

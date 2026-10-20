@@ -434,6 +434,8 @@
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                                     <Button Content="Reset to defaults" Margin="0,0,6,0" Command="{Binding ResetActionsCommand}"
                                             Visibility="{Binding CanResetActions, Converter={StaticResource BoolToVis}}"/>
+                                    <Button Content="From devpilot.tool.json" Margin="0,0,6,0" Command="{Binding LoadManifestCommand}"
+                                            ToolTip="Load the options a tool describes in its devpilot.tool.json (see docs/INTEGRATION.md)"/>
                                     <Button Content="Separator" Margin="0,0,6,0" Command="{Binding AddSeparatorCommand}"/>
                                     <Button Style="{StaticResource AccentButton}" Content="Add option" Command="{Binding AddActionCommand}"/>
                                 </StackPanel>
