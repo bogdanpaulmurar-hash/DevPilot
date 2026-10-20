@@ -1,17 +1,33 @@
-﻿<Application x:Class="DevPilot.UI.App"
+<Application x:Class="DevPilot.UI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converters="clr-namespace:DevPilot.UI.Converters">
+             xmlns:conv="clr-namespace:DevPilot.UI.Converters"
+             ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Styles/DarkTheme.xaml"/>
-                <ResourceDictionary Source="TrayIcon.xaml"/>
+                <ResourceDictionary Source="Themes/Dark.xaml"/>
+                <ResourceDictionary Source="Themes/Controls.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <converters:PathToImageConverter       x:Key="PathToImageConverter"/>
-            <converters:NullToVisibilityConverter  x:Key="NullToVisibilityConverter"/>
-            <converters:BoolToAccentBrushConverter x:Key="BoolToAccentBrushConverter"/>
+            <!-- Accent defaults (replaced at runtime by ThemeService) -->
+            <Color x:Key="AccentColor">#4F8EF7</Color>
+            <SolidColorBrush x:Key="AccentBrush" Color="#4F8EF7"/>
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="#6A9FF8"/>
+            <SolidColorBrush x:Key="AccentSoftBrush" Color="#2E4F8EF7"/>
+            <SolidColorBrush x:Key="AccentForegroundBrush" Color="White"/>
+            <SolidColorBrush x:Key="SpotlightBrush" Color="#4F8EF7"/>
+            <SolidColorBrush x:Key="SpotlightSoftBrush" Color="#244F8EF7"/>
+            <SolidColorBrush x:Key="SpotlightForegroundBrush" Color="White"/>
+
+            <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisInv" Invert="True"/>
+            <conv:InverseBoolConverter x:Key="InverseBool"/>
+            <conv:HexToBrushConverter x:Key="HexToBrush"/>
+            <conv:EnumEqualsConverter x:Key="EnumEquals"/>
+            <conv:RunStateToBrushConverter x:Key="RunStateBrush"/>
+            <conv:BoolToFontWeightConverter x:Key="BoolToWeight"/>
+            <conv:BoolToFontStyleConverter x:Key="BoolToStyle"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

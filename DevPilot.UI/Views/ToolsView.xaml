@@ -1,0 +1,613 @@
+<UserControl x:Class="DevPilot.UI.Views.ToolsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DevPilot.UI.ViewModels"
+             xmlns:svc="clr-namespace:DevPilot.UI.Services"
+             xmlns:core="clr-namespace:DevPilot.Core.Interfaces;assembly=DevPilot.Core"
+             xmlns:presets="clr-namespace:DevPilot.Core.Presets;assembly=DevPilot.Core">
+    <UserControl.Resources>
+        <!-- List entries -->
+        <DataTemplate DataType="{x:Type vm:GroupListEntry}">
+            <Grid Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Ellipse Width="7" Height="7" Margin="0,0,8,0" Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
+                         Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
+                <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="2" Text="{Binding CountText}" Style="{StaticResource Hint}" Margin="6,0,0,0"/>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ToolListEntry}">
+            <Grid Margin="12,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="24"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="3" Height="14" CornerRadius="1.5" Margin="0,0,6,0" Background="{Binding Color, Converter={StaticResource HexToBrush}}"/>
+                <TextBlock Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" HorizontalAlignment="Left" TextAlignment="Left"/>
+                <TextBlock x:Name="Name" Grid.Column="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <TextBlock Text="&#xE734;" Style="{StaticResource Glyph}" FontSize="11" Margin="6,0,0,0" ToolTip="Spotlight card"
+                               Visibility="{Binding IsSpotlight, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="{Binding Badge}" Style="{StaticResource Hint}" Margin="6,0,0,0"/>
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsHidden}" Value="True">
+                    <Setter TargetName="Name" Property="Opacity" Value="0.5"/>
+                    <Setter TargetName="Name" Property="FontStyle" Value="Italic"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Shared pickers -->
+        <DataTemplate x:Key="GlyphPicker">
+            <ItemsControl ItemsSource="{x:Static presets:Glyphs.Catalogue}" Margin="0,8,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type presets:GlyphInfo}">
+                        <Button Style="{StaticResource IconButton}" Content="{Binding Glyph}" ToolTip="{Binding Name}" Margin="0,0,2,2"
+                                Foreground="{DynamicResource TextBrush}"
+                                Command="{Binding DataContext.SetGlyphCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding Glyph}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DataTemplate>
+
+        <!-- Tool editor -->
+        <DataTemplate DataType="{x:Type vm:ToolEditorVM}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" svc:EditTracker.Area="{x:Static core:ConfigArea.Tools}">
+                <StackPanel Margin="24,0,32,32" MaxWidth="820" HorizontalAlignment="Left">
+                    <!-- Header -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="44" Height="44" CornerRadius="10" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                            <Grid>
+                                <TextBlock Text="{Binding DisplayGlyph}" Style="{StaticResource Glyph}" FontSize="20" Foreground="{DynamicResource TextBrush}"/>
+                                <Border Width="3" Height="20" CornerRadius="1.5" HorizontalAlignment="Left" Margin="-1,0,0,0"
+                                        Background="{Binding Color, Converter={StaticResource HexToBrush}}"/>
+                            </Grid>
+                        </Border>
+                        <TextBox Grid.Column="1" Text="{Binding Model.Name, UpdateSourceTrigger=PropertyChanged}" FontSize="18" FontWeight="SemiBold"
+                                 Margin="12,0,12,0" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource AccentButton}" Command="{Binding StartCommand}" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE768;" Style="{StaticResource Glyph}" Foreground="{DynamicResource AccentForegroundBrush}" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Start"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Content="Stop" Command="{Binding StopCommand}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- What it starts -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="What it starts" Style="{StaticResource SectionTitle}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{x:Static vm:ToolEditorVM.Kinds}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Kind}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Group" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding Groups}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding GroupId}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="{Binding PathLabel}" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding Path, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                <Button Grid.Column="1" Content="Browse…" Margin="6,0,0,0" Command="{Binding BrowsePathCommand}"/>
+                            </Grid>
+
+                            <StackPanel Visibility="{Binding IsPython, Converter={StaticResource BoolToVis}}">
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Python module (-m)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Model.PythonModule, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Interpreter (empty = pythonw.exe from PATH)" Style="{StaticResource FieldLabel}"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Text="{Binding Interpreter, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                            <Button Grid.Column="1" Content="…" Margin="6,0,0,0" Command="{Binding BrowseInterpreterCommand}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Visibility="{Binding HasArguments, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Arguments" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Model.Arguments, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Visibility="{Binding HasWorkingDirectory, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Working folder" ToolTip="Empty = the folder of the program or script" Style="{StaticResource FieldLabel}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                        <Button Grid.Column="1" Content="…" Margin="6,0,0,0" Command="{Binding BrowseWorkDirCommand}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="Description (shown in the hub when descriptions are on)" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                            <TextBox Text="{Binding Model.Description, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <WrapPanel Margin="0,10,0,0">
+                                <CheckBox Content="Run as administrator" IsChecked="{Binding Model.RunAsAdmin}" Margin="0,0,24,0"
+                                          Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}"/>
+                                <CheckBox Content="No console window" IsChecked="{Binding Model.HideWindow}" Margin="0,0,24,0"
+                                          Visibility="{Binding IsConsoleKind, Converter={StaticResource BoolToVis}}"/>
+                                <CheckBox Content="Hide from the hub" IsChecked="{Binding Model.Hidden}"/>
+                            </WrapPanel>
+                            <TextBlock Text="Tokens you can use in paths and arguments: {ToolDir}, {Home}, {Pictures}, {Documents}, {Desktop}, {AppData}, {LocalAppData} and %VARIABLES%."
+                                       Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+
+                            <!-- Known tool -->
+                            <Border Margin="0,12,0,0" Padding="12,10" CornerRadius="6" Background="{DynamicResource Surface2Brush}"
+                                    Visibility="{Binding HasPreset, Converter={StaticResource BoolToVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Preset.Name, StringFormat='Known tool: {0}'}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding PresetNotes}" Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Margin="0,12,0,0" Visibility="{Binding HasPreset, Converter={StaticResource BoolToVisInv}}">
+                                <TextBlock Text="Is this one of your known tools? Apply its defaults (actions, process match, autostart arguments):" Style="{StaticResource Hint}"/>
+                                <ItemsControl ItemsSource="{Binding AllPresets}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Content="{Binding Name}" Margin="0,0,6,6"
+                                                    Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Look -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Look in the hub" Style="{StaticResource SectionTitle}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Symbol (pick, type a character or a code like E722)" Style="{StaticResource FieldLabel}" TextWrapping="Wrap"/>
+                                    <TextBox Text="{Binding Glyph, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GlyphFont}" FontSize="15" svc:EditTracker.NoTrack="True"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Marker colour (optional — shown as a thin bar, never as coloured text)" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ItemsControl ItemsSource="{x:Static vm:ToolEditorVM.Palette}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="22" Height="22" MinHeight="0" Padding="0" Margin="0,0,5,0" ToolTip="{Binding}"
+                                                            Background="{Binding Converter={StaticResource HexToBrush}}" BorderThickness="0"
+                                                            Command="{Binding DataContext.SetColorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBox Text="{Binding Color, UpdateSourceTrigger=LostFocus}" Width="90" Margin="6,0,0,0" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                                 svc:EditTracker.NoTrack="True"/>
+                                        <Button Content="None" Margin="6,0,0,0" Command="{Binding SetColorCommand}" CommandParameter=""/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                            <ContentControl ContentTemplate="{StaticResource GlyphPicker}" Content="{Binding}" Focusable="False"/>
+                            <WrapPanel Margin="0,10,0,0">
+                                <CheckBox Content="Bold" IsChecked="{Binding Model.Bold}" Margin="0,0,24,0"/>
+                                <CheckBox Content="Italic" IsChecked="{Binding Model.Italic}" Margin="0,0,24,0"/>
+                                <CheckBox Content="Spotlight card at the top of the hub (one tool)" IsChecked="{Binding Model.Spotlight}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Tray -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Tray icon" Style="{StaticResource SectionTitle}"/>
+                            <RadioButton GroupName="tray" IsChecked="{Binding Tray, Converter={StaticResource EnumEquals}, ConverterParameter=HubOnly}">
+                                <StackPanel>
+                                    <TextBlock Text="Only in the DevPilot hub (recommended)"/>
+                                    <TextBlock Text="DevPilot asks the tool not to show its own icon." Style="{StaticResource Hint}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton GroupName="tray" Margin="0,8,0,0" IsChecked="{Binding Tray, Converter={StaticResource EnumEquals}, ConverterParameter=DevPilotIcon}">
+                                <StackPanel>
+                                    <TextBlock Text="Separate icon drawn by DevPilot"/>
+                                    <TextBlock Text="Its own icon next to DevPilot's, with this tool's options. The tool's native icon is still suppressed." Style="{StaticResource Hint}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton GroupName="tray" Margin="0,8,0,0" IsChecked="{Binding Tray, Converter={StaticResource EnumEquals}, ConverterParameter=Native}"
+                                         Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="Keep the tool's own tray icon"/>
+                                    <TextBlock Text="DevPilot does not touch the tool's icon." Style="{StaticResource Hint}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <Grid Margin="0,10,0,0" Visibility="{Binding IsDevPilotIcon, Converter={StaticResource BoolToVis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding IconPath, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                         ToolTip="Optional .ico / .exe / .png. Empty = the tool's symbol on its colour."/>
+                                <Button Grid.Column="1" Content="Icon file…" Margin="6,0,0,0" Command="{Binding BrowseIconCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Managed by DevPilot -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Managed by DevPilot" Style="{StaticResource SectionTitle}"/>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Model.Managed.Enabled}"
+                                      Content="Tell the tool that DevPilot owns tray, keep-awake and start with Windows"/>
+                            <StackPanel IsEnabled="{Binding Model.Managed.Enabled}" Margin="0,4,0,0">
+                                <CheckBox Content="Ask the tool to turn off its own keep-awake / mouse mover" IsChecked="{Binding Model.Managed.SuppressKeepAwake}"/>
+                                <CheckBox Content="Ask the tool not to register itself to start with Windows" IsChecked="{Binding Model.Managed.SuppressAutostart}"/>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Extra arguments when its tray is suppressed" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Model.Managed.NoTrayArguments, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Extra environment (KEY=VALUE per line)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Style="{StaticResource MultiLineBox}" Text="{Binding Model.Managed.ExtraEnvironment, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="{Binding SuppressText}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}"/>
+                                <TextBlock Text="{Binding PresetSupport}" Style="{StaticResource Hint}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Autostart -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Start with DevPilot" Style="{StaticResource SectionTitle}"/>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Model.AutoStart.Enabled}"
+                                      Content="DevPilot starts this tool when DevPilot starts (instead of the tool's own Windows autostart)"/>
+                            <Grid Margin="0,8,0,0" IsEnabled="{Binding Model.AutoStart.Enabled}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Delay (seconds)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Model.AutoStart.DelaySeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Order" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Model.AutoStart.Order, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="Arguments for the automatic start (empty = normal)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Model.AutoStart.Arguments, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Monitoring -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Status and auto-restart" Style="{StaticResource SectionTitle}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Recognise the process by (empty = automatic; ';' separates)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Model.Monitor.ProcessMatch, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Health URL (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Model.Monitor.HealthUrl, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <CheckBox Content="Restart automatically if it stops" IsChecked="{Binding Model.Monitor.AutoRestart}"/>
+                                <TextBlock Text="max per hour" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="20,0,8,0"/>
+                                <TextBox Text="{Binding Model.Monitor.MaxRestartsPerHour, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                            </StackPanel>
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Content="Check now" Command="{Binding DetectCommand}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding ProcessInfo}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Folder -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsFolder, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Folder content in the hub" Style="{StaticResource SectionTitle}"/>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Model.Folder.ExpandInHub}" Content="Show what is inside the folder when hovering it"/>
+                            <StackPanel IsEnabled="{Binding Model.Folder.ExpandInHub}" Margin="0,6,0,0">
+                                <WrapPanel>
+                                    <CheckBox Content="Sub-folders" IsChecked="{Binding Model.Folder.ShowFolders}" Margin="0,0,20,0"/>
+                                    <CheckBox Content="Files" IsChecked="{Binding Model.Folder.ShowFiles}" Margin="0,0,20,0"/>
+                                    <CheckBox Content="Hidden items" IsChecked="{Binding Model.Folder.ShowHidden}" Margin="0,0,20,0"/>
+                                    <CheckBox Content="Folders first" IsChecked="{Binding Model.Folder.FoldersFirst}"/>
+                                </WrapPanel>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="160"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Only files like (e.g. *.xlsx; *.docx)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Model.Folder.Filter, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Max items" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Model.Folder.MaxItems, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="{Binding Model.Folder.Depth, StringFormat='Nested levels: {0}'}" Style="{StaticResource FieldLabel}"/>
+                                        <Slider Minimum="1" Maximum="5" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Model.Folder.Depth}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Actions -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Options shown on hover" Style="{StaticResource SectionTitle}" Margin="0"/>
+                                    <TextBlock Text="What used to be in the tool's own tray menu. Featured options become the big buttons of the spotlight card." Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                    <Button Content="Reset to defaults" Margin="0,0,6,0" Command="{Binding ResetActionsCommand}"
+                                            Visibility="{Binding CanResetActions, Converter={StaticResource BoolToVis}}"/>
+                                    <Button Content="From devpilot.tool.json" Margin="0,0,6,0" Command="{Binding LoadManifestCommand}"
+                                            ToolTip="Load the options a tool describes in its devpilot.tool.json (see docs/INTEGRATION.md)"/>
+                                    <Button Content="Separator" Margin="0,0,6,0" Command="{Binding AddSeparatorCommand}"/>
+                                    <Button Style="{StaticResource AccentButton}" Content="Add option" Command="{Binding AddActionCommand}"/>
+                                </StackPanel>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Actions}" Margin="0,12,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ActionEditorVM}">
+                                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- separator -->
+                                                <TextBlock Text="— separator —" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0"
+                                                           Visibility="{Binding IsSeparator, Converter={StaticResource BoolToVis}}"/>
+                                                <!-- action -->
+                                                <Grid Visibility="{Binding IsNotSeparator, Converter={StaticResource BoolToVis}}">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="48"/>
+                                                        <ColumnDefinition Width="2*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="2*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Text="{Binding Model.Glyph, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource GlyphFont}" FontSize="14"
+                                                             ToolTip="Symbol (character or code like E722)" HorizontalContentAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBox Grid.Column="1" Text="{Binding Model.Label, UpdateSourceTrigger=PropertyChanged}" ToolTip="Label"/>
+                                                    <ComboBox Grid.Column="3" ItemsSource="{x:Static vm:ToolEditorVM.ActionKinds}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                              SelectedValue="{Binding Kind}"/>
+                                                    <TextBox Grid.Column="5" Text="{Binding Model.Section, UpdateSourceTrigger=PropertyChanged}" ToolTip="Section title (optional)"/>
+                                                    <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" Margin="0,6,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="8"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBox Text="{Binding Model.Value, UpdateSourceTrigger=PropertyChanged}" ToolTip="{Binding ValueHint}"
+                                                                 FontFamily="{StaticResource MonoFont}" FontSize="12" Visibility="{Binding ShowValue, Converter={StaticResource BoolToVis}}"/>
+                                                        <TextBox Grid.Column="2" Text="{Binding Model.Arguments, UpdateSourceTrigger=PropertyChanged}" ToolTip="Arguments"
+                                                                 FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
+                                                            <CheckBox Content="Featured" IsChecked="{Binding Model.Featured}" Margin="0,0,12,0"/>
+                                                            <CheckBox Content="Bold" IsChecked="{Binding Model.Bold}"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Grid>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="8,0,0,0">
+                                                    <Button Style="{StaticResource IconButton}" Content="&#xE768;" ToolTip="Try it"
+                                                            Visibility="{Binding IsNotSeparator, Converter={StaticResource BoolToVis}}"
+                                                            Command="{Binding DataContext.TestActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                    <Button Style="{StaticResource IconButton}" Content="&#xE70E;" ToolTip="Up"
+                                                            Command="{Binding DataContext.ActionUpCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                    <Button Style="{StaticResource IconButton}" Content="&#xE70D;" ToolTip="Down"
+                                                            Command="{Binding DataContext.ActionDownCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                    <Button Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Remove"
+                                                            Command="{Binding DataContext.RemoveActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="No options yet. Start / Stop / Restart / Open location are added automatically." Style="{StaticResource Hint}"
+                                       Visibility="{Binding Actions.Count, Converter={StaticResource BoolToVisInv}}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- Group editor -->
+        <DataTemplate DataType="{x:Type vm:GroupEditorVM}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" svc:EditTracker.Area="{x:Static core:ConfigArea.Groups}">
+                <StackPanel Margin="24,0,32,32" MaxWidth="720" HorizontalAlignment="Left">
+                    <TextBlock Text="Group" Style="{StaticResource Overline}"/>
+                    <TextBox Text="{Binding Model.Title, UpdateSourceTrigger=PropertyChanged}" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,16"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Look" Style="{StaticResource SectionTitle}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Symbol (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Glyph, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GlyphFont}" FontSize="15" svc:EditTracker.NoTrack="True"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Colour dot (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ItemsControl ItemsSource="{x:Static vm:GroupEditorVM.Palette}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Width="22" Height="22" MinHeight="0" Padding="0" Margin="0,0,5,0" BorderThickness="0"
+                                                            Background="{Binding Converter={StaticResource HexToBrush}}"
+                                                            Command="{Binding DataContext.SetColorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Button Content="None" Command="{Binding SetColorCommand}" CommandParameter=""/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                            <ContentControl ContentTemplate="{StaticResource GlyphPicker}" Content="{Binding}" Focusable="False"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Behaviour" Style="{StaticResource SectionTitle}"/>
+                            <CheckBox Style="{StaticResource Switch}" Content="Collapsed in the hub" IsChecked="{Binding Model.Collapsed}"/>
+                            <CheckBox Style="{StaticResource Switch}" Content="Hide the whole group from the hub" IsChecked="{Binding Model.Hidden}"/>
+                            <TextBlock Text="{Binding ToolCount, StringFormat='{}{0} tool(s) in this group. Use the arrows on the left to reorder, or the Group field of a tool to move it.'}"
+                                       Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="32,4,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.ColumnSpan="2" Margin="0,0,32,16">
+            <TextBlock Text="Tools &amp; groups" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="Create your own groups, put tools under them and decide what each tool shows on hover. Changes are saved automatically." Style="{StaticResource PageSubtitle}"/>
+        </StackPanel>
+
+        <!-- List -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="8" Margin="0,0,0,24">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Style="{StaticResource AccentButton}" Click="Add_Click" Padding="10,5">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" Style="{StaticResource Glyph}" FontSize="11" Foreground="{DynamicResource AccentForegroundBrush}" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Content="Group" Margin="6,0,0,0" Command="{Binding AddGroupCommand}" ToolTip="New group"/>
+                    <Button Style="{StaticResource IconButton}" Content="&#xE70E;" Margin="6,0,0,0" Command="{Binding MoveUpCommand}" ToolTip="Move up"/>
+                    <Button Style="{StaticResource IconButton}" Content="&#xE70D;" Command="{Binding MoveDownCommand}" ToolTip="Move down"/>
+                    <Button Style="{StaticResource IconButton}" Content="&#xE8C8;" Command="{Binding DuplicateCommand}" ToolTip="Duplicate"/>
+                    <Button Style="{StaticResource IconButton}" Content="&#xE74D;" Command="{Binding DeleteCommand}" ToolTip="Remove"/>
+                </StackPanel>
+                <ListBox Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"/>
+            </Grid>
+        </Border>
+
+        <ContentControl Grid.Row="1" Grid.Column="1" Content="{Binding Editor}" Focusable="False"/>
+    </Grid>
+</UserControl>

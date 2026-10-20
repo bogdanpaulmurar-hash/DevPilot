@@ -1,109 +1,100 @@
-// ============================================================
-// DevPilot — IT Automation Hub v1.0
-// AppSettings.cs — Root config model (persisted as config.json)
-// Phase: 13 (+HideJigglerInTray, +TrayTypeConfigs)
-// Author: Bogdan Murar (Z003FU5C) — Siemens AG
-// ============================================================
-
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
-
 namespace DevPilot.Models;
 
+/// <summary>Root of %APPDATA%\DevPilot\config.json (schema v2).</summary>
 public class AppSettings
 {
-    // ── Appearance ────────────────────────────────────────────────────────
-    [JsonPropertyName("theme")]
-    public string Theme { get; set; } = "dark";
+    public const int CurrentSchema = 2;
 
-    // ── Window behaviour ──────────────────────────────────────────────────
-    [JsonPropertyName("minimize_to_tray")]
-    public bool MinimizeToTray { get; set; } = true;
+    public int SchemaVersion { get; set; } = CurrentSchema;
 
-    // ── Tab Visibility ────────────────────────────────────────────────────
-    [JsonPropertyName("tab_visibility")]
-    public Dictionary<string, bool> TabVisibility { get; set; } = new()
-    {
-        ["Tools"]      = true,
-        ["Jiggler"]    = true,
-        ["Screenshot"] = true,
-        ["Heartbeat"]  = true,
-    };
+    public ThemeMode Theme { get; set; } = ThemeMode.Dark;
+    /// <summary>The single accent colour of the UI.</summary>
+    public string Accent { get; set; } = "#4F8EF7";
 
-    // ── Mouse Jiggler ─────────────────────────────────────────────────────
-    [JsonPropertyName("jiggler_enabled")]
-    public bool JigglerEnabled { get; set; } = false;
+    public List<ToolGroup> Groups { get; set; } = [];
+    public List<ToolEntry> Tools { get; set; } = [];
 
-    [JsonPropertyName("jiggler_interval_sec")]
-    public int JigglerIntervalSec { get; set; } = 60;
-
-    /// <summary>"Mouse Move" or "Key Press"</summary>
-    [JsonPropertyName("jiggler_method")]
-    public string JigglerMethod { get; set; } = "Mouse Move";
-
-    // ── Heartbeat ─────────────────────────────────────────────────────────
-    [JsonPropertyName("heartbeat_enabled")]
-    public bool HeartbeatEnabled { get; set; } = false;
-
-    [JsonPropertyName("heartbeat_interval_sec")]
-    public int HeartbeatIntervalSec { get; set; } = 30;
-
-    [JsonPropertyName("heartbeat_targets")]
-    public List<HeartbeatTarget> HeartbeatTargets { get; set; } = [];
-
-    [JsonPropertyName("heartbeat_auto_restart")]
-    public bool HeartbeatAutoRestart { get; set; } = false;
-
-    // ── Screenshot ────────────────────────────────────────────────────────
-    [JsonPropertyName("screenshot_save_folder")]
-    public string ScreenshotSaveFolder { get; set; } = string.Empty;
-
-    // ── Tool Paths ────────────────────────────────────────────────────────
-    [JsonPropertyName("data_cleansing_exe_path")]
-    public string DataCleansingExePath { get; set; } =
-        @"D:\DataCleansingWork\Sources\DCWrapperStarterApp\DataCleansing.MasterApp.Starter.exe";
-
-    [JsonPropertyName("test_client_exe_path")]
-    public string TestClientExePath { get; set; } =
-        @"D:\TestBenchAutomationWork\Sources\TestClientUtilityApp\TestClientUtilityApp.exe";
-
-    [JsonPropertyName("tc_mgmt_starter_exe_path")]
-    public string TcMgmtStarterExePath { get; set; } =
-        @"D:\TestBenchAutomationWork\Sources\TCMgmtLocalAppStarter.exe";
-
-    // ── App Launcher ──────────────────────────────────────────────────────
-    [JsonPropertyName("apps")]
-    public List<AppEntry> Apps { get; set; } = [];
-
-    // ── Tray Customizer ───────────────────────────────────────────────────
-    /// <summary>Key = AppEntry.Id, Value = show as tray shortcut (legacy compat).</summary>
-    [JsonPropertyName("show_in_tray")]
-    public Dictionary<string, bool> ShowInTray { get; set; } = new();
-
-    // ── Tray Appearance ───────────────────────────────────────────────────
-    /// <summary>
-    /// When true the Jiggler toggle item is hidden from the tray context menu.
-    /// The jiggler service continues running normally.
-    /// </summary>
-    [JsonPropertyName("hide_jiggler_in_tray")]
-    public bool HideJigglerInTray { get; set; } = false;
-
-    /// <summary>Width in pixels of the teal sidebar in the tray context menu. Default 26.</summary>
-    [JsonPropertyName("tray_sidebar_width")]
-    public int TraySidebarWidth { get; set; } = 26;
-
-    /// <summary>
-    /// Per-type emoji + color overrides. Key = AppEntryType.ToString().
-    /// Initialised with built-in presets; user can override in Settings.
-    /// </summary>
-    [JsonPropertyName("tray_type_configs")]
-    public Dictionary<string, TrayTypeConfig> TrayTypeConfigs { get; set; } = TrayTypeDefaults.Build();
-
-    // ── Custom Tools (user-defined) ───────────────────────────────────────
-    [JsonPropertyName("custom_tools")]
-    public List<CustomToolEntry> CustomTools { get; set; } = [];
-
-    // ── Global Hotkeys (user-customized) ─────────────────────────────────
-    [JsonPropertyName("hotkeys")]
+    public HubAppearance Hub { get; set; } = new();
+    public KeepAwakeSettings KeepAwake { get; set; } = new();
+    public StartupSettings Startup { get; set; } = new();
+    public MonitorSettings Monitor { get; set; } = new();
     public List<HotkeyConfig> Hotkeys { get; set; } = [];
+    public WindowSettings Window { get; set; } = new();
+}
+
+public class KeepAwakeSettings
+{
+    public bool Enabled { get; set; }
+    public KeepAwakeMode Mode { get; set; } = KeepAwakeMode.Silent;
+    public bool KeepDisplayOn { get; set; } = true;
+    /// <summary>Seconds between input nudges (MouseNudge / F15Key).</summary>
+    public int IntervalSeconds { get; set; } = 60;
+    /// <summary>Only nudge when the user has been idle at least this long.</summary>
+    public int OnlyWhenIdleSeconds { get; set; } = 30;
+    public bool ScheduleEnabled { get; set; }
+    public string ScheduleFrom { get; set; } = "08:00";
+    public string ScheduleTo { get; set; } = "18:00";
+    /// <summary>Days the schedule applies to (Monday = 1 … Sunday = 7).</summary>
+    public List<int> ScheduleDays { get; set; } = [1, 2, 3, 4, 5];
+}
+
+public class StartupSettings
+{
+    public bool StartWithWindows { get; set; }
+    /// <summary>When started with Windows (or always, if <see cref="AlwaysStartHidden"/>) stay in the tray.</summary>
+    public bool StartHidden { get; set; } = true;
+    public bool AlwaysStartHidden { get; set; }
+    /// <summary>Re-check every N minutes that managed tools did not re-create their own autostart entries. 0 = off.</summary>
+    public int RecheckMinutes { get; set; } = 10;
+    public List<StartupTakeover> TakenOver { get; set; } = [];
+}
+
+/// <summary>Backup of an autostart entry DevPilot removed from a managed tool.</summary>
+public class StartupTakeover
+{
+    public string ToolId { get; set; } = string.Empty;
+    /// <summary>"HKCU-Run" or "StartupFolder".</summary>
+    public string Location { get; set; } = "HKCU-Run";
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Original command (registry) or the full path of the original shortcut.</summary>
+    public string Command { get; set; } = string.Empty;
+    /// <summary>Backup copy of a Startup-folder shortcut, inside %APPDATA%\DevPilot\startup-backup.</summary>
+    public string BackupFile { get; set; } = string.Empty;
+    public DateTime TakenAt { get; set; } = DateTime.Now;
+}
+
+public class MonitorSettings
+{
+    public int IntervalSeconds { get; set; } = 5;
+    public List<HealthTarget> ExtraTargets { get; set; } = [];
+}
+
+/// <summary>Stand-alone process or URL watched by the monitor (v1 heartbeat targets).</summary>
+public class HealthTarget
+{
+    public string Id { get; set; } = NewId.Short();
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Process name (e.g. notepad) or URL.</summary>
+    public string Target { get; set; } = string.Empty;
+    public bool IsUrl { get; set; }
+    public bool Enabled { get; set; } = true;
+}
+
+public class HotkeyConfig
+{
+    public int Id { get; set; }
+    /// <summary>"hub", "main", "keepawake", or "tool:{toolId}" / "action:{toolId}:{actionId}".</summary>
+    public string Action { get; set; } = string.Empty;
+    public string Modifiers { get; set; } = "Ctrl+Alt";
+    public string Key { get; set; } = string.Empty;
+    public bool IsEnabled { get; set; } = true;
+}
+
+public class WindowSettings
+{
+    public double Width { get; set; } = 1100;
+    public double Height { get; set; } = 720;
+    public string LastPage { get; set; } = "hub";
+    /// <summary>Closing the main window keeps DevPilot running in the tray.</summary>
+    public bool CloseToTray { get; set; } = true;
 }

@@ -1,0 +1,223 @@
+<UserControl x:Class="DevPilot.UI.Views.AppearanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DevPilot.UI.ViewModels"
+             xmlns:svc="clr-namespace:DevPilot.UI.Services"
+             xmlns:core="clr-namespace:DevPilot.Core.Interfaces;assembly=DevPilot.Core">
+    <UserControl.Resources>
+        <DataTemplate x:Key="Swatch">
+            <Button Width="24" Height="24" MinHeight="0" Padding="0" Margin="0,0,6,6" BorderThickness="0" ToolTip="{Binding}"
+                    Background="{Binding Converter={StaticResource HexToBrush}}"
+                    Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+        </DataTemplate>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" svc:EditTracker.Area="{x:Static core:ConfigArea.Hub}">
+        <StackPanel Margin="32,4,32,32" MaxWidth="860" HorizontalAlignment="Left">
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Appearance" Style="{StaticResource PageTitle}"/>
+                    <TextBlock Text="A sober look with one accent colour. Symbols are monochrome; colour markers and bold text appear only where you set them." Style="{StaticResource PageSubtitle}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button Content="Reset" Margin="0,0,6,0" Command="{Binding ResetCommand}"/>
+                    <Button Style="{StaticResource AccentButton}" Content="Preview the hub" Command="{Binding PreviewCommand}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Theme -->
+            <Border Style="{StaticResource Card}" Margin="0,20,0,12" svc:EditTracker.Area="{x:Static core:ConfigArea.Theme}">
+                <StackPanel>
+                    <TextBlock Text="Theme and accent" Style="{StaticResource SectionTitle}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource Segment}" GroupName="theme" Content="Dark" IsChecked="{Binding Theme, Converter={StaticResource EnumEquals}, ConverterParameter=Dark}"/>
+                        <RadioButton Style="{StaticResource Segment}" GroupName="theme" Content="Light" IsChecked="{Binding Theme, Converter={StaticResource EnumEquals}, ConverterParameter=Light}"/>
+                        <RadioButton Style="{StaticResource Segment}" GroupName="theme" Content="Follow Windows" IsChecked="{Binding Theme, Converter={StaticResource EnumEquals}, ConverterParameter=System}"/>
+                    </StackPanel>
+                    <TextBlock Text="Accent colour" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+                    <StackPanel Orientation="Horizontal">
+                        <ItemsControl ItemsSource="{x:Static vm:AppearanceViewModel.AccentPalette}" ItemTemplate="{StaticResource Swatch}" Tag="{Binding SetAccentCommand}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBox Text="{Binding Accent, UpdateSourceTrigger=LostFocus}" Width="90" VerticalAlignment="Top" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                 svc:EditTracker.NoTrack="True"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Hub size and shape -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Hub size and shape" Style="{StaticResource SectionTitle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Margin="0,0,0,12">
+                            <TextBlock Text="{Binding Hub.Width, StringFormat='Width: {0} px'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="300" Maximum="900" SmallChange="10" LargeChange="40" Value="{Binding Hub.Width}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="0,0,0,12">
+                            <TextBlock Text="{Binding Hub.MaxHeight, StringFormat='Maximum height: {0} px'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="300" Maximum="1600" SmallChange="20" LargeChange="80" Value="{Binding Hub.MaxHeight}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                            <TextBlock Text="{Binding Hub.CornerRadius, StringFormat='Corner radius: {0}'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="0" Maximum="24" IsSnapToTickEnabled="True" TickFrequency="1" Value="{Binding Hub.CornerRadius}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,12">
+                            <TextBlock Text="{Binding Hub.Opacity, StringFormat='Opacity: {0:P0}'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="0.7" Maximum="1" SmallChange="0.01" LargeChange="0.05" Value="{Binding Hub.Opacity}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2">
+                            <TextBlock Text="{Binding Hub.FontSize, StringFormat='Text size: {0:0.#}'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="10" Maximum="20" SmallChange="0.5" LargeChange="1" IsSnapToTickEnabled="True" TickFrequency="0.5" Value="{Binding Hub.FontSize}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2">
+                            <TextBlock Text="Row density" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.Densities}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.Density}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Position and behaviour -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Position and behaviour" Style="{StaticResource SectionTitle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Where the hub opens" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.Anchors}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.Anchor}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Side of the options flyout" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.FlyoutSides}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.FlyoutSide}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Hub.FlyoutWidth, StringFormat='Flyout width: {0} px'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="180" Maximum="600" SmallChange="10" LargeChange="40" Value="{Binding Hub.FlyoutWidth}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{Binding Hub.HoverDelayMs, StringFormat='Hover delay: {0} ms'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="0" Maximum="1000" SmallChange="50" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="50" Value="{Binding Hub.HoverDelayMs}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Left click on the tray icon" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.ClickActions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.LeftClick}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Right click" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.ClickActions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.RightClick}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Double click" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.ClickActions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.DoubleClick}"/>
+                        </StackPanel>
+                    </Grid>
+                    <WrapPanel Margin="0,12,0,0">
+                        <CheckBox Content="Search box" IsChecked="{Binding Hub.ShowSearch}" Margin="0,0,24,0"/>
+                        <CheckBox Content="Descriptions under names" IsChecked="{Binding Hub.ShowDescriptions}" Margin="0,0,24,0"/>
+                        <CheckBox Content="Status dots" IsChecked="{Binding Hub.ShowStatusDots}" Margin="0,0,24,0"/>
+                        <CheckBox Content="Colour markers" IsChecked="{Binding Hub.ShowToolColors}" Margin="0,0,24,0"/>
+                        <CheckBox Content="Close after starting something" IsChecked="{Binding Hub.CloseAfterLaunch}" Margin="0,0,24,0"/>
+                        <CheckBox Content="Remember collapsed groups" IsChecked="{Binding Hub.RememberCollapsedGroups}" Margin="0,0,24,0"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Group titles -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Group titles" Style="{StaticResource SectionTitle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Style" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{x:Static vm:AppearanceViewModel.HeaderStyles}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.GroupHeaderStyle}"/>
+                        </StackPanel>
+                        <CheckBox Grid.Column="2" Content="Show the number of tools" IsChecked="{Binding Hub.ShowGroupCounts}" VerticalAlignment="Bottom" Margin="0,0,0,6"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Spotlight -->
+            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource SpotlightBrush}">
+                <StackPanel>
+                    <TextBlock Text="ScreenPilot spotlight" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="The tool marked as spotlight (ScreenPilot by default) gets a card at the top of the hub: big capture buttons, live status and your latest captures."
+                               Style="{StaticResource Hint}" Margin="0,0,0,8"/>
+                    <CheckBox Style="{StaticResource Switch}" Content="Show the spotlight card" IsChecked="{Binding Hub.Spotlight.Enabled}"/>
+                    <CheckBox Style="{StaticResource Switch}" Content="Large buttons with symbols" IsChecked="{Binding Hub.Spotlight.LargeButtons}"/>
+                    <CheckBox Style="{StaticResource Switch}" Content="Latest captures as thumbnails" IsChecked="{Binding Hub.Spotlight.ShowRecentCaptures}"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Hub.Spotlight.RecentCount, StringFormat='Thumbnails: {0}'}" Style="{StaticResource FieldLabel}"/>
+                            <Slider Minimum="0" Maximum="8" IsSnapToTickEnabled="True" TickFrequency="1" Value="{Binding Hub.Spotlight.RecentCount}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Captures folder (empty = Pictures\ScreenPilot)" Style="{StaticResource FieldLabel}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding Hub.Spotlight.CapturesFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                <Button Grid.Column="1" Content="…" Margin="6,0,0,0" Command="{Binding BrowseCapturesCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="Card accent (empty = the global accent)" Style="{StaticResource FieldLabel}" Margin="0,12,0,6"/>
+                    <StackPanel Orientation="Horizontal" svc:EditTracker.Area="{x:Static core:ConfigArea.Theme}">
+                        <ItemsControl ItemsSource="{x:Static vm:AppearanceViewModel.AccentPalette}" ItemTemplate="{StaticResource Swatch}" Tag="{Binding SetSpotlightAccentCommand}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBox Text="{Binding SpotlightAccent, UpdateSourceTrigger=LostFocus}" Width="90" VerticalAlignment="Top" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                 svc:EditTracker.NoTrack="True"/>
+                        <Button Content="Global" Margin="6,0,0,0" VerticalAlignment="Top" Command="{Binding SetSpotlightAccentCommand}" CommandParameter=""/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
