@@ -121,4 +121,41 @@ public class LaunchPlannerTests
         Assert.Equal("bar", env["FOO"]);
         Assert.Equal("1", env["BAZ"]);
     }
+
+    [Fact]
+    public void ScreenPilot_uses_its_private_venv_when_installed()
+    {
+        var venv = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\ScreenPilot\venv\Scripts\pythonw.exe");
+        var original = LaunchPlanner.FileExists;
+        try
+        {
+            var sp = ToolPresets.Create(ToolPresets.ScreenPilot, @"C:\src\ScreenPilot");
+            LaunchPlanner.FileExists = _ => false;
+            Assert.Equal("pythonw.exe", LaunchPlanner.ForTool(sp).FileName); // not installed: PATH Python, as before
+
+            LaunchPlanner.FileExists = path => string.Equals(path, venv, StringComparison.OrdinalIgnoreCase);
+            var plan = LaunchPlanner.ForTool(sp);
+            Assert.Equal(venv, plan.FileName);
+            Assert.Equal("-m screenpilot gui", plan.Arguments);
+            Assert.True(plan.WatchStartup);
+            Assert.Equal(venv, LaunchPlanner.ForAction(sp, sp.Actions[0]).FileName); // the hub options too
+
+            var console = Path.Combine(Path.GetDirectoryName(venv)!, "python.exe");
+            LaunchPlanner.FileExists = path => string.Equals(path, console, StringComparison.OrdinalIgnoreCase);
+            sp.HideWindow = false;
+            Assert.Equal(console, LaunchPlanner.ForTool(sp).FileName);
+            Assert.False(LaunchPlanner.ForTool(sp).WatchStartup);
+
+            sp.Interpreter = @"D:\py\pythonw.exe"; // the user's choice always wins
+            Assert.Equal(@"D:\py\pythonw.exe", LaunchPlanner.ForTool(sp).FileName);
+
+            var manual = new ToolEntry { Name = "Shots", Kind = ToolKind.Python, PythonModule = "screenpilot", HideWindow = true };
+            LaunchPlanner.FileExists = path => string.Equals(path, venv, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(venv, LaunchPlanner.ForTool(manual).FileName); // recognised without the preset key
+        }
+        finally
+        {
+            LaunchPlanner.FileExists = original;
+        }
+    }
 }

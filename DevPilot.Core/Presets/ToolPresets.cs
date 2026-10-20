@@ -22,7 +22,8 @@ public sealed record ToolPreset(
     bool HasOwnTray,
     bool SupportsSuppressEnv,
     Func<List<ToolAction>> Actions,
-    string Notes);
+    string Notes,
+    string[]? Interpreters = null);
 
 /// <summary>Catalogue of the user's own tools (actions mirror their native tray menus).</summary>
 public static class ToolPresets
@@ -51,20 +52,43 @@ public static class ToolPresets
         SupportsSuppressEnv: false,
         Actions: () =>
         [
-            A("Window", Glyphs.App, ActionKind.Arguments, args: "capture window", section: "Capture", featured: true),
-            A("Screen", Glyphs.Monitor, ActionKind.Arguments, args: "capture current", section: "Capture", featured: true),
-            A("All screens", Glyphs.Grid, ActionKind.Arguments, args: "capture all", section: "Capture", featured: true),
-            A("Record 10 s", Glyphs.Record, ActionKind.Arguments, args: "record --seconds 10", section: "Capture", featured: true),
-            A("Screen in 3 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 3", section: "Delayed"),
-            A("Screen in 5 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 5", section: "Delayed"),
-            A("Screen in 10 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 10", section: "Delayed"),
-            A("Record 30 s (MP4)", Glyphs.Video, ActionKind.Arguments, args: "record --seconds 30", section: "Recording"),
-            A("Record 10 s (GIF)", Glyphs.Video, ActionKind.Arguments, args: "record --seconds 10 --format gif", section: "Recording"),
-            A("Captures folder", Glyphs.FolderOpen, ActionKind.Folder, value: @"%USERPROFILE%\Pictures\ScreenPilot", section: "Files"),
+            // "action <id>" runs inside the running ScreenPilot (0.7.1+): preview, history and editor as from its tray.
+            A("Region", Glyphs.Monitor, ActionKind.Arguments, args: "action capture.region", section: "Capture", featured: true),
+            A("Capture + edit", Glyphs.Edit, ActionKind.Arguments, args: "action capture.edit", section: "Capture", featured: true),
+            A("Window", Glyphs.App, ActionKind.Arguments, args: "action capture.window", section: "Capture", featured: true),
+            A("Record video", Glyphs.Record, ActionKind.Arguments, args: "action record.video", section: "Capture", featured: true),
+            A("Screen", Glyphs.Monitor, ActionKind.Arguments, args: "action capture.fullscreen", section: "Capture"),
+            A("All screens", Glyphs.Grid, ActionKind.Arguments, args: "action capture.all_monitors", section: "Capture"),
+            A("Scrolling capture", Glyphs.ChevronDown, ActionKind.Arguments, args: "action capture.scrolling", section: "Capture"),
+            A("Number steps", Glyphs.List, ActionKind.Arguments, args: "action capture.steps", section: "Capture"),
+            A("Screen in 3 s", Glyphs.Clock, ActionKind.Arguments, args: "action capture.delayed --seconds 3", section: "Delayed"),
+            A("Screen in 5 s", Glyphs.Clock, ActionKind.Arguments, args: "action capture.delayed --seconds 5", section: "Delayed"),
+            A("Screen in 10 s", Glyphs.Clock, ActionKind.Arguments, args: "action capture.delayed --seconds 10", section: "Delayed"),
+            A("Record GIF", Glyphs.Video, ActionKind.Arguments, args: "action record.gif", section: "Recording"),
+            A("Edit a video…", Glyphs.Video, ActionKind.Arguments, args: "action app.edit_video", section: "Recording"),
+            A("Text from screen (OCR)", Glyphs.OpenFile, ActionKind.Arguments, args: "action ocr.region", section: "Tools"),
+            A("Record a procedure", Glyphs.Document, ActionKind.Arguments, args: "action procedure.toggle", section: "Tools"),
+            A("Colour picker", Glyphs.Color, ActionKind.Arguments, args: "action tools.color", section: "Tools"),
+            A("Open editor", Glyphs.Edit, ActionKind.Arguments, args: "action app.open_editor", section: "Tools"),
+            A("History", Glyphs.History, ActionKind.Arguments, args: "action app.open_history", section: "Files"),
+            A("Captures folder", Glyphs.FolderOpen, ActionKind.Folder, value: @"{Pictures}\ScreenPilot", section: "Files"),
+            A("Settings", Glyphs.Settings, ActionKind.Arguments, args: "action app.settings", section: "Files"),
+            A("Open ScreenPilot", Glyphs.Home, ActionKind.Arguments, args: "action app.show_hub", section: "Files"),
             A("Export diagnostics", Glyphs.Diagnostic, ActionKind.Arguments,
                 args: "diagnostics --out \"%USERPROFILE%\\Desktop\\screenpilot-diagnostics.zip\"", section: "Files"),
         ],
-        Notes: "Capture actions use the ScreenPilot command line. Region selection, history and settings stay in the ScreenPilot window.");
+        Notes: "Options run inside the running ScreenPilot (it starts when needed). Installed by scripts\\install.ps1, it runs from its own venv: "
+             + "DevPilot uses %LOCALAPPDATA%\\ScreenPilot\\venv\\Scripts\\pythonw.exe when the interpreter is empty.",
+        Interpreters: [@"%LOCALAPPDATA%\ScreenPilot\venv\Scripts\pythonw.exe"]);
+
+    /// <summary>Arguments of the 2.0 ScreenPilot options (headless CLI runs), replaced by <see cref="UpgradeLegacyActions"/>.</summary>
+    internal static readonly HashSet<string> LegacyScreenPilotArguments = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "capture window", "capture current", "capture all", "record --seconds 10",
+        "capture current --delay 3", "capture current --delay 5", "capture current --delay 10",
+        "record --seconds 30", "record --seconds 10 --format gif",
+        "diagnostics --out \"%USERPROFILE%\\Desktop\\screenpilot-diagnostics.zip\"",
+    };
 
     public static readonly ToolPreset FocusPilot = new(
         Key: "focuspilot",
@@ -203,6 +227,27 @@ public static class ToolPresets
         {
             t.Path = path;
         }
+    }
+
+    /// <summary>
+    /// ScreenPilot options created by DevPilot 2.0 ran headless command-line captures in a second process.
+    /// When a tool still has exactly those (the user did not customise them), switch to the 0.7.1 forwarded actions.
+    /// </summary>
+    public static bool UpgradeLegacyActions(ToolEntry tool)
+    {
+        if (tool.Actions is not { Count: > 0 }) return false;
+        if (!string.Equals(tool.Preset, ScreenPilot.Key, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(tool.PythonModule, ScreenPilot.PythonModule, StringComparison.OrdinalIgnoreCase)) return false;
+        bool legacy = tool.Actions.All(a => a.Kind switch
+        {
+            ActionKind.Arguments => LegacyScreenPilotArguments.Contains(a.Arguments.Trim()),
+            ActionKind.Folder => a.Value.Contains("ScreenPilot", StringComparison.OrdinalIgnoreCase),
+            ActionKind.Separator => true,
+            _ => false,
+        });
+        if (!legacy || !tool.Actions.Any(a => a.Kind == ActionKind.Arguments)) return false;
+        tool.Actions = ScreenPilot.Actions();
+        return true;
     }
 
     public static bool ApplyIfRecognised(ToolEntry tool, bool overwriteUserFields)

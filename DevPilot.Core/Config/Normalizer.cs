@@ -40,6 +40,7 @@ public static class Normalizer
             t.Folder.Depth = Math.Clamp(t.Folder.Depth, 1, 5);
             t.Folder.MaxItems = Math.Clamp(t.Folder.MaxItems, 5, 500);
             t.Color = ConfigMigrator.NormalizeColor(t.Color);
+            Presets.ToolPresets.UpgradeLegacyActions(t);
         }
 
         // Every tool belongs to an existing group.

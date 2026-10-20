@@ -1,3 +1,4 @@
+using DevPilot.Core.Presets;
 using DevPilot.Models;
 
 namespace DevPilot.Core.Launch;
@@ -13,7 +14,31 @@ public static class LaunchPlanner
     public const string EnvToolId = "DEVPILOT_TOOL_ID";
     public const string EnvVersion = "DEVPILOT_VERSION";
 
-    public static string AppVersion { get; set; } = "2.0.0";
+    public static string AppVersion { get; set; } = "2.1.0";
+
+    /// <summary>File check used to find a preset's interpreter (replaceable in tests).</summary>
+    public static Func<string, bool> FileExists { get; set; } = File.Exists;
+
+    /// <summary>
+    /// Python interpreter for a tool: the configured one, else the first existing interpreter of its preset
+    /// (e.g. ScreenPilot's private venv), else pythonw.exe / python.exe from PATH.
+    /// A tool installed in its own venv fails with "No module named …" under the PATH Python.
+    /// </summary>
+    public static string ResolveInterpreter(ToolEntry tool)
+    {
+        if (!string.IsNullOrWhiteSpace(tool.Interpreter))
+            return PathTokens.Expand(tool.Interpreter, tool).Trim().Trim('"');
+        string wanted = tool.HideWindow ? DefaultPython : "python.exe";
+        var preset = ToolPresets.Find(tool.Preset) ?? ToolPresets.Recognise(tool);
+        foreach (var candidate in preset?.Interpreters ?? Array.Empty<string>())
+        {
+            var path = PathTokens.Expand(candidate, tool).Trim().Trim('"');
+            var dir = Path.GetDirectoryName(path);
+            var exe = string.IsNullOrEmpty(dir) ? wanted : Path.Combine(dir, wanted);
+            if (FileExists(exe)) return exe;
+        }
+        return wanted;
+    }
 
     /// <summary>Plan for starting the tool itself.</summary>
     public static LaunchPlan ForTool(ToolEntry tool, LaunchReason reason = LaunchReason.Manual)
@@ -95,9 +120,7 @@ public static class LaunchPlanner
 
             case ToolKind.Python:
             {
-                var interpreter = string.IsNullOrWhiteSpace(tool.Interpreter)
-                    ? (tool.HideWindow ? DefaultPython : "python.exe")
-                    : PathTokens.Expand(tool.Interpreter, tool).Trim('"');
+                var interpreter = ResolveInterpreter(tool);
                 string pyArgs = !string.IsNullOrWhiteSpace(tool.PythonModule)
                     ? CommandLineText.Join("-m", tool.PythonModule.Trim(), args)
                     : CommandLineText.Join(CommandLineText.Quote(path), args);
@@ -106,6 +129,8 @@ public static class LaunchPlanner
                     Mode = processMode, FileName = interpreter, Arguments = pyArgs, WorkingDirectory = workDir,
                     Environment = env, RunAsAdmin = admin, HideWindow = tool.HideWindow,
                     NewConsole = !tool.HideWindow, IsMainProcess = isMain,
+                    // pythonw shows nothing when the script fails at start: watch the first seconds.
+                    WatchStartup = tool.HideWindow && !admin,
                 };
             }
 

@@ -22,6 +22,11 @@ public sealed class LaunchPlan
     public bool NewConsole { get; init; }
     /// <summary>True when this starts the tool's long-running main process (tracked by the monitor).</summary>
     public bool IsMainProcess { get; init; }
+    /// <summary>
+    /// Wait a moment after starting and report a failure when the process ends at once with an error
+    /// (its stderr is captured). Used for windowless Python, which otherwise fails silently.
+    /// </summary>
+    public bool WatchStartup { get; init; }
 
     public string CommandLine => string.IsNullOrEmpty(Arguments)
         ? CommandLineText.Quote(FileName)

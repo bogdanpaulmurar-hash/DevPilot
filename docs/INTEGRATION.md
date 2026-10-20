@@ -70,6 +70,16 @@ When you hover a tool, DevPilot shows its *actions*. Each action is one of:
 
 `value` and `arguments` may use `{ToolDir}`, `{Home}`, `{Pictures}`, `{Documents}`, `{Desktop}`, `{AppData}`, `{LocalAppData}` and `%VARIABLES%`.
 
+### Python tools in their own virtual environment
+
+A tool installed in a private venv (ScreenPilot's `scripts\install.ps1` uses
+`%LOCALAPPDATA%\ScreenPilot\venv`) is not importable by the Python on `PATH`:
+`pythonw -m tool` would stop at once with `No module named …`. Set the tool's
+**Interpreter** to the venv's `pythonw.exe`; presets list known locations and
+DevPilot uses the first that exists when the field is empty. Windowless Python
+starts are watched for 2.5 s: if the process ends with an error, its last stderr
+line is shown instead of a silent failure.
+
 Windows does not let one program read another program's tray menu, so options that exist only inside a running tool (a Qt/pystray menu) need a command-line entry point. The simplest pattern: a single-instance tool accepts `--action <id>` and forwards it to the running instance (local socket / named pipe), then exits.
 
 ## `devpilot.tool.json`
@@ -103,7 +113,7 @@ A tool can describe itself. Put `devpilot.tool.json` in the tool's folder (or it
 | Tool | Reads `DEVPILOT_SUPPRESS` | Notes |
 |---|---|---|
 | regTester | via `--no-tray` | All tray options are URLs, so they work 1:1 from the hub. |
-| ScreenPilot | not yet | Capture/record options use its CLI. Needs: skip tray + autostart re-sync when managed; `--action` forwarding for region capture, history and settings. |
+| ScreenPilot | yes (0.7.1+) | Options use `action <id>`, forwarded to the running app (it starts when needed); no own tray icon / autostart re-sync when DevPilot owns them; ships `devpilot.tool.json`. Runs from its private venv: DevPilot uses `%LOCALAPPDATA%\ScreenPilot\venv\Scripts\pythonw.exe` when *Interpreter* is empty. |
 | FocusPilot | not yet | Keep-awake is on by default and it registers its own autostart; needs the checks above. |
 | NexusX | not yet | Needs the tray check; `--minimized` already exists. |
 | AutoPilot DC | — | Keeps the PC awake only while a flow runs: no conflict. |
