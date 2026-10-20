@@ -46,9 +46,16 @@ public sealed class ThemeService
             Source = new Uri(dark ? "pack://application:,,,/Themes/Dark.xaml" : "pack://application:,,,/Themes/Light.xaml"),
         };
         var merged = Application.Current.Resources.MergedDictionaries;
-        if (_palette is not null) merged.Remove(_palette);
+        // Remove every palette (including the one App.xaml loads), otherwise a later Dark.xaml would win.
+        foreach (var old in merged.Where(IsPalette).ToList()) merged.Remove(old);
         merged.Insert(0, dict);
         _palette = dict;
+    }
+
+    private static bool IsPalette(ResourceDictionary d)
+    {
+        var src = d.Source?.OriginalString ?? string.Empty;
+        return src.EndsWith("Dark.xaml", StringComparison.OrdinalIgnoreCase) || src.EndsWith("Light.xaml", StringComparison.OrdinalIgnoreCase);
     }
 
     public static void ApplyAccent(string accentHex, string spotlightHex)

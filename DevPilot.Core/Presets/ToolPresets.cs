@@ -52,12 +52,12 @@ public static class ToolPresets
         Actions: () =>
         [
             A("Window", Glyphs.App, ActionKind.Arguments, args: "capture window", section: "Capture", featured: true),
-            A("Current monitor", Glyphs.Monitor, ActionKind.Arguments, args: "capture current", section: "Capture", featured: true),
-            A("All monitors", Glyphs.Grid, ActionKind.Arguments, args: "capture all", section: "Capture", featured: true),
+            A("Screen", Glyphs.Monitor, ActionKind.Arguments, args: "capture current", section: "Capture", featured: true),
+            A("All screens", Glyphs.Grid, ActionKind.Arguments, args: "capture all", section: "Capture", featured: true),
             A("Record 10 s", Glyphs.Record, ActionKind.Arguments, args: "record --seconds 10", section: "Capture", featured: true),
-            A("Current monitor in 3 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 3", section: "Delayed"),
-            A("Current monitor in 5 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 5", section: "Delayed"),
-            A("Current monitor in 10 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 10", section: "Delayed"),
+            A("Screen in 3 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 3", section: "Delayed"),
+            A("Screen in 5 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 5", section: "Delayed"),
+            A("Screen in 10 s", Glyphs.Clock, ActionKind.Arguments, args: "capture current --delay 10", section: "Delayed"),
             A("Record 30 s (MP4)", Glyphs.Video, ActionKind.Arguments, args: "record --seconds 30", section: "Recording"),
             A("Record 10 s (GIF)", Glyphs.Video, ActionKind.Arguments, args: "record --seconds 10 --format gif", section: "Recording"),
             A("Captures folder", Glyphs.FolderOpen, ActionKind.Folder, value: @"%USERPROFILE%\Pictures\ScreenPilot", section: "Files"),

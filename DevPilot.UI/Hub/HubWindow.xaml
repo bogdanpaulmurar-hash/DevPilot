@@ -147,7 +147,8 @@
             <!-- Spotlight (ScreenPilot) -->
             <Border Grid.Row="2" Margin="10,0,10,8" CornerRadius="9" BorderThickness="1"
                     BorderBrush="{DynamicResource SpotlightBrush}" Background="{DynamicResource SpotlightSoftBrush}"
-                    Visibility="{Binding HasSpotlight, Converter={StaticResource BoolToVis}}" DataContext="{Binding Spotlight}">
+                    Visibility="{Binding DataContext.HasSpotlight, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"
+                    DataContext="{Binding Spotlight}">
                 <StackPanel Margin="10,10,10,8">
                     <Grid x:Name="SpotHeader" Background="Transparent" Cursor="Hand" MouseEnter="SpotHeader_MouseEnter" MouseLeftButtonUp="SpotHeader_Click">
                         <Grid.ColumnDefinitions>

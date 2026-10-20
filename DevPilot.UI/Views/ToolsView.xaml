@@ -160,7 +160,7 @@
                                     <TextBox Text="{Binding Model.Arguments, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Visibility="{Binding HasWorkingDirectory, Converter={StaticResource BoolToVis}}">
-                                    <TextBlock Text="Working folder (empty = the program's folder)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Text="Working folder" ToolTip="Empty = the folder of the program or script" Style="{StaticResource FieldLabel}"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>

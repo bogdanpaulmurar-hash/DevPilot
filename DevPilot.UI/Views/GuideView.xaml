@@ -15,7 +15,7 @@
                 <StackPanel>
                     <TextBlock Text="1. One icon in the tray" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Style="{StaticResource Step}" Text="Click the DevPilot icon to open the hub. Every tool you add lives there, under groups you define. Hover a tool to see its options (what used to be in its own tray menu); click it to start it."/>
-                    <TextBlock Style="{StaticResource Step}" Text="Right-click opens a short quick menu, double-click opens this window. You can change all three in Appearance."/>
+                    <TextBlock Style="{StaticResource Step}" Text="Right-click opens a short quick menu (Open DevPilot, keep-awake, settings, exit). Left, right and double click can be changed in Appearance."/>
                     <TextBlock Style="{StaticResource Step}" Text="Ctrl+Alt+Space opens the hub from anywhere (Settings → Global shortcuts)."/>
                 </StackPanel>
             </Border>

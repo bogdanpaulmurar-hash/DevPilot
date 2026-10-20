@@ -25,7 +25,7 @@ public class HubAppearance
 
     public TrayClickAction LeftClick { get; set; } = TrayClickAction.OpenHub;
     public TrayClickAction RightClick { get; set; } = TrayClickAction.QuickMenu;
-    public TrayClickAction DoubleClick { get; set; } = TrayClickAction.OpenMainWindow;
+    public TrayClickAction DoubleClick { get; set; } = TrayClickAction.Nothing;
 
     public SpotlightOptions Spotlight { get; set; } = new();
 }

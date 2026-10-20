@@ -62,7 +62,9 @@ public sealed class AppShell : IAppShell
     {
         // A click on the tray icon first deactivates (and hides) the hub; don't reopen it immediately.
         if (_hub is { IsVisible: true }) { HideHub(); return; }
-        if (DateTime.UtcNow - _hubHiddenAt < TimeSpan.FromMilliseconds(300)) return;
+        // With a double-click action configured the single click arrives after the double-click time.
+        var guard = _services.GetRequiredService<IConfigStore>().Current.Hub.DoubleClick == TrayClickAction.Nothing ? 350 : 900;
+        if (DateTime.UtcNow - _hubHiddenAt < TimeSpan.FromMilliseconds(guard)) return;
         Hub.ShowHub(fromTray: true);
     }
 

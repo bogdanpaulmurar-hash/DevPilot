@@ -13,12 +13,22 @@ public partial class OverviewView : UserControl
     {
         InitializeComponent();
         Unloaded += (_, _) => _flyouts.CloseAll();
+        Loaded += (_, _) =>
+        {
+            if (Window.GetWindow(this) is { } w)
+            {
+                w.Deactivated -= OnWindowDeactivated;
+                w.Deactivated += OnWindowDeactivated;
+            }
+        };
         PreviewMouseDown += (_, e) =>
         {
             if (_flyouts.IsOpen && !_flyouts.IsMouseOverAny) _flyouts.CloseAll();
         };
         _flyouts.Invoked += _ => _flyouts.CloseAll();
     }
+
+    private void OnWindowDeactivated(object? sender, EventArgs e) => _flyouts.CloseAll();
 
     private OverviewViewModel? Vm => DataContext as OverviewViewModel;
 

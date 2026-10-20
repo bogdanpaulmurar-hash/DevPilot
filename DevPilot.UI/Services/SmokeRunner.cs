@@ -169,7 +169,12 @@ public static class SmokeRunner
         {
             var bg = opaque ? (Brush)Application.Current.FindResource("WindowBgBrush") : new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x80));
             dc.DrawRectangle(bg, null, new Rect(0, 0, width, height));
-            dc.DrawRectangle(new VisualBrush(v) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(0, 0, width, height));
+            dc.DrawRectangle(new VisualBrush(v)
+            {
+                Stretch = Stretch.Fill,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, width, height),
+            }, null, new Rect(0, 0, width, height));
         }
         rtb.Render(dv);
         var enc = new PngBitmapEncoder();
