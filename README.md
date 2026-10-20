@@ -25,6 +25,8 @@ cd DevPilot
 powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -StartWithWindows
 ```
 
+If scripts are blocked by policy: `scripts\install.cmd /autostart`.
+
 ## Project layout
 
 | Project | Contents |
