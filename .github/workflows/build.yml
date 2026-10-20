@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -39,6 +42,33 @@ jobs:
         run: dotnet build DevPilot.sln -c Release --no-restore
       - name: Publish app
         run: dotnet publish DevPilot.UI/DevPilot.UI.csproj -c Release -r win-x64 --self-contained false -o publish/DevPilot
+      - name: UI smoke test
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'shots'
+          $p = Start-Process -FilePath (Resolve-Path publish/DevPilot/DevPilot.exe) -ArgumentList '--smoke', $out -PassThru
+          if (-not $p.WaitForExit(180000)) { $p.Kill(); throw 'Smoke test timed out' }
+          $report = Join-Path $out 'smoke-report.txt'
+          if (Test-Path $report) { Get-Content $report | ForEach-Object { Write-Output "::notice title=smoke::$_" } }
+          $errors = Join-Path $out 'binding-errors.txt'
+          if (Test-Path $errors) { Get-Content $errors | Select-Object -First 30 | ForEach-Object { Write-Output "::warning title=binding::$_" } }
+          if ($p.ExitCode -ne 0) { throw "Smoke test failed (exit $($p.ExitCode))" }
+      - name: Publish screenshots (ci-shots branch)
+        if: always() && github.event_name == 'push'
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'shots'
+          if (-not (Test-Path $out)) { exit 0 }
+          Set-Location $out
+          Remove-Item -Recurse -Force data -ErrorAction SilentlyContinue
+          Set-Content -Path SOURCE.txt -Value "${{ github.sha }}"
+          git init -q
+          git checkout -q -b ci-shots
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "UI screenshots for ${{ github.sha }}"
+          git push -f -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-shots
       - uses: actions/upload-artifact@v4
         if: always()
         with:

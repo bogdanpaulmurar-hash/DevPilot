@@ -51,6 +51,13 @@ public partial class App : Application
 
         base.OnStartup(e);
         StartedByWindows = e.Args.Any(a => a.Equals("--autostart", StringComparison.OrdinalIgnoreCase));
+        int smokeIdx = Array.FindIndex(e.Args, a => a.Equals("--smoke", StringComparison.OrdinalIgnoreCase));
+        string? smokeDir = smokeIdx >= 0 && smokeIdx + 1 < e.Args.Length ? e.Args[smokeIdx + 1] : null;
+        if (smokeDir is not null)
+        {
+            Environment.SetEnvironmentVariable("DEVPILOT_DATA_DIR", Path.Combine(smokeDir, "data"));
+            SmokeRunner.Attach();
+        }
 
         var fileLog = new FileLoggerProvider();
         LogFile = fileLog.FilePath;
@@ -102,6 +109,11 @@ public partial class App : Application
         if (config.LoadWarning is not null)
             MessageBox.Show(config.LoadWarning, "DevPilot", MessageBoxButton.OK, MessageBoxImage.Warning);
 
+        if (smokeDir is not null)
+        {
+            Dispatcher.BeginInvoke(async () => await SmokeRunner.RunAsync(smokeDir), DispatcherPriority.ApplicationIdle);
+            return;
+        }
         _ = StartAutoStartToolsAsync();
     }
 
@@ -113,7 +125,10 @@ public partial class App : Application
             b.SetMinimumLevel(LogLevel.Information);
             b.AddProvider(fileLog);
         });
-        s.AddSingleton(sp => new ConfigStore(sp.GetRequiredService<ILogger<ConfigStore>>()));
+        var dataDir = Environment.GetEnvironmentVariable("DEVPILOT_DATA_DIR");
+        s.AddSingleton(sp => string.IsNullOrWhiteSpace(dataDir)
+            ? new ConfigStore(sp.GetRequiredService<ILogger<ConfigStore>>())
+            : new ConfigStore(dataDir, sp.GetRequiredService<ILogger<ConfigStore>>()));
         s.AddSingleton<IConfigStore>(sp => sp.GetRequiredService<ConfigStore>());
         s.AddSingleton<IProcessMonitor, ProcessMonitor>();
         s.AddSingleton<ILauncher, Launcher>();
