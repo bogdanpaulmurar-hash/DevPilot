@@ -206,8 +206,15 @@ public partial class App : Application
         var startup = GetService<IStartupManager>();
         try
         {
-            if (config.Current.Startup.StartWithWindows != startup.IsDevPilotRegistered)
-                startup.SetDevPilotStartup(config.Current.Startup.StartWithWindows);
+            // Registered from outside (install script): adopt it. Enabled but missing (moved exe): register again.
+            bool registered = startup.IsDevPilotRegistered;
+            if (registered && !config.Current.Startup.StartWithWindows)
+            {
+                config.Current.Startup.StartWithWindows = true;
+                config.Touch(ConfigArea.Startup);
+            }
+            else if (!registered && config.Current.Startup.StartWithWindows)
+                startup.SetDevPilotStartup(true);
             startup.EnforceTakeovers();
         }
         catch (Exception ex)

@@ -106,7 +106,7 @@ public sealed class FlyoutController
         int next = panel.Level + 1;
         if (item.HasChildren)
         {
-            if (_levels.Count > next && ReferenceEquals(_levels[next].Popup.PlacementTarget, element)) { Cancel(); CloseFrom(next + 1); return; }
+            if (_levels.Count > next && ReferenceEquals(_levels[next].Popup?.PlacementTarget, element)) { Cancel(); CloseFrom(next + 1); return; }
             Plan(() => OpenLevel(next, element, item.Children!()), HoverDelayMs);
         }
         else if (_levels.Count > next)

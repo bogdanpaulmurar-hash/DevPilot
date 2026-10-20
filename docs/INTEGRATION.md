@@ -1,0 +1,111 @@
+# Making a tool DevPilot-aware
+
+DevPilot starts every managed tool with these environment variables:
+
+| Variable | Value | Meaning |
+|---|---|---|
+| `DEVPILOT_MANAGED` | `1` | The tool was started by DevPilot. |
+| `DEVPILOT_SUPPRESS` | e.g. `tray,keepawake,autostart` | Features DevPilot owns; the tool should not run its own version. |
+| `DEVPILOT_TOOL_ID` | short id | The tool's id in DevPilot (for logs). |
+| `DEVPILOT_VERSION` | e.g. `2.0.0` | DevPilot version. |
+
+The list in `DEVPILOT_SUPPRESS` follows the tool's settings in DevPilot:
+
+- `tray` — the tool lives in the DevPilot hub (or gets a DevPilot-drawn icon): **do not create your own tray icon**.
+- `keepawake` — **do not** call `SetThreadExecutionState`, move the mouse or press keys to keep the PC awake.
+- `autostart` — **do not** write or re-sync your `HKCU\...\Run` entry or Startup-folder shortcut.
+
+Nothing changes when a tool is started any other way, so the tool keeps working on its own.
+
+## Python
+
+```python
+import os
+
+_SUPPRESSED = {p.strip().lower() for p in os.environ.get("DEVPILOT_SUPPRESS", "").split(",") if p.strip()}
+MANAGED_BY_DEVPILOT = os.environ.get("DEVPILOT_MANAGED") == "1"
+
+
+def devpilot_owns(feature: str) -> bool:
+    """True when DevPilot started this process and owns `feature` ("tray", "keepawake", "autostart")."""
+    return MANAGED_BY_DEVPILOT and feature in _SUPPRESSED
+
+
+# tray
+if not devpilot_owns("tray"):
+    start_tray_icon()
+
+# keep-awake (e.g. FocusPilot: settings "keep_awake")
+if settings.get("keep_awake", True) and not devpilot_owns("keepawake"):
+    enable_keep_awake()
+
+# start with Windows (e.g. ScreenPilot re-syncs its Run entry at every start)
+if not devpilot_owns("autostart"):
+    autostart.sync_from_settings()
+```
+
+A tool without a window that hides its tray icon is reachable only through DevPilot, so make sure its useful options are reachable from the command line (see below), or keep `tray` out of the suppression by choosing *Keep the tool's own tray icon* in DevPilot.
+
+## C#
+
+```csharp
+static bool DevPilotOwns(string feature) =>
+    Environment.GetEnvironmentVariable("DEVPILOT_MANAGED") == "1" &&
+    (Environment.GetEnvironmentVariable("DEVPILOT_SUPPRESS") ?? string.Empty)
+        .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .Contains(feature, StringComparer.OrdinalIgnoreCase);
+```
+
+## Options in the hub
+
+When you hover a tool, DevPilot shows its *actions*. Each action is one of:
+
+| Kind | What it runs |
+|---|---|
+| `Arguments` | The tool's own program / script / module with these arguments (e.g. `capture window`). |
+| `Command` | Any program (`value`) with `arguments`. |
+| `Url` | A web page — ideal for tools with a local web UI (regTester). |
+| `Folder` / `File` | Opens a folder or a file. |
+| `Separator` | A divider. |
+
+`value` and `arguments` may use `{ToolDir}`, `{Home}`, `{Pictures}`, `{Documents}`, `{Desktop}`, `{AppData}`, `{LocalAppData}` and `%VARIABLES%`.
+
+Windows does not let one program read another program's tray menu, so options that exist only inside a running tool (a Qt/pystray menu) need a command-line entry point. The simplest pattern: a single-instance tool accepts `--action <id>` and forwards it to the running instance (local socket / named pipe), then exits.
+
+## `devpilot.tool.json`
+
+A tool can describe itself. Put `devpilot.tool.json` in the tool's folder (or its parent, for `src` layouts); DevPilot reads it when you pick the tool's file, or with **From devpilot.tool.json** in the editor.
+
+```json
+{
+  "name": "My Tool",
+  "description": "What it does",
+  "glyph": "E8A7",
+  "pythonModule": "",
+  "arguments": "",
+  "autoStartArguments": "--minimized",
+  "noTrayArguments": "--no-tray",
+  "processMatch": "mytool.pyw",
+  "healthUrl": "http://127.0.0.1:8765/",
+  "actions": [
+    { "label": "Open", "glyph": "E774", "kind": "Url", "value": "http://127.0.0.1:8765/" },
+    { "label": "Export now", "kind": "Arguments", "arguments": "--action export", "section": "Tasks", "featured": true },
+    { "kind": "Separator" },
+    { "label": "Data folder", "kind": "Folder", "value": "{LocalAppData}\\MyTool" }
+  ]
+}
+```
+
+`glyph` is a Segoe Fluent / MDL2 code point (`E722`) or any character. All fields are optional.
+
+## Current state of your tools
+
+| Tool | Reads `DEVPILOT_SUPPRESS` | Notes |
+|---|---|---|
+| regTester | via `--no-tray` | All tray options are URLs, so they work 1:1 from the hub. |
+| ScreenPilot | not yet | Capture/record options use its CLI. Needs: skip tray + autostart re-sync when managed; `--action` forwarding for region capture, history and settings. |
+| FocusPilot | not yet | Keep-awake is on by default and it registers its own autostart; needs the checks above. |
+| NexusX | not yet | Needs the tray check; `--minimized` already exists. |
+| AutoPilot DC | — | Keeps the PC awake only while a flow runs: no conflict. |
+
+Until a tool reads the variables, its own tray icon stays (Windows 11 can hide it in the overflow area) and DevPilot's *Startup & conflicts* page removes its autostart entry again whenever the tool re-creates it.
