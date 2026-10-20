@@ -21,6 +21,20 @@ jobs:
         run: dotnet restore DevPilot.sln
       - name: Test
         run: dotnet test DevPilot.Tests/DevPilot.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=normal" --results-directory TestResults
+      - name: Report failed tests
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem TestResults -Filter *.trx -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            [xml]$trx = Get-Content $_.FullName
+            $ns = @{ t = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010' }
+            Select-Xml -Xml $trx -XPath "//t:UnitTestResult[@outcome='Failed']" -Namespace $ns | ForEach-Object {
+              $r = $_.Node
+              $msg = ($r.Output.ErrorInfo.Message -replace "`r?`n", ' | ')
+              if ($msg.Length -gt 900) { $msg = $msg.Substring(0, 900) }
+              Write-Output "::error title=$($r.testName)::$msg"
+            }
+          }
       - name: Build solution
         run: dotnet build DevPilot.sln -c Release --no-restore
       - name: Publish app

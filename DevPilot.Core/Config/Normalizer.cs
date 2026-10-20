@@ -19,7 +19,7 @@ public static class Normalizer
         s.Monitor ??= new MonitorSettings();
         s.Monitor.ExtraTargets ??= [];
         s.Window ??= new WindowSettings();
-        s.Accent = ConfigMigrator.NormalizeColor(s.Accent) is { Length: > 0 } a ? a : "#4F8EF7";
+        s.Accent = ConfigMigrator.NormalizeColor(s.Accent) is { Length: > 0 } accent ? accent : "#4F8EF7";
 
         // Unique ids
         var seen = new HashSet<string>();
