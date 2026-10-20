@@ -2,6 +2,8 @@ using DevPilot.Models;
 
 namespace DevPilot.Core.Presets;
 
+public sealed record GlyphInfo(string Glyph, string Name);
+
 /// <summary>
 /// Curated monochrome symbols (Segoe Fluent Icons / Segoe MDL2 Assets code points).
 /// Any other character (letters, symbols, emoji) can be typed instead.
@@ -67,22 +69,21 @@ public static class Glyphs
     public const string Repair = "";
     public const string Keyboard = "";
     public const string Mouse = "";
-    public const string Rocket = "";
     public const string Grid = "";
 
     /// <summary>The picker list shown in the editor (glyph, name).</summary>
-    public static readonly IReadOnlyList<(string Glyph, string Name)> Catalogue =
+    public static readonly IReadOnlyList<GlyphInfo> Catalogue =
     [
-        (App, "App"), (Code, "Code"), (Terminal, "Terminal"), (Folder, "Folder"), (FolderOpen, "Folder open"),
-        (Document, "Document"), (Globe, "Web"), (Link, "Link"), (Camera, "Camera"), (Video, "Video"),
-        (Record, "Record"), (Picture, "Picture"), (Eye, "Eye"), (Bolt, "Bolt"), (Diagnostic, "Diagnostic"),
-        (Settings, "Settings"), (Search, "Search"), (Play, "Play"), (Stop, "Stop"), (Refresh, "Refresh"),
-        (Home, "Home"), (History, "History"), (Clock, "Clock"), (Info, "Info"), (Warning, "Warning"),
-        (Check, "Check"), (Star, "Star"), (Color, "Colour"), (Copy, "Copy"), (Moon, "Moon"), (Sun, "Sun"),
-        (Monitor, "Monitor"), (Lock, "Lock"), (Mail, "Mail"), (Calendar, "Calendar"), (OpenFile, "Open file"),
-        (Download, "Download"), (List, "List"), (Tag, "Tag"), (Flag, "Flag"), (Admin, "Admin"), (Sync, "Sync"),
-        (Save, "Save"), (Edit, "Edit"), (Library, "Library"), (Repair, "Repair"), (Keyboard, "Keyboard"),
-        (Mouse, "Mouse"), (Power, "Power"), (Pin, "Pin"), (Grid, "Grid"),
+        new(App, "App"), new(Code, "Code"), new(Terminal, "Terminal"), new(Folder, "Folder"), new(FolderOpen, "Folder open"),
+        new(Document, "Document"), new(Globe, "Web"), new(Link, "Link"), new(Camera, "Camera"), new(Video, "Video"),
+        new(Record, "Record"), new(Picture, "Picture"), new(Eye, "Eye"), new(Bolt, "Bolt"), new(Diagnostic, "Diagnostic"),
+        new(Settings, "Settings"), new(Search, "Search"), new(Play, "Play"), new(Stop, "Stop"), new(Refresh, "Refresh"),
+        new(Home, "Home"), new(History, "History"), new(Clock, "Clock"), new(Info, "Info"), new(Warning, "Warning"),
+        new(Check, "Check"), new(Star, "Star"), new(Color, "Colour"), new(Copy, "Copy"), new(Moon, "Moon"), new(Sun, "Sun"),
+        new(Monitor, "Monitor"), new(Lock, "Lock"), new(Mail, "Mail"), new(Calendar, "Calendar"), new(OpenFile, "Open file"),
+        new(Download, "Download"), new(List, "List"), new(Tag, "Tag"), new(Flag, "Flag"), new(Admin, "Admin"), new(Sync, "Sync"),
+        new(Save, "Save"), new(Edit, "Edit"), new(Library, "Library"), new(Repair, "Repair"), new(Keyboard, "Keyboard"),
+        new(Mouse, "Mouse"), new(Power, "Power"), new(Pin, "Pin"), new(Grid, "Grid"),
     ];
 
     public static string ForKind(ToolKind kind) => kind switch

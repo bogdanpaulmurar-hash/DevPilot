@@ -1,22 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
     <UseWPF>true</UseWPF>
     <AssemblyName>DevPilot</AssemblyName>
     <RootNamespace>DevPilot.UI</RootNamespace>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
-    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
-    <!-- ── Release metadata ────────────────────────────────────────── -->
-    <Version>1.0.0</Version>
-    <Company>Siemens AG</Company>
+    <Version>2.0.0</Version>
     <Product>DevPilot</Product>
-    <Description>DevPilot — IT Automation Hub</Description>
-    <Copyright>© 2025 Bogdan Murar (Z003FU5C), Siemens AG</Copyright>
+    <Description>DevPilot — one tray hub for all your tools</Description>
+    <Copyright>© 2026 Bogdan Murar</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,11 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection"  Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting"              Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging"              Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console"      Version="8.0.0" />
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf"                  Version="2.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

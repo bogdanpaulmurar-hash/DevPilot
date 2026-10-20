@@ -1,0 +1,82 @@
+<UserControl x:Class="DevPilot.UI.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DevPilot.UI.ViewModels"
+             xmlns:svc="clr-namespace:DevPilot.UI.Services"
+             xmlns:core="clr-namespace:DevPilot.Core.Interfaces;assembly=DevPilot.Core">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,4,32,32" MaxWidth="860" HorizontalAlignment="Left">
+            <TextBlock Text="Settings" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="Window behaviour, global shortcuts and your configuration file." Style="{StaticResource PageSubtitle}"/>
+
+            <Border Style="{StaticResource Card}" Margin="0,20,0,12" svc:EditTracker.Area="{x:Static core:ConfigArea.Window}">
+                <StackPanel>
+                    <TextBlock Text="Window" Style="{StaticResource SectionTitle}"/>
+                    <CheckBox Style="{StaticResource Switch}" Content="Closing the window keeps DevPilot running in the tray" IsChecked="{Binding Settings.Window.CloseToTray}"/>
+                    <CheckBox Style="{StaticResource Switch}" Content="Always start hidden in the tray (also when started by hand)" IsChecked="{Binding Settings.Startup.AlwaysStartHidden}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" svc:EditTracker.Area="{x:Static core:ConfigArea.Hotkeys}">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Global shortcuts" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            <TextBlock Text="Work everywhere, even when DevPilot is hidden. A shortcut can open the hub, start a tool or run one of its options." Style="{StaticResource Hint}"/>
+                        </StackPanel>
+                        <Button Content="Add shortcut" HorizontalAlignment="Right" VerticalAlignment="Top" Command="{Binding AddHotkeyCommand}"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Hotkeys}" Margin="0,12,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:HotkeyRowVM}">
+                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox IsChecked="{Binding Model.IsEnabled}" VerticalAlignment="Center" ToolTip="Enabled"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding Actions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Model.Action}" Margin="4,0,12,0"/>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <ToggleButton Style="{StaticResource DayToggle}" Width="44" Content="Ctrl" IsChecked="{Binding Ctrl}"/>
+                                            <ToggleButton Style="{StaticResource DayToggle}" Width="40" Content="Alt" IsChecked="{Binding Alt}"/>
+                                            <ToggleButton Style="{StaticResource DayToggle}" Width="48" Content="Shift" IsChecked="{Binding Shift}"/>
+                                            <ToggleButton Style="{StaticResource DayToggle}" Width="40" Content="Win" IsChecked="{Binding Win}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="3" ItemsSource="{x:Static vm:HotkeyRowVM.Keys}" SelectedItem="{Binding Model.Key}"/>
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal">
+                                            <TextBlock Text="&#xE7BA;" Style="{StaticResource Glyph}" Foreground="{DynamicResource DangerBrush}" Margin="10,0,0,0"
+                                                       ToolTip="Already used by another application — pick another key" Visibility="{Binding Failed, Converter={StaticResource BoolToVis}}"/>
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE74D;" Margin="6,0,0,0"
+                                                    Command="{Binding DataContext.RemoveHotkeyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Configuration" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10">
+                        <Run Text="Saved automatically to"/> <Run Text="{Binding ConfigPath, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
+                        <Run Text=". Every save keeps the previous version as config.json.bak; imports and resets keep a dated copy."/>
+                    </TextBlock>
+                    <WrapPanel>
+                        <Button Content="Export…" Margin="0,0,6,6" Command="{Binding ExportCommand}"/>
+                        <Button Content="Import…" Margin="0,0,6,6" Command="{Binding ImportCommand}"/>
+                        <Button Content="Open data folder" Margin="0,0,6,6" Command="{Binding OpenDataFolderCommand}"/>
+                        <Button Content="Open log" Margin="0,0,6,6" Command="{Binding OpenLogCommand}"/>
+                        <Button Content="Reset to defaults" Style="{StaticResource DangerButton}" Margin="0,0,6,6" Command="{Binding ResetCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

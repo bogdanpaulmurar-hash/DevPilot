@@ -1,0 +1,85 @@
+<UserControl x:Class="DevPilot.UI.Hub.FlyoutPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hub="clr-namespace:DevPilot.UI.Hub"
+             FontFamily="{StaticResource UiFont}">
+    <Border x:Name="Frame" Margin="6,4,10,12" Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" CornerRadius="8" Padding="4">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.35" Color="Black"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <!-- Optional title (tool name + status) -->
+            <Border x:Name="TitleBar" Padding="10,8,10,6" Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock x:Name="TitleText" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="SubtitleText" FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+            <ScrollViewer Grid.Row="1" x:Name="Scroller" VerticalScrollBarVisibility="Auto" MaxHeight="560">
+                <ItemsControl x:Name="Items" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type hub:FlyoutItem}">
+                            <Grid>
+                                <!-- action row -->
+                                <Border x:Name="Row" Background="Transparent" CornerRadius="5" Padding="10,6" Cursor="Hand"
+                                        Visibility="{Binding IsAction, Converter={StaticResource BoolToVis}}"
+                                        ToolTip="{Binding ToolTip}" ToolTipService.InitialShowDelay="900"
+                                        MouseEnter="Row_MouseEnter" MouseLeftButtonUp="Row_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="Ico" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="13" HorizontalAlignment="Left" TextAlignment="Left"/>
+                                        <TextBlock x:Name="Lbl" Grid.Column="1" Text="{Binding Label}"
+                                                   Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                   FontWeight="{Binding IsBold, Converter={StaticResource BoolToWeight}}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Detail}" FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        <TextBlock Grid.Column="3" Text="&#xE76C;" Style="{StaticResource Glyph}" FontSize="10" Margin="8,0,0,0"
+                                                   Visibility="{Binding HasChildren, Converter={StaticResource BoolToVis}}"/>
+                                    </Grid>
+                                </Border>
+                                <!-- header -->
+                                <TextBlock Text="{Binding Label}" Style="{StaticResource Overline}" Margin="10,8,10,3"
+                                           Visibility="{Binding IsHeader, Converter={StaticResource BoolToVis}}"/>
+                                <!-- separator -->
+                                <Border Height="1" Margin="8,4" Background="{DynamicResource BorderBrush}"
+                                        Visibility="{Binding IsSeparator, Converter={StaticResource BoolToVis}}"/>
+                                <!-- info -->
+                                <StackPanel Orientation="Horizontal" Margin="10,6" Visibility="{Binding IsInfo, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="12" Margin="0,0,8,0"
+                                               Visibility="{Binding HasGlyph, Converter={StaticResource BoolToVis}}"/>
+                                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}" TextWrapping="Wrap" MaxWidth="320"/>
+                                </StackPanel>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsAccent}" Value="True">
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsDanger}" Value="True">
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                    <Setter TargetName="Lbl" Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                    <Setter TargetName="Row" Property="Opacity" Value="0.45"/>
+                                    <Setter TargetName="Row" Property="IsHitTestVisible" Value="False"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

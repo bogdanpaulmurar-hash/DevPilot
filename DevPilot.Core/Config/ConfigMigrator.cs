@@ -121,6 +121,9 @@ public static class ConfigMigrator
         if (string.IsNullOrWhiteSpace(color)) return string.Empty;
         color = color.Trim();
         if (!color.StartsWith('#')) color = "#" + color;
-        return color.Length is 7 or 9 ? color.ToUpperInvariant() : string.Empty;
+        if (color.Length is not (7 or 9)) return string.Empty;
+        for (int i = 1; i < color.Length; i++)
+            if (!Uri.IsHexDigit(color[i])) return string.Empty;
+        return color.ToUpperInvariant();
     }
 }
