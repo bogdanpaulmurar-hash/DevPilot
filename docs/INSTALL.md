@@ -39,6 +39,18 @@ The script:
 
 Your settings are not touched (`%APPDATA%\DevPilot\config.json`).
 
+### If PowerShell scripts are blocked (company laptops)
+
+When `install.ps1` fails with *"is not digitally signed"*, script execution is enforced by policy and `-ExecutionPolicy Bypass` is ignored. Use the batch installer instead — same steps, no PowerShell script:
+
+```bat
+scripts\install.cmd /autostart
+```
+
+It also builds from a local copy, so the repository can stay in Google Drive / OneDrive.
+
+If `winget` reports *0x8a15000f* (source data missing), install the **.NET 8 SDK x64** from https://dotnet.microsoft.com/download/dotnet/8.0 (or from your company software portal) and check with `dotnet --list-sdks`.
+
 ## 3. First start
 
 1. DevPilot opens on **Tools & groups**. Click **Add → Your known tools** and pick ScreenPilot, FocusPilot, NexusX, regTester or AutoPilot DC; choose the script / exe / project folder when asked.
