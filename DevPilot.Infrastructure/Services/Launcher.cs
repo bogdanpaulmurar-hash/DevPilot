@@ -138,6 +138,12 @@ public sealed class Launcher : ILauncher
         return alternative.Length > 0;
     }
 
+    /// <summary>How long a watched start may take to fail before it counts as started.</summary>
+    internal static TimeSpan StartupWatch { get; set; } = TimeSpan.FromSeconds(2.5);
+
+    /// <summary>Processes whose stderr is still being drained (a closed pipe could break them later).</summary>
+    private static readonly HashSet<Process> Watched = [];
+
     private static LaunchResult StartProcess(LaunchPlan plan, string fileName)
     {
         var psi = new ProcessStartInfo
@@ -146,12 +152,64 @@ public sealed class Launcher : ILauncher
             Arguments = plan.Arguments,
             UseShellExecute = false,
             CreateNoWindow = plan.HideWindow,
+            RedirectStandardError = plan.WatchStartup,
         };
         if (!string.IsNullOrWhiteSpace(plan.WorkingDirectory) && Directory.Exists(plan.WorkingDirectory))
             psi.WorkingDirectory = plan.WorkingDirectory;
         foreach (var (k, v) in plan.Environment) psi.Environment[k] = v;
-        using var p = Process.Start(psi);
-        return LaunchResult.Ok(p?.Id ?? 0);
+        if (!plan.WatchStartup)
+        {
+            using var p = Process.Start(psi);
+            return LaunchResult.Ok(p?.Id ?? 0);
+        }
+        return StartWatched(psi);
+    }
+
+    /// <summary>
+    /// Starts a windowless (pythonw) process and waits briefly: if it ends with an error right away
+    /// (wrong interpreter, missing module), the last stderr line becomes the launch error instead of a silent failure.
+    /// </summary>
+    private static LaunchResult StartWatched(ProcessStartInfo psi)
+    {
+        var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        var tail = new Queue<string>();
+        p.ErrorDataReceived += (_, e) =>
+        {
+            if (string.IsNullOrWhiteSpace(e.Data)) return;
+            lock (tail)
+            {
+                tail.Enqueue(e.Data.Trim());
+                while (tail.Count > 20) tail.Dequeue();
+            }
+        };
+        if (!p.Start()) { p.Dispose(); return LaunchResult.Fail("The process did not start."); }
+        p.BeginErrorReadLine();
+        int pid = p.Id;
+        if (!p.WaitForExit((int)StartupWatch.TotalMilliseconds))
+        {
+            // Still running: keep draining stderr until it exits, then release it.
+            lock (Watched) Watched.Add(p);
+            p.Exited += (_, _) => { lock (Watched) Watched.Remove(p); p.Dispose(); };
+            if (p.HasExited) { lock (Watched) Watched.Remove(p); }
+            return LaunchResult.Ok(pid);
+        }
+        p.WaitForExit(); // flushes the asynchronous stderr reader
+        int code = p.ExitCode;
+        string[] lines;
+        lock (tail) lines = tail.ToArray();
+        p.Dispose();
+        if (code == 0) return LaunchResult.Ok(pid);
+        return LaunchResult.Fail(DescribeEarlyExit(code, lines));
+    }
+
+    internal static string DescribeEarlyExit(int code, IReadOnlyList<string> stderr)
+    {
+        var last = stderr.LastOrDefault(l => !l.StartsWith("File ", StringComparison.Ordinal) && !l.StartsWith("^", StringComparison.Ordinal))
+                   ?? stderr.LastOrDefault() ?? string.Empty;
+        var message = string.IsNullOrEmpty(last) ? $"It stopped right away (exit code {code})." : $"It stopped right away: {last}";
+        if (stderr.Any(l => l.Contains("No module named", StringComparison.Ordinal)))
+            message += " — this Python does not have the tool installed. Set the tool's Interpreter field to the pythonw.exe of its venv.";
+        return message;
     }
 
     private static LaunchResult ShellOpen(LaunchPlan plan)
