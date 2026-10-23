@@ -1,3 +1,4 @@
+using DevPilot.Core.Hub;
 using DevPilot.Models;
 
 namespace DevPilot.Core.Config;
@@ -25,6 +26,12 @@ public static class Normalizer
         var seen = new HashSet<string>();
         foreach (var g in s.Groups)
             if (string.IsNullOrWhiteSpace(g.Id) || !seen.Add(g.Id)) { g.Id = NewId.Short(); seen.Add(g.Id); }
+        foreach (var g in s.Groups)
+        {
+            g.Color = ConfigMigrator.NormalizeColor(g.Color);
+            g.TextColor = ConfigMigrator.NormalizeColor(g.TextColor);
+            g.GlyphColor = ConfigMigrator.NormalizeColor(g.GlyphColor);
+        }
         seen.Clear();
         foreach (var t in s.Tools)
         {
@@ -40,6 +47,16 @@ public static class Normalizer
             t.Folder.Depth = Math.Clamp(t.Folder.Depth, 1, 5);
             t.Folder.MaxItems = Math.Clamp(t.Folder.MaxItems, 5, 500);
             t.Color = ConfigMigrator.NormalizeColor(t.Color);
+            t.TextColor = ConfigMigrator.NormalizeColor(t.TextColor);
+            t.GlyphColor = ConfigMigrator.NormalizeColor(t.GlyphColor);
+            if (t.IsSeparator)
+            {
+                // A separator never runs, tracks or owns a tray icon.
+                t.Tray = TrayMode.HubOnly;
+                t.AutoStart.Enabled = false;
+                t.Spotlight = false;
+                t.Managed.Enabled = false;
+            }
             Presets.ToolPresets.UpgradeLegacyActions(t);
         }
 
@@ -60,6 +77,7 @@ public static class Normalizer
         h.FontSize = Math.Clamp(h.FontSize, 10, 20);
         h.FlyoutWidth = Math.Clamp(h.FlyoutWidth, 180, 600);
         h.HoverDelayMs = Math.Clamp(h.HoverDelayMs, 0, 2000);
+        h.HighlightStrength = Math.Clamp(h.HighlightStrength, RowColors.MinStrength, RowColors.MaxStrength);
         h.Spotlight.RecentCount = Math.Clamp(h.Spotlight.RecentCount, 0, 8);
         h.Spotlight.Accent = ConfigMigrator.NormalizeColor(h.Spotlight.Accent);
 

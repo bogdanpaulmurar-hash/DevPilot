@@ -34,8 +34,15 @@ public class ToolEntry
     // ── Look ────────────────────────────────────────────────────────────
     public string Glyph { get; set; } = string.Empty;
     public string IconPath { get; set; } = string.Empty;
-    /// <summary>Optional colour (#RRGGBB) shown as a small marker, never as coloured text.</summary>
+    /// <summary>Optional row colour (#RRGGBB): marker bar and/or row tint, see <see cref="ColorStyle"/>. For separators: the line colour.</summary>
     public string Color { get; set; } = string.Empty;
+    public RowColorStyle ColorStyle { get; set; } = RowColorStyle.Marker;
+    /// <summary>Optional colour of the name (#RRGGBB); empty = theme text colour.</summary>
+    public string TextColor { get; set; } = string.Empty;
+    /// <summary>Optional colour of the symbol (#RRGGBB); empty = theme colour.</summary>
+    public string GlyphColor { get; set; } = string.Empty;
+    /// <summary>Only used when <see cref="Kind"/> is <see cref="ToolKind.Separator"/>; the caption is <see cref="Name"/>.</summary>
+    public SeparatorStyle SeparatorStyle { get; set; } = SeparatorStyle.Line;
     public bool Bold { get; set; }
     public bool Italic { get; set; }
     /// <summary>Shown as the large spotlight card at the top of the hub.</summary>
@@ -52,6 +59,7 @@ public class ToolEntry
     public AutoStartOptions AutoStart { get; set; } = new();
     public MonitorOptions Monitor { get; set; } = new();
 
+    public bool IsSeparator => Kind == ToolKind.Separator;
     public bool IsFolderLike => Kind is ToolKind.Folder or ToolKind.NetworkShare;
     public bool IsProcessLike => Kind is ToolKind.Executable or ToolKind.Python or ToolKind.PowerShell
         or ToolKind.Batch or ToolKind.VBScript or ToolKind.ShellCommand or ToolKind.Ssh or ToolKind.Wsl;

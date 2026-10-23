@@ -19,6 +19,8 @@ public class HubAppearance
     public bool ShowStatusDots { get; set; } = true;
     public bool ShowGroupCounts { get; set; } = true;
     public bool ShowToolColors { get; set; } = true;
+    /// <summary>Strength of the row tint for highlighted rows, in percent (5 – 60).</summary>
+    public int HighlightStrength { get; set; } = 18;
     public GroupHeaderStyle GroupHeaderStyle { get; set; } = GroupHeaderStyle.SmallCaps;
     public bool CloseAfterLaunch { get; set; } = true;
     public bool RememberCollapsedGroups { get; set; } = true;

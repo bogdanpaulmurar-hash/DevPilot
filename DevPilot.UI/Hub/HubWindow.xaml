@@ -32,9 +32,9 @@
                     <Border Width="3" Height="16" CornerRadius="1.5" Margin="0,0,7,0" VerticalAlignment="Center"
                             Background="{Binding Color, Converter={StaticResource HexToBrush}}"
                             Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left" TextAlignment="Left"/>
+                    <TextBlock x:Name="RowGlyph" Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left" TextAlignment="Left"/>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextBrush}"
+                        <TextBlock x:Name="RowName" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextBrush}"
                                    FontWeight="{Binding Bold, Converter={StaticResource BoolToWeight}}"
                                    FontStyle="{Binding Italic, Converter={StaticResource BoolToStyle}}"/>
                         <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}"
@@ -49,11 +49,46 @@
                 </Grid>
             </Border>
             <DataTemplate.Triggers>
+                <!-- Custom colours (already checked for readability in the view model). Hover stays last so it wins. -->
+                <DataTrigger Binding="{Binding HasHighlight}" Value="True">
+                    <Setter TargetName="Row" Property="Background" Value="{Binding HighlightColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasTextColor}" Value="True">
+                    <Setter TargetName="RowName" Property="Foreground" Value="{Binding TextColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasGlyphColor}" Value="True">
+                    <Setter TargetName="RowGlyph" Property="Foreground" Value="{Binding GlyphColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
                 <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
                     <Setter TargetName="Row" Property="Background" Value="{DynamicResource HoverBrush}"/>
                 </Trigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+
+        <!-- Separator row: a line, a gap, or a caption followed by a line -->
+        <DataTemplate x:Key="SeparatorRow" DataType="{x:Type hub:HubToolVM}">
+            <Grid Margin="14,2" MinHeight="{Binding SeparatorHeight}" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="SepLabel" Text="{Binding SeparatorLabel}" FontSize="11" Margin="0,2,8,2" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis"
+                           Visibility="{Binding ShowSeparatorLabel, Converter={StaticResource BoolToVis}}"/>
+                <Border x:Name="SepLine" Grid.Column="1" Height="1" VerticalAlignment="Center" Background="{DynamicResource BorderBrush}"
+                        Visibility="{Binding ShowSeparatorLine, Converter={StaticResource BoolToVis}}"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasSeparatorColor}" Value="True">
+                    <Setter TargetName="SepLine" Property="Background" Value="{Binding SeparatorColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasSeparatorTextColor}" Value="True">
+                    <Setter TargetName="SepLabel" Property="Foreground" Value="{Binding SeparatorTextColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <hub:HubRowTemplateSelector x:Key="RowSelector" Row="{StaticResource ToolRow}" Separator="{StaticResource SeparatorRow}"/>
 
         <Style x:Key="GroupHeaderButton" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
@@ -232,8 +267,9 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type hub:HubGroupVM}">
                                 <StackPanel Visibility="{Binding HasVisibleTools, Converter={StaticResource BoolToVis}}" Margin="0,0,0,2">
-                                    <Button Style="{StaticResource GroupHeaderButton}" Command="{Binding ToggleCommand}"
-                                            Visibility="{Binding HeaderVisible, Converter={StaticResource BoolToVis}}" MouseEnter="GroupHeader_MouseEnter">
+                                    <Border CornerRadius="5" Margin="4,0" Background="{Binding HighlightColor, Converter={StaticResource HexToBrush}}"
+                                            Visibility="{Binding HeaderVisible, Converter={StaticResource BoolToVis}}">
+                                    <Button Style="{StaticResource GroupHeaderButton}" Margin="-4,0" Command="{Binding ToggleCommand}" MouseEnter="GroupHeader_MouseEnter">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -245,7 +281,7 @@
                                             <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center"
                                                      Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
                                                      Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
+                                            <TextBlock x:Name="GroupGlyph" Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
                                                        Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding HasGlyph, Converter={StaticResource BoolToVis}}"/>
                                             <TextBlock x:Name="Title" Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource TextTertiaryBrush}"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
@@ -254,12 +290,19 @@
                                             <TextBlock Grid.Column="4" Text="{Binding ChevronGlyph}" Style="{StaticResource Glyph}" FontSize="9" Foreground="{DynamicResource TextTertiaryBrush}"/>
                                         </Grid>
                                     </Button>
-                                    <ItemsControl ItemsSource="{Binding Tools}" ItemTemplate="{StaticResource ToolRow}"
+                                    </Border>
+                                    <ItemsControl ItemsSource="{Binding Tools}" ItemTemplateSelector="{StaticResource RowSelector}"
                                                   Visibility="{Binding IsCollapsed, Converter={StaticResource BoolToVisInv}}"/>
                                 </StackPanel>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding HeaderSmall}" Value="True">
                                         <Setter TargetName="Title" Property="FontSize" Value="11"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding HasTextColor}" Value="True">
+                                        <Setter TargetName="Title" Property="Foreground" Value="{Binding TextColor, Converter={StaticResource HexToBrush}}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding HasGlyphColor}" Value="True">
+                                        <Setter TargetName="GroupGlyph" Property="Foreground" Value="{Binding GlyphColor, Converter={StaticResource HexToBrush}}"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

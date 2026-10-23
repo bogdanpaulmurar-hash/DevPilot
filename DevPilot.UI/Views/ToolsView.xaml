@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:DevPilot.UI.ViewModels"
              xmlns:svc="clr-namespace:DevPilot.UI.Services"
+             xmlns:views="clr-namespace:DevPilot.UI.Views"
+             xmlns:hub="clr-namespace:DevPilot.UI.Hub"
              xmlns:core="clr-namespace:DevPilot.Core.Interfaces;assembly=DevPilot.Core"
              xmlns:presets="clr-namespace:DevPilot.Core.Presets;assembly=DevPilot.Core">
     <UserControl.Resources>
@@ -39,12 +41,105 @@
                 </StackPanel>
             </Grid>
             <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasTextColor}" Value="True">
+                    <Setter TargetName="Name" Property="Foreground" Value="{Binding TextColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                    <Setter TargetName="Name" Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+                    <Setter TargetName="Name" Property="FontSize" Value="11"/>
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsHidden}" Value="True">
                     <Setter TargetName="Name" Property="Opacity" Value="0.5"/>
                     <Setter TargetName="Name" Property="FontStyle" Value="Italic"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+
+        <!-- Previews: the same colour rules as the hub -->
+        <DataTemplate x:Key="ToolRowPreview" DataType="{x:Type hub:HubToolVM}">
+            <Border x:Name="Row" CornerRadius="6" Padding="10,7" Background="Transparent" MinWidth="260" HorizontalAlignment="Left">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="26"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="3" Height="16" CornerRadius="1.5" Margin="0,0,7,0" VerticalAlignment="Center"
+                            Background="{Binding Color, Converter={StaticResource HexToBrush}}"
+                            Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock x:Name="RowGlyph" Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left"/>
+                    <TextBlock x:Name="RowName" Grid.Column="2" Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                               FontWeight="{Binding Bold, Converter={StaticResource BoolToWeight}}"
+                               FontStyle="{Binding Italic, Converter={StaticResource BoolToStyle}}"/>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasHighlight}" Value="True">
+                    <Setter TargetName="Row" Property="Background" Value="{Binding HighlightColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasTextColor}" Value="True">
+                    <Setter TargetName="RowName" Property="Foreground" Value="{Binding TextColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasGlyphColor}" Value="True">
+                    <Setter TargetName="RowGlyph" Property="Foreground" Value="{Binding GlyphColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <DataTemplate x:Key="SeparatorPreview" DataType="{x:Type hub:HubToolVM}">
+            <Grid Margin="10,2" MinHeight="{Binding SeparatorHeight}" Width="260" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="SepLabel" Text="{Binding SeparatorLabel}" FontSize="11" Margin="0,2,8,2" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding ShowSeparatorLabel, Converter={StaticResource BoolToVis}}"/>
+                <Border x:Name="SepLine" Grid.Column="1" Height="1" VerticalAlignment="Center" Background="{DynamicResource BorderBrush}"
+                        Visibility="{Binding ShowSeparatorLine, Converter={StaticResource BoolToVis}}"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasSeparatorColor}" Value="True">
+                    <Setter TargetName="SepLine" Property="Background" Value="{Binding SeparatorColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasSeparatorTextColor}" Value="True">
+                    <Setter TargetName="SepLabel" Property="Foreground" Value="{Binding SeparatorTextColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <DataTemplate x:Key="GroupHeaderPreview" DataType="{x:Type hub:HubGroupVM}">
+            <Border CornerRadius="5" Padding="10,8,10,6" MinWidth="260" HorizontalAlignment="Left"
+                    Background="{Binding HighlightColor, Converter={StaticResource HexToBrush}}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center"
+                             Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
+                             Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock x:Name="GroupGlyph" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding HasGlyph, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock x:Name="Title" Text="{Binding Title}" Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"
+                               FontWeight="{Binding HeaderBold, Converter={StaticResource BoolToWeight}}"/>
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasTextColor}" Value="True">
+                    <Setter TargetName="Title" Property="Foreground" Value="{Binding TextColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasGlyphColor}" Value="True">
+                    <Setter TargetName="GroupGlyph" Property="Foreground" Value="{Binding GlyphColor, Converter={StaticResource HexToBrush}}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HeaderSmall}" Value="True">
+                    <Setter TargetName="Title" Property="FontSize" Value="11"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <!-- Hub-like surface the previews sit on -->
+        <Style x:Key="PreviewSurface" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="0,12,0,0"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
 
         <!-- Shared pickers -->
         <DataTemplate x:Key="GlyphPicker">
@@ -226,33 +321,39 @@
                                     <TextBox Text="{Binding Glyph, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GlyphFont}" FontSize="15" svc:EditTracker.NoTrack="True"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Marker colour (optional — shown as a thin bar, never as coloured text)" Style="{StaticResource FieldLabel}"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <ItemsControl ItemsSource="{x:Static vm:ToolEditorVM.Palette}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Width="22" Height="22" MinHeight="0" Padding="0" Margin="0,0,5,0" ToolTip="{Binding}"
-                                                            Background="{Binding Converter={StaticResource HexToBrush}}" BorderThickness="0"
-                                                            Command="{Binding DataContext.SetColorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                            CommandParameter="{Binding}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <TextBox Text="{Binding Color, UpdateSourceTrigger=LostFocus}" Width="90" Margin="6,0,0,0" FontFamily="{StaticResource MonoFont}" FontSize="12"
-                                                 svc:EditTracker.NoTrack="True"/>
-                                        <Button Content="None" Margin="6,0,0,0" Command="{Binding SetColorCommand}" CommandParameter=""/>
-                                    </StackPanel>
+                                    <TextBlock Text="Row colour (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding Color}"/>
+                                    <ComboBox ItemsSource="{x:Static vm:ToolEditorVM.ColorStyles}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                              SelectedValue="{Binding ColorStyle}" Width="220" HorizontalAlignment="Left" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Text colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding TextColor}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Symbol colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding GlyphColor}"/>
                                 </StackPanel>
                             </Grid>
                             <ContentControl ContentTemplate="{StaticResource GlyphPicker}" Content="{Binding}" Focusable="False"/>
                             <WrapPanel Margin="0,10,0,0">
-                                <CheckBox Content="Bold" IsChecked="{Binding Model.Bold}" Margin="0,0,24,0"/>
-                                <CheckBox Content="Italic" IsChecked="{Binding Model.Italic}" Margin="0,0,24,0"/>
+                                <CheckBox Content="Bold" IsChecked="{Binding Bold}" Margin="0,0,24,0"/>
+                                <CheckBox Content="Italic" IsChecked="{Binding Italic}" Margin="0,0,24,0"/>
                                 <CheckBox Content="Spotlight card at the top of the hub (one tool)" IsChecked="{Binding Model.Spotlight}"/>
                             </WrapPanel>
+                            <TextBlock Text="Preview" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+                            <Border Style="{StaticResource PreviewSurface}" Margin="0,4,0,0">
+                                <ContentControl Content="{Binding Preview}" ContentTemplate="{StaticResource ToolRowPreview}" Focusable="False"/>
+                            </Border>
+                            <TextBlock Text="A text or symbol colour that would be hard to read on the hub background is replaced by the theme colour."
+                                       Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>
 
@@ -533,25 +634,31 @@
                                     <TextBox Text="{Binding Glyph, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GlyphFont}" FontSize="15" svc:EditTracker.NoTrack="True"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Colour dot (optional)" Style="{StaticResource FieldLabel}"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <ItemsControl ItemsSource="{x:Static vm:GroupEditorVM.Palette}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Width="22" Height="22" MinHeight="0" Padding="0" Margin="0,0,5,0" BorderThickness="0"
-                                                            Background="{Binding Converter={StaticResource HexToBrush}}"
-                                                            Command="{Binding DataContext.SetColorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                            CommandParameter="{Binding}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <Button Content="None" Command="{Binding SetColorCommand}" CommandParameter=""/>
-                                    </StackPanel>
+                                    <TextBlock Text="Group colour (optional)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding Color}"/>
+                                    <ComboBox ItemsSource="{x:Static vm:GroupEditorVM.ColorStyles}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                              SelectedValue="{Binding ColorStyle}" Width="220" HorizontalAlignment="Left" Margin="0,6,0,0"/>
                                 </StackPanel>
                             </Grid>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Title colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding TextColor}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Symbol colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding GlyphColor}"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="Preview" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+                            <Border Style="{StaticResource PreviewSurface}" Margin="0,4,0,0">
+                                <ContentControl Content="{Binding Preview}" ContentTemplate="{StaticResource GroupHeaderPreview}" Focusable="False"/>
+                            </Border>
                             <ContentControl ContentTemplate="{StaticResource GlyphPicker}" Content="{Binding}" Focusable="False"/>
                         </StackPanel>
                     </Border>
@@ -561,6 +668,67 @@
                             <CheckBox Style="{StaticResource Switch}" Content="Collapsed in the hub" IsChecked="{Binding Model.Collapsed}"/>
                             <CheckBox Style="{StaticResource Switch}" Content="Hide the whole group from the hub" IsChecked="{Binding Model.Hidden}"/>
                             <TextBlock Text="{Binding ToolCount, StringFormat='{}{0} tool(s) in this group. Use the arrows on the left to reorder, or the Group field of a tool to move it.'}"
+                                       Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+        <!-- Separator editor -->
+        <DataTemplate DataType="{x:Type vm:SeparatorEditorVM}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" svc:EditTracker.Area="{x:Static core:ConfigArea.Tools}">
+                <StackPanel Margin="24,0,32,32" MaxWidth="720" HorizontalAlignment="Left">
+                    <TextBlock Text="Separator" Style="{StaticResource Overline}"/>
+                    <TextBlock Text="A line, a gap or a small caption between rows in the hub. It does not start anything."
+                               Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,16"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Look" Style="{StaticResource SectionTitle}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Style" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{x:Static vm:SeparatorEditorVM.Styles}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                              SelectedValue="{Binding Style}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Visibility="{Binding HasCaption, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Caption" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Caption, UpdateSourceTrigger=PropertyChanged}" svc:EditTracker.NoTrack="True"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Line colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding Color}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Visibility="{Binding HasCaption, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Caption colour (empty = line colour)" Style="{StaticResource FieldLabel}"/>
+                                    <views:ColorField Value="{Binding TextColor}"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="Preview" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+                            <Border Style="{StaticResource PreviewSurface}" Margin="0,4,0,0">
+                                <ContentControl Content="{Binding Preview}" ContentTemplate="{StaticResource SeparatorPreview}" Focusable="False"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Place" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="Group" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding Groups}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding GroupId}"
+                                      Width="260" HorizontalAlignment="Left"/>
+                            <CheckBox Style="{StaticResource Switch}" Content="Hide from the hub" IsChecked="{Binding Hidden}" Margin="0,10,0,0"/>
+                            <TextBlock Text="Use the arrows on the left to move it up or down between tools."
                                        Style="{StaticResource Hint}" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>

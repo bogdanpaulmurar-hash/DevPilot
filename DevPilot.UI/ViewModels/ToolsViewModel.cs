@@ -34,10 +34,16 @@ public sealed class ToolListEntry(ToolEntry tool) : ListEntry
 {
     public ToolEntry Tool { get; } = tool;
     public override string Id => Tool.Id;
-    public string Name => string.IsNullOrWhiteSpace(Tool.Name) ? "(unnamed)" : Tool.Name;
-    public string Glyph => FlyoutBuilder.GlyphOf(Tool);
+    public string Name => Tool.IsSeparator
+        ? (string.IsNullOrWhiteSpace(Tool.Name) ? "──────  separator" : $"──  {Tool.Name}")
+        : string.IsNullOrWhiteSpace(Tool.Name) ? "(unnamed)" : Tool.Name;
+    public string Glyph => Tool.IsSeparator ? string.Empty : FlyoutBuilder.GlyphOf(Tool);
+    public bool IsSeparator => Tool.IsSeparator;
     public string Color => Tool.Color;
     public bool HasColor => !string.IsNullOrWhiteSpace(Tool.Color);
+    /// <summary>Name colour in the list (as chosen; the hub additionally checks readability).</summary>
+    public string TextColor => Tool.TextColor;
+    public bool HasTextColor => !string.IsNullOrWhiteSpace(Tool.TextColor);
     public bool IsHidden => Tool.Hidden;
     public bool IsSpotlight => Tool.Spotlight;
     public string Badge => Tool.Tray switch
@@ -67,6 +73,7 @@ public sealed class ToolsViewModel : ObservableObject, IPage
     public ICommand AddLinkCommand { get; }
     public ICommand AddPresetCommand { get; }
     public ICommand AddGroupCommand { get; }
+    public ICommand AddSeparatorCommand { get; }
     public ICommand MoveUpCommand { get; }
     public ICommand MoveDownCommand { get; }
     public ICommand DeleteCommand { get; }
@@ -83,6 +90,13 @@ public sealed class ToolsViewModel : ObservableObject, IPage
         AddLinkCommand = new RelayCommand(() => AddTool(new ToolEntry { Name = "New link", Kind = ToolKind.Url, Path = "https://" }));
         AddPresetCommand = new RelayCommand(p => { if (p is ToolPreset preset) AddPreset(preset); });
         AddGroupCommand = new RelayCommand(AddGroup);
+        AddSeparatorCommand = new RelayCommand(() => AddTool(new ToolEntry
+        {
+            Name = string.Empty,
+            Kind = ToolKind.Separator,
+            Tray = TrayMode.HubOnly,
+            Managed = new ManagedOptions { Enabled = false },
+        }));
         MoveUpCommand = new RelayCommand(() => Move(-1), () => _selected is not null);
         MoveDownCommand = new RelayCommand(() => Move(1), () => _selected is not null);
         DeleteCommand = new RelayCommand(Delete, () => _selected is not null);
@@ -108,6 +122,7 @@ public sealed class ToolsViewModel : ObservableObject, IPage
             {
                 Editor = value switch
                 {
+                    ToolListEntry { Tool.IsSeparator: true } sep => new SeparatorEditorVM(sep.Tool, this, _config),
                     ToolListEntry t => new ToolEditorVM(t.Tool, this, _config, _launcher, _monitor),
                     GroupListEntry g => new GroupEditorVM(g.Group, this),
                     _ => null,
@@ -285,7 +300,7 @@ public sealed class ToolsViewModel : ObservableObject, IPage
         var json = System.Text.Json.JsonSerializer.Serialize(t.Tool, ConfigSerializer.Options);
         var copy = System.Text.Json.JsonSerializer.Deserialize<ToolEntry>(json, ConfigSerializer.Options)!;
         copy.Id = NewId.Short();
-        copy.Name += " (copy)";
+        if (!copy.IsSeparator) copy.Name += " (copy)";
         copy.Spotlight = false;
         copy.AutoStart.Enabled = false;
         foreach (var a in copy.Actions) a.Id = NewId.Short();
@@ -542,6 +557,7 @@ public sealed class ToolEditorVM : ObservableObject
             Model.Glyph = parsed;
             OnPropertyChanged();
             OnPropertyChanged(nameof(DisplayGlyph));
+            OnPropertyChanged(nameof(Preview));
             Touch();
         }
     }
@@ -557,10 +573,43 @@ public sealed class ToolEditorVM : ObservableObject
             Model.Color = c;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasColor));
+            OnPropertyChanged(nameof(Preview));
             Touch();
         }
     }
     public bool HasColor => !string.IsNullOrWhiteSpace(Model.Color);
+
+    public static IReadOnlyList<Choice<RowColorStyle>> ColorStyles => RowLook.Styles;
+
+    public RowColorStyle ColorStyle
+    {
+        get => Model.ColorStyle;
+        set { if (Model.ColorStyle == value) return; Model.ColorStyle = value; OnPropertyChanged(); LookChanged(); }
+    }
+
+    public string TextColor
+    {
+        get => Model.TextColor;
+        set { var c = ConfigMigrator.NormalizeColor(value); if (Model.TextColor == c) return; Model.TextColor = c; OnPropertyChanged(); LookChanged(); }
+    }
+
+    public string GlyphColor
+    {
+        get => Model.GlyphColor;
+        set { var c = ConfigMigrator.NormalizeColor(value); if (Model.GlyphColor == c) return; Model.GlyphColor = c; OnPropertyChanged(); LookChanged(); }
+    }
+
+    public bool Bold { get => Model.Bold; set { if (Model.Bold == value) return; Model.Bold = value; OnPropertyChanged(); LookChanged(); } }
+    public bool Italic { get => Model.Italic; set { if (Model.Italic == value) return; Model.Italic = value; OnPropertyChanged(); LookChanged(); } }
+
+    /// <summary>The row exactly as the hub will draw it (colours, readability fallback, tint).</summary>
+    public HubToolVM Preview => new(Model, _config.Current.Hub, false);
+
+    private void LookChanged()
+    {
+        OnPropertyChanged(nameof(Preview));
+        Touch();
+    }
 
     public TrayMode Tray
     {
@@ -681,8 +730,39 @@ public sealed class GroupEditorVM : ObservableObject
         set { Model.Color = ConfigMigrator.NormalizeColor(value); OnPropertyChanged(); Notify(); }
     }
 
+    public static IReadOnlyList<Choice<RowColorStyle>> ColorStyles => RowLook.Styles;
+
+    public RowColorStyle ColorStyle
+    {
+        get => Model.ColorStyle;
+        set { if (Model.ColorStyle == value) return; Model.ColorStyle = value; OnPropertyChanged(); Notify(); }
+    }
+
+    public string TextColor
+    {
+        get => Model.TextColor;
+        set { Model.TextColor = ConfigMigrator.NormalizeColor(value); OnPropertyChanged(); Notify(); }
+    }
+
+    public string GlyphColor
+    {
+        get => Model.GlyphColor;
+        set { Model.GlyphColor = ConfigMigrator.NormalizeColor(value); OnPropertyChanged(); Notify(); }
+    }
+
+    /// <summary>The group header exactly as the hub will draw it.</summary>
+    public HubGroupVM Preview
+    {
+        get
+        {
+            var config = App.GetService<IConfigStore>();
+            return new HubGroupVM(Model, config.Current.Hub, config);
+        }
+    }
+
     private void Notify()
     {
+        OnPropertyChanged(nameof(Preview));
         App.GetService<IConfigStore>().Touch(ConfigArea.Groups);
         _owner.RefreshEntries();
     }
@@ -690,4 +770,99 @@ public sealed class GroupEditorVM : ObservableObject
     public static IReadOnlyList<GlyphInfo> GlyphCatalogue => Glyphs.Catalogue;
     public static IReadOnlyList<string> Palette => ToolEditorVM.Palette;
     public int ToolCount => App.GetService<IConfigStore>().Current.Tools.Count(t => t.GroupId == Model.Id);
+}
+
+/// <summary>Shared choices for row colour styles.</summary>
+public static class RowLook
+{
+    public static IReadOnlyList<Choice<RowColorStyle>> Styles { get; } =
+    [
+        new(RowColorStyle.Marker, "Bar on the left"),
+        new(RowColorStyle.Highlight, "Highlight the whole row"),
+        new(RowColorStyle.MarkerAndHighlight, "Bar and highlight"),
+    ];
+
+    public static IReadOnlyList<Choice<SeparatorStyle>> SeparatorStyles { get; } =
+    [
+        new(SeparatorStyle.Line, "Line"),
+        new(SeparatorStyle.Label, "Caption and line"),
+        new(SeparatorStyle.Space, "Empty space"),
+    ];
+}
+
+/// <summary>Editor for a separator row: caption, style, colours and group.</summary>
+public sealed class SeparatorEditorVM : ObservableObject
+{
+    private readonly ToolsViewModel _owner;
+    private readonly IConfigStore _config;
+
+    public ToolEntry Model { get; }
+
+    public SeparatorEditorVM(ToolEntry model, ToolsViewModel owner, IConfigStore config)
+    {
+        Model = model;
+        _owner = owner;
+        _config = config;
+    }
+
+    public static IReadOnlyList<Choice<SeparatorStyle>> Styles => RowLook.SeparatorStyles;
+
+    public string Caption
+    {
+        get => Model.Name;
+        set { if (Model.Name == (value ?? string.Empty)) return; Model.Name = value ?? string.Empty; OnPropertyChanged(); Changed(); }
+    }
+
+    public SeparatorStyle Style
+    {
+        get => Model.SeparatorStyle;
+        set
+        {
+            if (Model.SeparatorStyle == value) return;
+            Model.SeparatorStyle = value;
+            // A caption only shows in the "Caption and line" style.
+            if (value == SeparatorStyle.Label && string.IsNullOrWhiteSpace(Model.Name)) Model.Name = "Section";
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(Caption));
+            OnPropertyChanged(nameof(HasCaption));
+            Changed();
+        }
+    }
+
+    public bool HasCaption => Model.SeparatorStyle == SeparatorStyle.Label;
+
+    public string Color
+    {
+        get => Model.Color;
+        set { var c = ConfigMigrator.NormalizeColor(value); if (Model.Color == c) return; Model.Color = c; OnPropertyChanged(); Changed(); }
+    }
+
+    public string TextColor
+    {
+        get => Model.TextColor;
+        set { var c = ConfigMigrator.NormalizeColor(value); if (Model.TextColor == c) return; Model.TextColor = c; OnPropertyChanged(); Changed(); }
+    }
+
+    public bool Hidden
+    {
+        get => Model.Hidden;
+        set { if (Model.Hidden == value) return; Model.Hidden = value; OnPropertyChanged(); Changed(); }
+    }
+
+    public IReadOnlyList<ToolGroup> Groups => _owner.Groups;
+
+    public string GroupId
+    {
+        get => Model.GroupId;
+        set { if (value is not null && value != Model.GroupId) _owner.MoveToGroup(Model, value); }
+    }
+
+    /// <summary>The separator exactly as the hub will draw it.</summary>
+    public HubToolVM Preview => new(Model, _config.Current.Hub, false);
+
+    private void Changed()
+    {
+        OnPropertyChanged(nameof(Preview));
+        _config.Touch(ConfigArea.Tools);
+    }
 }

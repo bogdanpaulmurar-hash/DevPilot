@@ -194,6 +194,9 @@ public static class LaunchPlanner
             case ToolKind.Document:
                 return new LaunchPlan { Mode = LaunchMode.ShellOpen, FileName = path, WorkingDirectory = workDir };
 
+            case ToolKind.Separator:
+                throw new InvalidOperationException("A separator does not start anything.");
+
             default:
                 throw new NotSupportedException($"Kind '{tool.Kind}' is not supported.");
         }

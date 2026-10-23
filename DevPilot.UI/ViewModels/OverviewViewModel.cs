@@ -50,7 +50,7 @@ public sealed class OverviewViewModel : ObservableObject, IPage
         _keepAwake.StateChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(KeepAwakeText)));
     }
 
-    public string ToolCountText => $"{_config.Current.Tools.Count(t => !t.Hidden)} tools in {_config.Current.Groups.Count} groups";
+    public string ToolCountText => $"{_config.Current.Tools.Count(t => !t.Hidden && !t.IsSeparator)} tools in {_config.Current.Groups.Count} groups";
     public string RunningText
     {
         get

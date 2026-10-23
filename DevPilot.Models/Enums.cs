@@ -15,6 +15,30 @@ public enum ToolKind
     Document,
     Ssh,
     Wsl,
+    /// <summary>Not a tool: a line, gap or label between rows in the hub.</summary>
+    Separator,
+}
+
+/// <summary>How the colour of a hub row (tool, group or separator) is shown.</summary>
+public enum RowColorStyle
+{
+    /// <summary>Thin bar on the left of the row.</summary>
+    Marker,
+    /// <summary>Soft tint over the whole row.</summary>
+    Highlight,
+    /// <summary>Both the bar and the tint.</summary>
+    MarkerAndHighlight,
+}
+
+/// <summary>How a separator row looks.</summary>
+public enum SeparatorStyle
+{
+    /// <summary>A thin horizontal line.</summary>
+    Line,
+    /// <summary>An empty gap.</summary>
+    Space,
+    /// <summary>A small caption followed by a line.</summary>
+    Label,
 }
 
 /// <summary>How a tool is represented in the notification area.</summary>

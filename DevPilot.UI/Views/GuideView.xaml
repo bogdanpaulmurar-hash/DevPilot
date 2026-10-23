@@ -38,7 +38,7 @@
                 <StackPanel>
                     <TextBlock Text="4. Make it yours" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Style="{StaticResource Step}" Text="Appearance: theme, accent colour, hub width and height, corners, opacity, density, text size, position, flyout side, hover delay, group title style, and the ScreenPilot spotlight card."/>
-                    <TextBlock Style="{StaticResource Step}" Text="Per tool: symbol, colour marker, bold, italic. Per group: title, symbol, colour dot, collapsed."/>
+                    <TextBlock Style="{StaticResource Step}" Text="Per tool: symbol, row colour (bar, whole-row highlight or both), text and symbol colours, bold, italic. Per group: title, symbol, the same colours, collapsed. Add → Separator puts a line, a gap or a caption between rows. Colours that would be hard to read fall back to the theme colour."/>
                 </StackPanel>
             </Border>
         </StackPanel>

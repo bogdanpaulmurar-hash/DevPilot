@@ -16,7 +16,7 @@ public static class StartupMatcher
 
     public static IReadOnlyList<StartupConflict> FindConflicts(IEnumerable<StartupEntry> entries, IEnumerable<ToolEntry> tools)
     {
-        var toolList = tools.ToList();
+        var toolList = tools.Where(t => !t.IsSeparator).ToList();
         var result = new List<StartupConflict>();
         foreach (var e in entries)
         {
