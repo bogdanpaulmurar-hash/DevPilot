@@ -4,22 +4,30 @@
              xmlns:vm="clr-namespace:DevPilot.UI.ViewModels"
              xmlns:svc="clr-namespace:DevPilot.UI.Services"
              x:Name="Root">
-    <!-- Palette swatches, a hex box and "None". Empty value = theme colour. -->
-    <StackPanel Orientation="Horizontal">
-        <ItemsControl ItemsSource="{x:Static vm:ToolEditorVM.Palette}">
+    <!-- Palette swatches (wrap when the column is narrow), then the hex box and "None". Empty value = theme colour. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <ItemsControl ItemsSource="{x:Static vm:ToolEditorVM.Palette}" Focusable="False">
             <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Width="22" Height="22" MinHeight="0" Padding="0" Margin="0,0,5,0" ToolTip="{Binding}" BorderThickness="0"
+                    <Button Width="20" Height="20" MinHeight="0" MinWidth="0" Padding="0" Margin="0,0,4,4" ToolTip="{Binding}" BorderThickness="0"
                             Background="{Binding Converter={StaticResource HexToBrush}}"
                             Click="Swatch_Click" Tag="{Binding}"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBox x:Name="HexBox" Width="90" Margin="6,0,0,0" FontFamily="{StaticResource MonoFont}" FontSize="12" svc:EditTracker.NoTrack="True"
-                 Text="{Binding Value, ElementName=Root, UpdateSourceTrigger=LostFocus}"/>
-        <Button Content="None" Margin="6,0,0,0" Click="None_Click"/>
-    </StackPanel>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,2,0,0">
+            <Border Width="20" Height="20" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" VerticalAlignment="Center"
+                    Background="{Binding Value, ElementName=Root, Converter={StaticResource HexToBrush}}" ToolTip="Current colour"/>
+            <TextBox x:Name="HexBox" Width="96" Margin="6,0,0,0" FontFamily="{StaticResource MonoFont}" FontSize="12" svc:EditTracker.NoTrack="True"
+                     Text="{Binding Value, ElementName=Root, UpdateSourceTrigger=LostFocus}" ToolTip="#RRGGBB, empty = theme colour"/>
+            <Button Content="None" Margin="6,0,0,0" Click="None_Click" ToolTip="Use the theme colour"/>
+        </StackPanel>
+    </Grid>
 </UserControl>
