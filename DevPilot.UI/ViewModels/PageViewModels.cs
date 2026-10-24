@@ -354,6 +354,7 @@ public sealed class AppearanceViewModel : ObservableObject, IPage
         [new(HubDensity.Compact, "Compact"), new(HubDensity.Comfortable, "Comfortable"), new(HubDensity.Spacious, "Spacious")];
     public static IReadOnlyList<Choice<GroupHeaderStyle>> HeaderStyles { get; } =
         [new(GroupHeaderStyle.SmallCaps, "SMALL CAPS"), new(GroupHeaderStyle.Normal, "Normal"), new(GroupHeaderStyle.Bold, "Bold"), new(GroupHeaderStyle.Hidden, "Hidden")];
+    public static IReadOnlyList<Choice<HubLabelMode>> LabelModes => RowLook.HubLabelModes;
     public static IReadOnlyList<Choice<TrayClickAction>> ClickActions { get; } =
         [new(TrayClickAction.OpenHub, "Open the hub"), new(TrayClickAction.QuickMenu, "Quick menu"), new(TrayClickAction.OpenMainWindow, "Open DevPilot"), new(TrayClickAction.Nothing, "Nothing")];
 

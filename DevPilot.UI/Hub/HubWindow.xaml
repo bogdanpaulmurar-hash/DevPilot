@@ -23,7 +23,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="26"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
@@ -32,8 +32,15 @@
                     <Border Width="3" Height="16" CornerRadius="1.5" Margin="0,0,7,0" VerticalAlignment="Center"
                             Background="{Binding Color, Converter={StaticResource HexToBrush}}"
                             Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock x:Name="RowGlyph" Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left" TextAlignment="Left"/>
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <!-- logo or symbol (left out for "name only" rows) -->
+                    <Grid Grid.Column="1" Width="{Binding LeadWidth}" Visibility="{Binding ShowLead, Converter={StaticResource BoolToVis}}">
+                        <TextBlock x:Name="RowGlyph" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left" TextAlignment="Left"
+                                   Visibility="{Binding ShowGlyph, Converter={StaticResource BoolToVis}}"/>
+                        <Image Source="{Binding Logo}" Width="{Binding LogoSize}" Height="{Binding LogoSize}" Stretch="Uniform"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"
+                               Visibility="{Binding ShowLogo, Converter={StaticResource BoolToVis}}"/>
+                    </Grid>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Visibility="{Binding ShowName, Converter={StaticResource BoolToVis}}">
                         <TextBlock x:Name="RowName" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextBrush}"
                                    FontWeight="{Binding Bold, Converter={StaticResource BoolToWeight}}"
                                    FontStyle="{Binding Italic, Converter={StaticResource BoolToStyle}}"/>

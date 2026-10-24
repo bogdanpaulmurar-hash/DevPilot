@@ -21,6 +21,8 @@ public class HubAppearance
     public bool ShowToolColors { get; set; } = true;
     /// <summary>Strength of the row tint for highlighted rows, in percent (5 – 60).</summary>
     public int HighlightStrength { get; set; } = 18;
+    /// <summary>What rows show by default (entries can override it). Starts on the classic symbol + name.</summary>
+    public HubLabelMode LabelMode { get; set; } = HubLabelMode.TextAndSymbol;
     public GroupHeaderStyle GroupHeaderStyle { get; set; } = GroupHeaderStyle.SmallCaps;
     public bool CloseAfterLaunch { get; set; } = true;
     public bool RememberCollapsedGroups { get; set; } = true;

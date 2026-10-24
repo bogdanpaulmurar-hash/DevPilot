@@ -14,7 +14,7 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 - `DevPilot.Infrastructure` — Windows services: config store, launcher, process monitor, keep-awake, startup manager, hotkeys
 - `DevPilot.UI` — WPF: tray hub, flyouts, main window pages (Views / ViewModels / Themes)
 - `docs/INSTALL.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware)
-- Config: `%APPDATA%\DevPilot\config.json`; log: `%LOCALAPPDATA%\DevPilot\logs\devpilot.log`
+- Config: `%APPDATA%\DevPilot\config.json`; log: `%LOCALAPPDATA%\DevPilot\logs\devpilot.log`; hub logo cache: `%LOCALAPPDATA%\DevPilot\logo-cache` (disposable)
 
 ## Rules
 - DevPilot is the single owner of keep-awake and start-with-Windows. Managed tools get `DEVPILOT_MANAGED=1` and `DEVPILOT_SUPPRESS=tray,keepawake,autostart`; never break a tool that runs without DevPilot.

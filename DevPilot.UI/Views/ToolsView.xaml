@@ -61,14 +61,21 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="26"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Border Width="3" Height="16" CornerRadius="1.5" Margin="0,0,7,0" VerticalAlignment="Center"
                             Background="{Binding Color, Converter={StaticResource HexToBrush}}"
                             Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock x:Name="RowGlyph" Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left"/>
+                    <Grid Grid.Column="1" Width="{Binding LeadWidth}" Visibility="{Binding ShowLead, Converter={StaticResource BoolToVis}}">
+                        <TextBlock x:Name="RowGlyph" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="14" HorizontalAlignment="Left"
+                                   Visibility="{Binding ShowGlyph, Converter={StaticResource BoolToVis}}"/>
+                        <Image Source="{Binding Logo}" Width="{Binding LogoSize}" Height="{Binding LogoSize}" Stretch="Uniform"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"
+                               Visibility="{Binding ShowLogo, Converter={StaticResource BoolToVis}}"/>
+                    </Grid>
                     <TextBlock x:Name="RowName" Grid.Column="2" Text="{Binding Name}" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                               Visibility="{Binding ShowName, Converter={StaticResource BoolToVis}}"
                                FontWeight="{Binding Bold, Converter={StaticResource BoolToWeight}}"
                                FontStyle="{Binding Italic, Converter={StaticResource BoolToStyle}}"/>
                 </Grid>
@@ -334,11 +341,40 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
+                                    <TextBlock Text="Show in the hub" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{x:Static vm:ToolEditorVM.LabelModes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                              SelectedValue="{Binding LabelMode}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Logo (optional: .png, .ico, .exe, .lnk…)" Style="{StaticResource FieldLabel}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding IconPath, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                                 ToolTip="Empty = the icon from the tool's devpilot.tool.json, else the program's own icon (programs and documents only)."/>
+                                        <Button Grid.Column="1" Content="Choose…" Margin="6,0,0,0" Command="{Binding BrowseIconCommand}"/>
+                                        <Button Grid.Column="2" Content="Clear" Margin="6,0,0,0" Command="{Binding ClearIconCommand}"
+                                                Visibility="{Binding HasIconPath, Converter={StaticResource BoolToVis}}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Text="Without a file, the logo comes from the tool's devpilot.tool.json, else from the program or document itself. Scripts and folders have no logo of their own: choose a file for them. When a logo can't be read, the symbol is shown."/>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
                                     <TextBlock Text="Text colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
                                     <views:ColorField Value="{Binding TextColor}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Symbol colour (empty = theme)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Text="Symbol colour (empty = theme; not used when the logo shows)" Style="{StaticResource FieldLabel}" TextWrapping="Wrap"/>
                                     <views:ColorField Value="{Binding GlyphColor}"/>
                                 </StackPanel>
                             </Grid>
@@ -380,15 +416,9 @@
                                     <TextBlock Text="DevPilot does not touch the tool's icon." Style="{StaticResource Hint}" Margin="0,1,0,0"/>
                                 </StackPanel>
                             </RadioButton>
-                            <Grid Margin="0,10,0,0" Visibility="{Binding IsDevPilotIcon, Converter={StaticResource BoolToVis}}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding IconPath, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"
-                                         ToolTip="Optional .ico / .exe / .png. Empty = the tool's symbol on its colour."/>
-                                <Button Grid.Column="1" Content="Icon file…" Margin="6,0,0,0" Command="{Binding BrowseIconCommand}"/>
-                            </Grid>
+                            <TextBlock Margin="0,10,0,0" Style="{StaticResource Hint}" TextWrapping="Wrap"
+                                       Visibility="{Binding IsDevPilotIcon, Converter={StaticResource BoolToVis}}"
+                                       Text="The icon uses the logo file chosen under Look in the hub. Without one, the tool's symbol is drawn on its colour."/>
                         </StackPanel>
                     </Border>
 

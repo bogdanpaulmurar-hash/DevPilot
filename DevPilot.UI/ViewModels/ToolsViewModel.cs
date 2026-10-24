@@ -328,6 +328,7 @@ public sealed class ActionEditorVM : ObservableObject
         set
         {
             if (Model.Kind == value) return;
+            LogoCache.Shared.Forget(Model);
             Model.Kind = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(ValueHint));
@@ -392,6 +393,7 @@ public sealed class ToolEditorVM : ObservableObject
     public ICommand BrowseWorkDirCommand { get; }
     public ICommand BrowseInterpreterCommand { get; }
     public ICommand BrowseIconCommand { get; }
+    public ICommand ClearIconCommand { get; }
     public ICommand SetGlyphCommand { get; }
     public ICommand SetColorCommand { get; }
     public ICommand AddActionCommand { get; }
@@ -429,9 +431,14 @@ public sealed class ToolEditorVM : ObservableObject
         });
         BrowseIconCommand = new RelayCommand(() =>
         {
-            var dlg = new OpenFileDialog { Title = "Icon for the tray icon", Filter = "Icons (*.ico;*.exe;*.png)|*.ico;*.exe;*.png" };
-            if (dlg.ShowDialog() == true) { Model.IconPath = dlg.FileName; Changed(nameof(IconPath)); }
+            var dlg = new OpenFileDialog
+            {
+                Title = "Logo (hub and tray icon)",
+                Filter = "Logos and programs (*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.exe;*.dll;*.lnk)|*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.exe;*.dll;*.lnk|All files (*.*)|*.*",
+            };
+            if (dlg.ShowDialog() == true) IconPath = dlg.FileName;
         });
+        ClearIconCommand = new RelayCommand(() => IconPath = string.Empty);
         SetGlyphCommand = new RelayCommand(p => { Glyph = p as string ?? string.Empty; });
         SetColorCommand = new RelayCommand(p => { Color = p as string ?? string.Empty; });
         AddActionCommand = new RelayCommand(() => AddAction(new ToolAction { Label = "New action", Kind = ActionKind.Arguments }));
@@ -541,11 +548,35 @@ public sealed class ToolEditorVM : ObservableObject
     public string Path
     {
         get => Model.Path;
-        set { if (Model.Path == value) return; Model.Path = value; OnPropertyChanged(); }
+        set { if (Model.Path == value) return; LogoCache.Shared.Forget(Model); Model.Path = value; OnPropertyChanged(); OnPropertyChanged(nameof(Preview)); }
     }
     public string WorkingDirectory { get => Model.WorkingDirectory; set { Model.WorkingDirectory = value; OnPropertyChanged(); } }
     public string Interpreter { get => Model.Interpreter; set { Model.Interpreter = value; OnPropertyChanged(); } }
-    public string IconPath { get => Model.IconPath; set { Model.IconPath = value; OnPropertyChanged(); } }
+    /// <summary>The logo file (hub and separate tray icon). Empty = manifest icon, else the program's own icon.</summary>
+    public string IconPath
+    {
+        get => Model.IconPath;
+        set
+        {
+            value = (value ?? string.Empty).Trim();
+            if (Model.IconPath == value) return;
+            LogoCache.Shared.Forget(Model);
+            Model.IconPath = value;
+            LogoCache.Shared.Forget(Model);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasIconPath));
+            LookChanged();
+        }
+    }
+    public bool HasIconPath => !string.IsNullOrWhiteSpace(Model.IconPath);
+
+    public static IReadOnlyList<Choice<HubLabelMode>> LabelModes => RowLook.LabelModes;
+
+    public HubLabelMode LabelMode
+    {
+        get => Model.LabelMode;
+        set { if (Model.LabelMode == value) return; Model.LabelMode = value; OnPropertyChanged(); LookChanged(); }
+    }
 
     public string Glyph
     {
@@ -781,6 +812,20 @@ public static class RowLook
         new(RowColorStyle.Highlight, "Highlight the whole row"),
         new(RowColorStyle.MarkerAndHighlight, "Bar and highlight"),
     ];
+
+    /// <summary>Per entry (first choice follows the hub setting).</summary>
+    public static IReadOnlyList<Choice<HubLabelMode>> LabelModes { get; } =
+    [
+        new(HubLabelMode.Default, "Like the hub (Appearance)"),
+        new(HubLabelMode.Auto, "Logo and name, symbol when there is no logo"),
+        new(HubLabelMode.LogoAndText, "Logo and name"),
+        new(HubLabelMode.LogoOnly, "Logo only (name in the tooltip)"),
+        new(HubLabelMode.TextAndSymbol, "Symbol and name"),
+        new(HubLabelMode.TextOnly, "Name only"),
+    ];
+
+    /// <summary>Hub-wide default (Appearance).</summary>
+    public static IReadOnlyList<Choice<HubLabelMode>> HubLabelModes { get; } = LabelModes.Skip(1).ToList();
 
     public static IReadOnlyList<Choice<SeparatorStyle>> SeparatorStyles { get; } =
     [

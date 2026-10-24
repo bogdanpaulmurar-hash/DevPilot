@@ -33,7 +33,13 @@ public class ToolEntry
 
     // ── Look ────────────────────────────────────────────────────────────
     public string Glyph { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional logo (.ico, .png, .jpg, .bmp, or an .exe / .dll / .lnk to take the icon from). Used in the hub
+    /// and for the separate tray icon. Empty = the tool's devpilot.tool.json "icon", else the program's own icon.
+    /// </summary>
     public string IconPath { get; set; } = string.Empty;
+    /// <summary>Logo, symbol and/or name in the hub; <see cref="HubLabelMode.Default"/> follows the hub setting.</summary>
+    public HubLabelMode LabelMode { get; set; } = HubLabelMode.Default;
     /// <summary>Optional row colour (#RRGGBB): marker bar and/or row tint, see <see cref="ColorStyle"/>. For separators: the line colour.</summary>
     public string Color { get; set; } = string.Empty;
     public RowColorStyle ColorStyle { get; set; } = RowColorStyle.Marker;

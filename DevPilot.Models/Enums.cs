@@ -30,6 +30,23 @@ public enum RowColorStyle
     MarkerAndHighlight,
 }
 
+/// <summary>What a hub row shows next to (or instead of) its name: logo, symbol or nothing.</summary>
+public enum HubLabelMode
+{
+    /// <summary>Per entry only: follow the hub-wide setting (Appearance).</summary>
+    Default,
+    /// <summary>Logo and name when the entry has a logo, otherwise symbol and name.</summary>
+    Auto,
+    /// <summary>Logo and name (symbol and name when there is no logo).</summary>
+    LogoAndText,
+    /// <summary>Only the logo; the name moves to the tooltip (symbol and name when there is no logo).</summary>
+    LogoOnly,
+    /// <summary>Symbol and name: the classic look.</summary>
+    TextAndSymbol,
+    /// <summary>Only the name, no symbol and no logo.</summary>
+    TextOnly,
+}
+
 /// <summary>How a separator row looks.</summary>
 public enum SeparatorStyle
 {
