@@ -8,6 +8,7 @@ using DevPilot.Core.Interfaces;
 using DevPilot.Core.Presets;
 using DevPilot.Models;
 using DevPilot.UI.Mvvm;
+using DevPilot.UI.Services;
 
 namespace DevPilot.UI.Hub;
 
@@ -27,6 +28,7 @@ public sealed class HubToolVM : ObservableObject
     private ToolRunState _state;
     private string _statusText = string.Empty;
     private bool _isVisible = true;
+    private BitmapSource? _logo;
 
     public ToolEntry Model { get; }
     public HubAppearance Look { get; }
@@ -39,6 +41,37 @@ public sealed class HubToolVM : ObservableObject
         Look = look;
         HasFlyout = hasFlyout && !model.IsSeparator;
         Theme = theme ?? RowTheme.Current();
+        if (!model.IsSeparator && HubLabel.WantsLogo(LabelMode))
+        {
+            if (LogoCache.Shared.TryGetCached(model, out var cached)) _logo = cached;
+            else _ = LoadLogoAsync();
+        }
+    }
+
+    // ── Label: logo, symbol and/or name ──
+    /// <summary>The mode in force for this row (its own, or the hub-wide one).</summary>
+    public HubLabelMode LabelMode => HubLabel.Effective(Model.LabelMode, Look.LabelMode);
+    private LabelParts Parts => HubLabel.Resolve(LabelMode, _logo is not null);
+    public BitmapSource? Logo => _logo;
+    public bool ShowLogo => Parts.Logo;
+    public bool ShowGlyph => Parts.Symbol;
+    public bool ShowName => Parts.Name;
+    /// <summary>The logo/symbol cell is left out entirely for "name only" rows.</summary>
+    public bool ShowLead => Parts.Logo || Parts.Symbol;
+    /// <summary>Logo size follows the hub font size (13 → 18 px).</summary>
+    public double LogoSize => Math.Round(Look.FontSize + 5);
+    public double LeadWidth => Math.Max(26, LogoSize + 8);
+
+    private async Task LoadLogoAsync()
+    {
+        var logo = await LogoCache.Shared.GetAsync(Model);
+        if (logo is null) return;
+        _logo = logo;
+        OnPropertyChanged(nameof(Logo));
+        OnPropertyChanged(nameof(ShowLogo));
+        OnPropertyChanged(nameof(ShowGlyph));
+        OnPropertyChanged(nameof(ShowName));
+        OnPropertyChanged(nameof(ShowLead));
     }
 
     public string Name => Model.Name;

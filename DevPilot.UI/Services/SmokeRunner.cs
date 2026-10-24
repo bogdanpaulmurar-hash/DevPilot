@@ -206,14 +206,19 @@ public static class SmokeRunner
         nx.Tray = TrayMode.DevPilotIcon;
         var ap = ToolPresets.Create(ToolPresets.AutoPilot, @"C:\Tools\AutoPilot\AutoPilotDC.exe", dev.Id);
         var sep = new ToolEntry { Kind = ToolKind.Separator, SeparatorStyle = SeparatorStyle.Label, Name = "Utilities", Color = "#D9A441", GroupId = dev.Id };
-        var np = new ToolEntry { Name = "Notepad", Kind = ToolKind.Executable, Path = "notepad.exe", GroupId = dev.Id, Description = "Quick notes" };
+        var np = new ToolEntry
+        {
+            Name = "Notepad", Kind = ToolKind.Executable, Path = @"%WINDIR%\System32\notepad.exe", GroupId = dev.Id,
+            Description = "Quick notes", LabelMode = HubLabelMode.Auto, // logo taken from the program
+        };
+        var calc = new ToolEntry { Name = "Calculator", Kind = ToolKind.Executable, Path = @"%WINDIR%\System32\calc.exe", GroupId = dev.Id, LabelMode = HubLabelMode.LogoOnly };
         var winFolder = new ToolEntry
         {
             Name = "Windows folder", Kind = ToolKind.Folder, Path = Environment.GetFolderPath(Environment.SpecialFolder.Windows),
             GroupId = folders.Id, Folder = new FolderOptions { ExpandInHub = true, MaxItems = 12 },
         };
-        var docs = new ToolEntry { Name = "Project wiki", Kind = ToolKind.Url, Path = "https://github.com/", GroupId = folders.Id, Italic = true };
-        s.Tools.AddRange([sp, fp, rt, nx, ap, sep, np, winFolder, docs]);
+        var docs = new ToolEntry { Name = "Project wiki", Kind = ToolKind.Url, Path = "https://github.com/", GroupId = folders.Id, Italic = true, LabelMode = HubLabelMode.TextOnly };
+        s.Tools.AddRange([sp, fp, rt, nx, ap, sep, np, calc, winFolder, docs]);
         Normalizer.Normalize(s);
         config.Touch(ConfigArea.All);
     }

@@ -91,6 +91,7 @@ A tool can describe itself. Put `devpilot.tool.json` in the tool's folder (or it
   "name": "My Tool",
   "description": "What it does",
   "glyph": "E8A7",
+  "icon": "assets/logo.png",
   "pythonModule": "",
   "arguments": "",
   "autoStartArguments": "--minimized",
@@ -107,6 +108,18 @@ A tool can describe itself. Put `devpilot.tool.json` in the tool's folder (or it
 ```
 
 `glyph` is a Segoe Fluent / MDL2 code point (`E722`) or any character. All fields are optional.
+
+`icon` is the tool's logo for the hub (and for its separate tray icon): a `.png`, `.ico`, `.jpg`, `.bmp`, or an `.exe` / `.dll` to take the icon from. A relative path starts from the manifest's folder. A square PNG of 64 px or more (or an `.ico` with a 256 px frame) stays sharp at every display scale. The logo shows when the row's *Show in the hub* mode (or the hub-wide *Rows show* setting) includes the logo; otherwise the symbol stays.
+
+### Logos in the hub
+
+Where a row's logo comes from, first match wins:
+
+1. the file chosen under *Tools & groups > Look in the hub > Logo*;
+2. the `icon` of the tool's `devpilot.tool.json`;
+3. the icon of what the entry opens, for programs (`.exe`, `.lnk`) and documents only. Scripts, folders and links would all get the same generic icon, so they need 1 or 2.
+
+Each logo is read once, scaled to a 64 px PNG and cached in `%LOCALAPPDATA%\DevPilot\logo-cache` (safe to delete; it is rebuilt). A changed file is picked up automatically. Loading happens in the background with a short timeout, so a slow or offline drive never delays the hub: the row keeps its symbol.
 
 ## Current state of your tools
 

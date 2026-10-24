@@ -78,6 +78,7 @@ public static class Normalizer
         h.FlyoutWidth = Math.Clamp(h.FlyoutWidth, 180, 600);
         h.HoverDelayMs = Math.Clamp(h.HoverDelayMs, 0, 2000);
         h.HighlightStrength = Math.Clamp(h.HighlightStrength, RowColors.MinStrength, RowColors.MaxStrength);
+        h.LabelMode = HubLabel.HubDefault(h.LabelMode);
         h.Spotlight.RecentCount = Math.Clamp(h.Spotlight.RecentCount, 0, 8);
         h.Spotlight.Accent = ConfigMigrator.NormalizeColor(h.Spotlight.Accent);
 
