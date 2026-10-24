@@ -328,7 +328,6 @@ public sealed class ActionEditorVM : ObservableObject
         set
         {
             if (Model.Kind == value) return;
-            LogoCache.Shared.Forget(Model);
             Model.Kind = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(ValueHint));
@@ -519,6 +518,7 @@ public sealed class ToolEditorVM : ObservableObject
         set
         {
             if (Model.Kind == value) return;
+            LogoCache.Shared.Forget(Model);
             Model.Kind = value;
             if (value == ToolKind.Python && string.IsNullOrEmpty(Model.Interpreter)) Model.HideWindow = true;
             RefreshAll();
