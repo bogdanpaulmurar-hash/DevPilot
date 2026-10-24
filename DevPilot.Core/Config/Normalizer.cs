@@ -20,6 +20,9 @@ public static class Normalizer
         s.Monitor ??= new MonitorSettings();
         s.Monitor.ExtraTargets ??= [];
         s.Window ??= new WindowSettings();
+        s.Backup ??= new BackupSettings();
+        s.Backup.Keep = Math.Clamp(s.Backup.Keep, 1, BackupSettings.MaxKeep);
+        s.Backup.Folder ??= string.Empty;
         s.Accent = ConfigMigrator.NormalizeColor(s.Accent) is { Length: > 0 } accent ? accent : "#4F8EF7";
 
         // Unique ids

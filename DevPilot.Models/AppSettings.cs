@@ -20,6 +20,22 @@ public class AppSettings
     public MonitorSettings Monitor { get; set; } = new();
     public List<HotkeyConfig> Hotkeys { get; set; } = [];
     public WindowSettings Window { get; set; } = new();
+    public BackupSettings Backup { get; set; } = new();
+}
+
+/// <summary>Backups of the whole configuration (with chosen logos) to a folder the user picks.</summary>
+public class BackupSettings
+{
+    public const int MaxKeep = 10;
+
+    /// <summary>Target folder; empty = Documents\DevPilot Backups.</summary>
+    public string Folder { get; set; } = string.Empty;
+    public BackupMode Mode { get; set; } = BackupMode.Daily;
+    /// <summary>How many regular backups stay in the folder (1–10); older ones are removed.</summary>
+    public int Keep { get; set; } = MaxKeep;
+    /// <summary>On restore, rewrite paths under the old user folder (C:\Users\old\…) to this PC's user folder.</summary>
+    public bool AdaptUserFolder { get; set; } = true;
+    public DateTime? LastBackup { get; set; }
 }
 
 public class KeepAwakeSettings

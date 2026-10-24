@@ -2,7 +2,7 @@ using DevPilot.Models;
 
 namespace DevPilot.Core.Interfaces;
 
-public enum ConfigArea { All, Tools, Groups, Hub, Theme, KeepAwake, Startup, Monitor, Hotkeys, Window }
+public enum ConfigArea { All, Tools, Groups, Hub, Theme, KeepAwake, Startup, Monitor, Hotkeys, Window, Backup }
 
 /// <summary>Single source of truth for the configuration. Every editor writes here; the hub listens to <see cref="Changed"/>.</summary>
 public interface IConfigStore
@@ -22,4 +22,6 @@ public interface IConfigStore
     void Export(string path);
     void Import(string path);
     void Reset();
+    /// <summary>Replaces the whole configuration (restore), saves it and notifies with <see cref="ConfigArea.All"/>.</summary>
+    void Replace(AppSettings settings);
 }

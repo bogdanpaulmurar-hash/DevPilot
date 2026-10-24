@@ -157,6 +157,14 @@ public sealed class ConfigStore : IConfigStore, IDisposable
         Changed?.Invoke(this, ConfigArea.All);
     }
 
+    public void Replace(AppSettings settings)
+    {
+        Normalizer.Normalize(settings);
+        lock (_gate) Current = settings;
+        Save();
+        Changed?.Invoke(this, ConfigArea.All);
+    }
+
     public void Reset()
     {
         var backup = Path.Combine(DataFolder, $"config.before-reset-{DateTime.Now:yyyyMMdd-HHmmss}.json");

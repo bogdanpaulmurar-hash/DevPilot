@@ -109,3 +109,14 @@ public enum GroupHeaderStyle { SmallCaps, Normal, Bold, Hidden }
 public enum TrayClickAction { OpenHub, OpenMainWindow, QuickMenu, Nothing }
 
 public enum ToolRunState { Unknown, Stopped, Running, Starting, Failed }
+
+/// <summary>When DevPilot makes a backup on its own.</summary>
+public enum BackupMode
+{
+    /// <summary>Only when the user clicks "Back up now".</summary>
+    Manual,
+    /// <summary>At most one automatic backup per day, shortly after DevPilot starts.</summary>
+    Daily,
+    /// <summary>One automatic backup every time DevPilot starts.</summary>
+    EveryStart,
+}
