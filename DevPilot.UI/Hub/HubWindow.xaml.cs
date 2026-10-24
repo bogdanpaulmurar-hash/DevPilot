@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using DevPilot.Core.Hub;
 using DevPilot.Models;
 using DevPilot.UI.Services;
 
@@ -14,6 +15,7 @@ public partial class HubWindow : Window
     private readonly FlyoutController _flyouts = new();
     private bool _fromTray;
     private bool _positioning;
+    private HubAnchorPoint? _anchor;
 
     public HubWindow(HubViewModel vm)
     {
@@ -38,10 +40,10 @@ public partial class HubWindow : Window
         {
             if (IsVisible && !_positioning) Dispatcher.BeginInvoke(Position);
         };
-        SizeChanged += (_, e) =>
+        SizeChanged += (_, _) =>
         {
-            // Keep the bottom edge anchored when groups collapse/expand.
-            if (IsVisible && !_positioning && e.HeightChanged && !_vm.IsPinned) Dispatcher.BeginInvoke(Position);
+            // Keep the anchored corner fixed when groups collapse/expand (never re-read the cursor here).
+            if (IsVisible && !_positioning) Dispatcher.BeginInvoke(Position);
         };
     }
 
@@ -57,6 +59,7 @@ public partial class HubWindow : Window
             Opacity = 0;
             Show();
         }
+        UpdateAnchor();
         Position();
         Opacity = _vm.PanelOpacity;
         Activate();
@@ -86,45 +89,44 @@ public partial class HubWindow : Window
         _flyouts.HoverDelayMs = look.HoverDelayMs;
     }
 
-    /// <summary>Places the panel near the tray (or where the user anchored it), in device pixels so mixed-DPI monitors work.</summary>
+    /// <summary>
+    /// Decides where the panel is anchored when it opens: next to the tray (or the configured corner) on the
+    /// monitor under the cursor. A repeated click on the same tray icon keeps the previous anchor, so the
+    /// panel reopens in exactly the same place.
+    /// </summary>
+    private void UpdateAnchor()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        var (_, workRect) = Native.MonitorAtCursor();
+        var work = ToPixelRect(workRect);
+        ApplyMaxHeight(work);
+        UpdateLayout();
+        Native.GetWindowRect(hwnd, out var r);
+        var cursor = Native.CursorPixels();
+        var candidate = HubPlacement.CreateAnchor(_vm.Look.Anchor, _fromTray, CurrentTaskbarSide(),
+            (int)cursor.X, (int)cursor.Y, work, r.Width, r.Height);
+        if (!HubPlacement.ShouldReuse(_anchor, candidate, _vm.IsPinned)) _anchor = candidate;
+    }
+
+    /// <summary>Applies the anchor for the current size, in device pixels so mixed-DPI monitors work.</summary>
     private void Position()
     {
+        if (_anchor is null) return;
         _positioning = true;
         try
         {
+            ApplyMaxHeight(_anchor.Work);
             UpdateLayout();
             var hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd == IntPtr.Zero) return;
             Native.GetWindowRect(hwnd, out var r);
             int w = r.Width, h = r.Height;
-            var (_, work) = Native.MonitorAtCursor();
-            var cursor = Native.CursorPixels();
-            var anchor = _vm.Look.Anchor;
-            if (anchor == HubAnchor.Auto && !_fromTray) anchor = HubAnchor.Center;
+            var (x, y) = HubPlacement.Place(_anchor, w, h);
+            if (x != r.Left || y != r.Top)
+                Native.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
 
-            int x, y;
-            switch (anchor)
-            {
-                case HubAnchor.BottomRight: x = work.Right - w; y = work.Bottom - h; break;
-                case HubAnchor.BottomLeft: x = work.Left; y = work.Bottom - h; break;
-                case HubAnchor.TopRight: x = work.Right - w; y = work.Top; break;
-                case HubAnchor.TopLeft: x = work.Left; y = work.Top; break;
-                case HubAnchor.Center: x = work.Left + (work.Width - w) / 2; y = work.Top + (work.Height - h) / 2; break;
-                default:
-                    // Next to the cursor, on the side of the taskbar.
-                    switch (Native.TaskbarEdge())
-                    {
-                        case 0: x = work.Left; y = (int)cursor.Y - h / 2; break;
-                        case 1: x = (int)cursor.X - w + 60; y = work.Top; break;
-                        case 2: x = work.Right - w; y = (int)cursor.Y - h / 2; break;
-                        default: x = (int)cursor.X - w + 60; y = work.Bottom - h; break;
-                    }
-                    break;
-            }
-            x = Math.Clamp(x, work.Left, Math.Max(work.Left, work.Right - w));
-            y = Math.Clamp(y, work.Top, Math.Max(work.Top, work.Bottom - h));
-            Native.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
-
+            var work = _anchor.Work;
             var side = _vm.Look.FlyoutSide;
             if (side == FlyoutSide.Auto)
                 side = x + w / 2 > work.Left + work.Width / 2 ? FlyoutSide.Left : FlyoutSide.Right;
@@ -135,6 +137,35 @@ public partial class HubWindow : Window
             _positioning = false;
         }
     }
+
+    /// <summary>Never taller than the work area: the group list scrolls instead of the panel leaving the screen.</summary>
+    private void ApplyMaxHeight(PixelRect work)
+    {
+        var scale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleY;
+        var max = HubPlacement.MaxHeightDip(_vm.PanelMaxHeight, work, scale);
+        if (Math.Abs(MaxHeight - max) > 0.5) SetCurrentValue(MaxHeightProperty, max);
+    }
+
+    /// <summary>After the user drags the pinned panel, that spot becomes its anchor.</summary>
+    private void RememberDraggedPosition()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        Native.GetWindowRect(hwnd, out var r);
+        var (_, work) = Native.MonitorOfWindow(hwnd);
+        _anchor = HubPlacement.FromWindow(ToPixelRect(r), ToPixelRect(work), _anchor);
+        Position();
+    }
+
+    private static PixelRect ToPixelRect(Native.RECT r) => new(r.Left, r.Top, r.Right, r.Bottom);
+
+    private static TaskbarSide CurrentTaskbarSide() => Native.TaskbarEdge() switch
+    {
+        0 => TaskbarSide.Left,
+        1 => TaskbarSide.Top,
+        2 => TaskbarSide.Right,
+        _ => TaskbarSide.Bottom,
+    };
 
     // ── Rows ──────────────────────────────────────────────────────────────
     private void ToolRow_MouseEnter(object sender, MouseEventArgs e)
@@ -197,7 +228,8 @@ public partial class HubWindow : Window
         if (_vm.IsPinned && e.ButtonState == MouseButtonState.Pressed)
         {
             _flyouts.CloseAll();
-            try { DragMove(); } catch (InvalidOperationException) { }
+            try { DragMove(); } catch (InvalidOperationException) { return; }
+            RememberDraggedPosition();
         }
     }
 

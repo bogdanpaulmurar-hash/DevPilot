@@ -191,18 +191,21 @@ public static class SmokeRunner
         if (s.Tools.Count > 0) return;
         s.Groups.Clear();
         var work = new ToolGroup { Title = "Daily work", Order = 0, Color = "#4F8EF7" };
-        var dev = new ToolGroup { Title = "Development", Order = 1 };
+        var dev = new ToolGroup { Title = "Development", Order = 1, Color = "#A371F7", ColorStyle = RowColorStyle.Highlight, TextColor = "#A371F7" };
         var folders = new ToolGroup { Title = "Reference folders", Order = 2, Glyph = Glyphs.Folder };
         s.Groups.AddRange([work, dev, folders]);
 
         var sp = ToolPresets.Create(ToolPresets.ScreenPilot, @"C:\src\ScreenPilot\src", work.Id);
         var fp = ToolPresets.Create(ToolPresets.FocusPilot, @"C:\src\FocusPilot\FocusPilot.pyw", work.Id);
         fp.Color = "#3FB28C";
+        fp.ColorStyle = RowColorStyle.MarkerAndHighlight;
+        fp.GlyphColor = "#3FB28C";
         var rt = ToolPresets.Create(ToolPresets.RegTester, @"C:\src\regTester\regtester.py", work.Id);
         rt.Bold = true;
         var nx = ToolPresets.Create(ToolPresets.NexusX, @"C:\src\NexusX", dev.Id);
         nx.Tray = TrayMode.DevPilotIcon;
         var ap = ToolPresets.Create(ToolPresets.AutoPilot, @"C:\Tools\AutoPilot\AutoPilotDC.exe", dev.Id);
+        var sep = new ToolEntry { Kind = ToolKind.Separator, SeparatorStyle = SeparatorStyle.Label, Name = "Utilities", Color = "#D9A441", GroupId = dev.Id };
         var np = new ToolEntry { Name = "Notepad", Kind = ToolKind.Executable, Path = "notepad.exe", GroupId = dev.Id, Description = "Quick notes" };
         var winFolder = new ToolEntry
         {
@@ -210,7 +213,7 @@ public static class SmokeRunner
             GroupId = folders.Id, Folder = new FolderOptions { ExpandInHub = true, MaxItems = 12 },
         };
         var docs = new ToolEntry { Name = "Project wiki", Kind = ToolKind.Url, Path = "https://github.com/", GroupId = folders.Id, Italic = true };
-        s.Tools.AddRange([sp, fp, rt, nx, ap, np, winFolder, docs]);
+        s.Tools.AddRange([sp, fp, rt, nx, ap, sep, np, winFolder, docs]);
         Normalizer.Normalize(s);
         config.Touch(ConfigArea.All);
     }

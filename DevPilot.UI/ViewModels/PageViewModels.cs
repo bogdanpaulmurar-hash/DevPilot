@@ -543,7 +543,7 @@ public sealed class SettingsViewModel : ObservableObject, IPage
             new("main", "Open DevPilot"),
             new("keepawake", "Turn keep-awake on / off"),
         };
-        foreach (var t in _config.Current.Tools.OrderBy(t => t.Name))
+        foreach (var t in _config.Current.Tools.Where(t => !t.IsSeparator).OrderBy(t => t.Name))
         {
             list.Add(new($"tool:{t.Id}", $"Start {t.Name}"));
             foreach (var a in t.Actions.Where(a => a.Kind != ActionKind.Separator))

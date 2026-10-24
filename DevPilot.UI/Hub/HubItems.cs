@@ -3,12 +3,24 @@ using System.IO;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using DevPilot.Core.Config;
+using DevPilot.Core.Hub;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Presets;
 using DevPilot.Models;
 using DevPilot.UI.Mvvm;
 
 namespace DevPilot.UI.Hub;
+
+/// <summary>Theme colours the row colour rules need (taken from the active theme when the hub is built).</summary>
+public sealed record RowTheme(string Surface)
+{
+    public static RowTheme Current()
+    {
+        var brush = System.Windows.Application.Current?.TryFindResource("SurfaceBrush") as System.Windows.Media.SolidColorBrush;
+        var c = brush?.Color ?? System.Windows.Media.Color.FromRgb(0x1F, 0x21, 0x25);
+        return new RowTheme($"#{c.R:X2}{c.G:X2}{c.B:X2}");
+    }
+}
 
 public sealed class HubToolVM : ObservableObject
 {
@@ -19,19 +31,50 @@ public sealed class HubToolVM : ObservableObject
     public ToolEntry Model { get; }
     public HubAppearance Look { get; }
 
-    public HubToolVM(ToolEntry model, HubAppearance look, bool hasFlyout)
+    public RowTheme Theme { get; }
+
+    public HubToolVM(ToolEntry model, HubAppearance look, bool hasFlyout, RowTheme? theme = null)
     {
         Model = model;
         Look = look;
-        HasFlyout = hasFlyout;
+        HasFlyout = hasFlyout && !model.IsSeparator;
+        Theme = theme ?? RowTheme.Current();
     }
 
     public string Name => Model.Name;
     public string Description => Model.Description;
     public bool ShowDescription => Look.ShowDescriptions && !string.IsNullOrWhiteSpace(Model.Description);
     public string Glyph => FlyoutBuilder.GlyphOf(Model);
-    public bool HasColor => Look.ShowToolColors && !string.IsNullOrWhiteSpace(Model.Color);
+    /// <summary>Thin bar on the left.</summary>
+    public bool HasColor => Look.ShowToolColors && RowColors.ShowsMarker(Model.ColorStyle, Model.Color);
     public string Color => Model.Color;
+    /// <summary>Soft tint over the whole row ("#AARRGGBB"), empty when not highlighted.</summary>
+    public string HighlightColor => Look.ShowToolColors && RowColors.ShowsHighlight(Model.ColorStyle, Model.Color)
+        ? RowColors.HighlightHex(Model.Color, Look.HighlightStrength) : string.Empty;
+    public bool HasHighlight => HighlightColor.Length > 0;
+    /// <summary>Custom name colour when it stays readable on the row; empty = theme colour.</summary>
+    public string TextColor => Look.ShowToolColors ? Readable(Model.TextColor) : string.Empty;
+    public bool HasTextColor => TextColor.Length > 0;
+    /// <summary>Custom symbol colour when it stays readable on the row; empty = theme colour.</summary>
+    public string GlyphColor => Look.ShowToolColors ? Readable(Model.GlyphColor) : string.Empty;
+    public bool HasGlyphColor => GlyphColor.Length > 0;
+
+    private string Readable(string wanted) =>
+        RowColors.Readable(wanted, Theme.Surface, HasHighlight ? Model.Color : null, Look.HighlightStrength);
+
+    // ── Separator rows ──
+    public bool IsSeparator => Model.IsSeparator;
+    public string SeparatorLabel => Model.Name;
+    public bool ShowSeparatorLabel => Model.SeparatorStyle == SeparatorStyle.Label && !string.IsNullOrWhiteSpace(Model.Name);
+    public bool ShowSeparatorLine => Model.SeparatorStyle != SeparatorStyle.Space;
+    public double SeparatorHeight => Model.SeparatorStyle == SeparatorStyle.Space ? 14 : 9;
+    /// <summary>Line colour; empty = theme border colour.</summary>
+    public string SeparatorColor => Look.ShowToolColors && RowColors.TryParse(Model.Color, out _) ? Model.Color : string.Empty;
+    public bool HasSeparatorColor => SeparatorColor.Length > 0;
+    /// <summary>Caption colour: its own text colour, else the line colour, if readable.</summary>
+    public string SeparatorTextColor => !Look.ShowToolColors ? string.Empty
+        : Readable(Model.TextColor) is { Length: > 0 } t ? t : Readable(Model.Color);
+    public bool HasSeparatorTextColor => SeparatorTextColor.Length > 0;
     public bool Bold => Model.Bold;
     public bool Italic => Model.Italic;
     public bool HasFlyout { get; }
@@ -62,11 +105,14 @@ public sealed class HubGroupVM : ObservableObject
     public ObservableCollection<HubToolVM> Tools { get; } = [];
     public ICommand ToggleCommand { get; }
 
-    public HubGroupVM(ToolGroup model, HubAppearance look, IConfigStore config)
+    public RowTheme Theme { get; }
+
+    public HubGroupVM(ToolGroup model, HubAppearance look, IConfigStore config, RowTheme? theme = null)
     {
         Model = model;
         Look = look;
         _config = config;
+        Theme = theme ?? RowTheme.Current();
         _collapsed = model.Collapsed;
         ToggleCommand = new RelayCommand(() => IsCollapsed = !IsCollapsed);
     }
@@ -78,8 +124,21 @@ public sealed class HubGroupVM : ObservableObject
     public string Glyph => Model.Glyph;
     public bool HasGlyph => !string.IsNullOrWhiteSpace(Model.Glyph);
     public string Color => Model.Color;
-    public bool HasColor => !string.IsNullOrWhiteSpace(Model.Color);
-    public string CountText => Look.ShowGroupCounts ? Tools.Count(t => t.IsVisible).ToString() : string.Empty;
+    /// <summary>Colour dot before the title.</summary>
+    public bool HasColor => RowColors.ShowsMarker(Model.ColorStyle, Model.Color);
+    /// <summary>Header tint ("#AARRGGBB"), empty when not highlighted.</summary>
+    public string HighlightColor => RowColors.ShowsHighlight(Model.ColorStyle, Model.Color)
+        ? RowColors.HighlightHex(Model.Color, Look.HighlightStrength) : string.Empty;
+    public bool HasHighlight => HighlightColor.Length > 0;
+    public string TextColor => Readable(Model.TextColor);
+    public bool HasTextColor => TextColor.Length > 0;
+    public string GlyphColor => Readable(Model.GlyphColor);
+    public bool HasGlyphColor => GlyphColor.Length > 0;
+
+    private string Readable(string wanted) =>
+        RowColors.Readable(wanted, Theme.Surface, HasHighlight ? Model.Color : null, Look.HighlightStrength);
+
+    public string CountText => Look.ShowGroupCounts ? Tools.Count(t => t.IsVisible && !t.IsSeparator).ToString() : string.Empty;
 
     public bool IsCollapsed
     {

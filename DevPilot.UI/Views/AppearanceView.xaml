@@ -148,10 +148,15 @@
                         <CheckBox Content="Search box" IsChecked="{Binding Hub.ShowSearch}" Margin="0,0,24,0"/>
                         <CheckBox Content="Descriptions under names" IsChecked="{Binding Hub.ShowDescriptions}" Margin="0,0,24,0"/>
                         <CheckBox Content="Status dots" IsChecked="{Binding Hub.ShowStatusDots}" Margin="0,0,24,0"/>
-                        <CheckBox Content="Colour markers" IsChecked="{Binding Hub.ShowToolColors}" Margin="0,0,24,0"/>
+                        <CheckBox Content="Row colours (markers, highlights, text and symbol colours)" IsChecked="{Binding Hub.ShowToolColors}" Margin="0,0,24,0"/>
                         <CheckBox Content="Close after starting something" IsChecked="{Binding Hub.CloseAfterLaunch}" Margin="0,0,24,0"/>
                         <CheckBox Content="Remember collapsed groups" IsChecked="{Binding Hub.RememberCollapsedGroups}" Margin="0,0,24,0"/>
                     </WrapPanel>
+                    <StackPanel Margin="0,12,0,0" MaxWidth="360" HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding Hub.HighlightStrength, StringFormat='Highlight strength: {0}%'}" Style="{StaticResource FieldLabel}"/>
+                        <Slider Minimum="5" Maximum="60" SmallChange="1" LargeChange="5" IsSnapToTickEnabled="True" TickFrequency="1" Value="{Binding Hub.HighlightStrength}"/>
+                        <TextBlock Text="How strongly highlighted rows are tinted with their colour." Style="{StaticResource Hint}"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

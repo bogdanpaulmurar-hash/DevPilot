@@ -18,6 +18,7 @@ public partial class ToolsView : UserControl
         menu.Items.Add(Item("Program or script", Glyphs.App, () => Vm.AddToolCommand.Execute(null)));
         menu.Items.Add(Item("Folder…", Glyphs.Folder, () => Vm.AddFolderCommand.Execute(null)));
         menu.Items.Add(Item("Web link", Glyphs.Globe, () => Vm.AddLinkCommand.Execute(null)));
+        menu.Items.Add(Item("Separator", Glyphs.List, () => Vm.AddSeparatorCommand.Execute(null), "A line, gap or caption between rows"));
         menu.Items.Add(new Separator());
         menu.Items.Add(new MenuItem { Header = "Your known tools", IsEnabled = false });
         foreach (var preset in ToolPresets.All)

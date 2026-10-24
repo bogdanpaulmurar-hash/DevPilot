@@ -13,7 +13,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
     <Product>DevPilot</Product>
     <Description>DevPilot — one tray hub for all your tools</Description>
     <Copyright>© 2026 Bogdan Murar</Copyright>

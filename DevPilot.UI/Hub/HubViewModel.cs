@@ -127,12 +127,18 @@ public sealed class HubViewModel : ObservableObject
         Groups.Clear();
         SpotlightVM? spotlight = null;
         int count = 0;
+        var theme = RowTheme.Current();
         foreach (var g in s.Groups.Where(g => !g.Hidden).OrderBy(g => g.Order))
         {
-            var gvm = new HubGroupVM(g, s.Hub, _config);
+            var gvm = new HubGroupVM(g, s.Hub, _config, theme);
             foreach (var t in Ordering.ToolsOf(s, g.Id).Where(t => !t.Hidden))
             {
-                var tvm = new HubToolVM(t, s.Hub, Flyouts.HasFlyout(t));
+                if (t.IsSeparator)
+                {
+                    gvm.Tools.Add(new HubToolVM(t, s.Hub, false, theme));
+                    continue;
+                }
+                var tvm = new HubToolVM(t, s.Hub, Flyouts.HasFlyout(t), theme);
                 if (t.Spotlight && spotlight is null && s.Hub.Spotlight.Enabled)
                 {
                     spotlight = BuildSpotlight(tvm);
@@ -141,7 +147,7 @@ public sealed class HubViewModel : ObservableObject
                 gvm.Tools.Add(tvm);
                 count++;
             }
-            if (gvm.Tools.Count > 0) Groups.Add(gvm);
+            if (gvm.Tools.Any(t => !t.IsSeparator)) Groups.Add(gvm);
         }
         _toolCount = count + (spotlight is null ? 0 : 1);
         Spotlight = spotlight;
@@ -245,7 +251,7 @@ public sealed class HubViewModel : ObservableObject
 
     public void RefreshStatus()
     {
-        foreach (var t in AllTools())
+        foreach (var t in AllTools().Where(t => !t.IsSeparator))
         {
             var st = _monitor.Get(t.Model.Id);
             t.State = st.State;
@@ -271,18 +277,21 @@ public sealed class HubViewModel : ObservableObject
     {
         foreach (var g in Groups)
         {
-            foreach (var t in g.Tools) t.IsVisible = HubSearch.Matches(t.Model, g.Model.Title, _search);
-            g.HasVisibleTools = g.Tools.Any(t => t.IsVisible);
+            // Separators only make sense in the full list, not between search results.
+            foreach (var t in g.Tools)
+                t.IsVisible = t.IsSeparator ? string.IsNullOrWhiteSpace(_search) : HubSearch.Matches(t.Model, g.Model.Title, _search);
+            g.HasVisibleTools = g.Tools.Any(t => t.IsVisible && !t.IsSeparator);
             g.RefreshCount();
         }
         OnPropertyChanged(nameof(NoResults));
     }
 
     /// <summary>First visible tool (Enter in the search box starts it).</summary>
-    public HubToolVM? FirstMatch => Groups.Where(g => g.HasVisibleTools).SelectMany(g => g.Tools).FirstOrDefault(t => t.IsVisible);
+    public HubToolVM? FirstMatch => Groups.Where(g => g.HasVisibleTools).SelectMany(g => g.Tools).FirstOrDefault(t => t.IsVisible && !t.IsSeparator);
 
     public async Task ActivateAsync(HubToolVM tool)
     {
+        if (tool.IsSeparator) return;
         var ok = await FlyoutBuilder.Run(_launcher.StartAsync(tool.Model), tool.Name);
         CloseIfConfigured(ok);
     }
