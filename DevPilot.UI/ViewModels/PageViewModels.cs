@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using DevPilot.Core.Backup;
 using DevPilot.Core.Config;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Launch;
@@ -467,7 +468,21 @@ public sealed class SettingsViewModel : ObservableObject, IPage
 {
     private readonly IConfigStore _config;
     private readonly IHotkeyManager _hotkeys;
+    private readonly BackupService _backup;
+    private bool _backupBusy;
     public ObservableCollection<HotkeyRowVM> Hotkeys { get; } = [];
+    public ICommand BackupNowCommand { get; }
+    public ICommand RestoreCommand { get; }
+    public ICommand BrowseBackupFolderCommand { get; }
+    public ICommand OpenBackupFolderCommand { get; }
+
+    public static IReadOnlyList<Choice<BackupMode>> BackupModes { get; } =
+    [
+        new(BackupMode.Manual, "Manual only (Back up now)"),
+        new(BackupMode.Daily, "Automatic, once a day when DevPilot starts"),
+        new(BackupMode.EveryStart, "Automatic, every time DevPilot starts"),
+    ];
+    public static IReadOnlyList<int> KeepChoices { get; } = Enumerable.Range(1, BackupSettings.MaxKeep).ToList();
     public ICommand AddHotkeyCommand { get; }
     public ICommand RemoveHotkeyCommand { get; }
     public ICommand ExportCommand { get; }
@@ -479,10 +494,32 @@ public sealed class SettingsViewModel : ObservableObject, IPage
     /// <summary>Hotkeys that could not be registered (set by the app after registration).</summary>
     public static HashSet<int> FailedHotkeys { get; } = [];
 
-    public SettingsViewModel(IConfigStore config, IHotkeyManager hotkeys)
+    public SettingsViewModel(IConfigStore config, IHotkeyManager hotkeys, BackupService backup)
     {
         _config = config;
         _hotkeys = hotkeys;
+        _backup = backup;
+        BackupNowCommand = new AsyncCommand(BackupNowAsync);
+        RestoreCommand = new AsyncCommand(RestoreAsync);
+        BrowseBackupFolderCommand = new RelayCommand(() =>
+        {
+            var dlg = new OpenFolderDialog { Title = "Folder for DevPilot backups" };
+            if (Directory.Exists(BackupFolder)) dlg.InitialDirectory = BackupFolder;
+            if (dlg.ShowDialog() != true) return;
+            _config.Current.Backup.Folder = dlg.FolderName;
+            _config.Touch(ConfigArea.Backup);
+            using (EditTracker.Suppress()) OnPropertyChanged(nameof(BackupFolderText));
+            RefreshBackupInfo();
+        });
+        OpenBackupFolderCommand = new RelayCommand(() =>
+        {
+            try
+            {
+                Directory.CreateDirectory(BackupFolder);
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{BackupFolder}\"") { UseShellExecute = true });
+            }
+            catch (Exception ex) { MessageBox.Show("The backup folder cannot be opened: " + ex.Message, "DevPilot"); }
+        });
         AddHotkeyCommand = new RelayCommand(() =>
         {
             var hk = new HotkeyConfig { Id = (_config.Current.Hotkeys.Count == 0 ? 0 : _config.Current.Hotkeys.Max(h => h.Id)) + 1, Action = "hub", Modifiers = "Ctrl+Alt", Key = "H" };
@@ -534,6 +571,94 @@ public sealed class SettingsViewModel : ObservableObject, IPage
 
     public AppSettings Settings => _config.Current;
     public string ConfigPath => _config.ConfigPath;
+
+    // ── Backup ──────────────────────────────────────────────────────────
+    public string BackupFolder => _backup.Folder;
+    public string DefaultBackupFolder => BackupService.DefaultFolder;
+
+    /// <summary>The folder setting; empty shows (and means) the default folder.</summary>
+    public string BackupFolderText
+    {
+        get => string.IsNullOrWhiteSpace(_config.Current.Backup.Folder) ? BackupService.DefaultFolder : _config.Current.Backup.Folder;
+        set
+        {
+            var v = (value ?? string.Empty).Trim();
+            _config.Current.Backup.Folder = string.Equals(v, BackupService.DefaultFolder, StringComparison.OrdinalIgnoreCase) ? string.Empty : v;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool BackupBusy { get => _backupBusy; private set { if (Set(ref _backupBusy, value)) OnPropertyChanged(nameof(BackupIdle)); } }
+    public bool BackupIdle => !_backupBusy;
+
+    public string LastBackupText
+    {
+        get
+        {
+            var last = _config.Current.Backup.LastBackup;
+            var files = _backup.List().Count(f => !f.BeforeRestore);
+            var when = last is null ? "No backup yet" : $"Last backup: {last.Value:yyyy-MM-dd HH:mm}";
+            return $"{when} · {files} backup(s) in the folder";
+        }
+    }
+
+    private void RefreshBackupInfo() => OnPropertyChanged(nameof(LastBackupText));
+
+    private async Task BackupNowAsync()
+    {
+        if (BackupBusy) return;
+        BackupBusy = true;
+        try
+        {
+            _config.Touch(ConfigArea.Backup);
+            var r = await _backup.BackupNowAsync();
+            if (r.Success) Notifier.Info("Backup made", Path.GetFileName(r.Path) ?? string.Empty);
+            else MessageBox.Show("The backup could not be made: " + r.Error, "DevPilot", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            BackupBusy = false;
+            RefreshBackupInfo();
+        }
+    }
+
+    private async Task RestoreAsync()
+    {
+        if (BackupBusy) return;
+        var dlg = new OpenFileDialog { Title = "Restore a DevPilot backup", Filter = "DevPilot backup (*.zip)|*.zip" };
+        if (Directory.Exists(BackupFolder)) dlg.InitialDirectory = BackupFolder;
+        if (dlg.ShowDialog() != true) return;
+
+        RestorePreview preview;
+        try { preview = _backup.Preview(dlg.FileName); }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show("This backup cannot be restored: " + ex.Message, "DevPilot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (MessageBox.Show(preview.Describe() + "\n\nRestore this backup?", "DevPilot — restore",
+                MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+
+        BackupBusy = true;
+        try
+        {
+            var r = await _backup.RestoreAsync(dlg.FileName);
+            if (!r.Success)
+            {
+                MessageBox.Show("Restore failed: " + r.Error, "DevPilot", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var missing = r.Preview?.MissingPaths.Count ?? 0;
+            MessageBox.Show("The backup was restored." + (missing > 0 ? $" {missing} tool(s) point to a path that does not exist on this PC; fix them in Tools & groups." : string.Empty)
+                            + $"\n\nYour previous configuration was saved as {Path.GetFileName(r.SafetyBackup)}.", "DevPilot",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        finally
+        {
+            BackupBusy = false;
+            OnShown();
+        }
+    }
     public string LogPath => App.LogFile;
 
     public IReadOnlyList<Choice<string>> ActionChoices()
@@ -543,6 +668,7 @@ public sealed class SettingsViewModel : ObservableObject, IPage
             new("hub", "Open / close the hub"),
             new("main", "Open DevPilot"),
             new("keepawake", "Turn keep-awake on / off"),
+            new("backup", "Back up the configuration now"),
         };
         foreach (var t in _config.Current.Tools.Where(t => !t.IsSeparator).OrderBy(t => t.Name))
         {

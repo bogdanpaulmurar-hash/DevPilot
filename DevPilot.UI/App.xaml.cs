@@ -115,6 +115,31 @@ public partial class App : Application
             return;
         }
         _ = StartAutoStartToolsAsync();
+        _ = RunAutomaticBackupAsync();
+    }
+
+    // ── Automatic backup ─────────────────────────────────────────────────
+    private async Task RunAutomaticBackupAsync()
+    {
+        try
+        {
+            // Let the tools start first; the backup itself runs in the background.
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            var r = await GetService<BackupService>().RunAutomaticIfDueAsync();
+            if (r is { Success: false }) Notifier.Error("Backup failed", r.Error ?? string.Empty);
+        }
+        catch (Exception ex)
+        {
+            _log?.LogWarning(ex, "Automatic backup failed");
+        }
+    }
+
+    /// <summary>"Back up now" from the tray menu or a shortcut.</summary>
+    public static async Task BackupNowAsync()
+    {
+        var r = await GetService<BackupService>().BackupNowAsync();
+        if (r.Success) Notifier.Info("Backup made", Path.GetFileName(r.Path) ?? string.Empty);
+        else Notifier.Error("Backup failed", r.Error ?? string.Empty);
     }
 
     private static ServiceProvider BuildServices(FileLoggerProvider fileLog)
@@ -134,6 +159,7 @@ public partial class App : Application
         s.AddSingleton<ILauncher, Launcher>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();
+        s.AddSingleton<BackupService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
         s.AddSingleton<ThemeService>();
         s.AddSingleton<FlyoutBuilder>();
@@ -202,6 +228,7 @@ public partial class App : Application
                 config.Touch(ConfigArea.KeepAwake);
                 Notifier.Info("Keep-awake", config.Current.KeepAwake.Enabled ? "On" : "Off");
                 break;
+            case "backup": await BackupNowAsync(); break;
             case "tool" when parts.Length >= 2:
                 if (config.Current.Tools.FirstOrDefault(t => t.Id == parts[1]) is { } tool)
                     await FlyoutBuilder.Run(launcher.StartAsync(tool), tool.Name);

@@ -131,6 +131,7 @@ public sealed class TrayManager : IDisposable
             _config.Current.KeepAwake.Enabled = !_config.Current.KeepAwake.Enabled;
             _config.Touch(ConfigArea.KeepAwake);
         }, detail: _keepAwake.IsActive ? "on" : "off"),
+        FlyoutItem.Action("Back up now", Glyphs.Save, async () => { await App.BackupNowAsync(); return true; }),
         FlyoutItem.Action("Tools", Glyphs.List, () => shell.ShowMainWindow("tools")),
         FlyoutItem.Action("Settings", Glyphs.Settings, () => shell.ShowMainWindow("settings")),
         FlyoutItem.Separator(),

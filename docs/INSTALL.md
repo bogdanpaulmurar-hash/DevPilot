@@ -60,10 +60,24 @@ If `winget` reports *0x8a15000f* (source data missing), install the **.NET 8 SDK
 4. Turn **Keep-awake** on in DevPilot (and nowhere else).
 5. Windows 11: right-click the taskbar → *Taskbar settings* → *Other system tray icons* → switch DevPilot **on** so its icon is always visible.
 
-## 4. Moving your configuration from another PC
+## 4. Backups and moving to another PC
 
-On the old PC: **Settings → Export…** (or copy `%APPDATA%\DevPilot\config.json`).
-On the new PC: **Settings → Import…**. Paths that differ between the two PCs can be fixed in **Tools & groups**.
+**Settings → Backup** writes one `.zip` (`DevPilot-backup-YYYYMMDD-HHMMSS.zip`) with `config.json` (tools, groups,
+colours, symbols, shortcuts, hub look), the logo files you picked and a `manifest.json`.
+
+- **Folder**: default `Documents\DevPilot Backups`; any local, network or synced (Drive / OneDrive) folder works.
+- **Backups**: manual only, once a day when DevPilot starts, or every start. **Copies kept**: 1–10; older
+  DevPilot backups are removed, other files in the folder are never touched.
+- **Back up now**: in Settings, in the tray quick menu, or as a global shortcut action.
+- **Restore…**: pick a backup, check the summary (what comes back, what goes away, paths not found on this PC),
+  confirm. A `…-before-restore.zip` of the current configuration is made first (the newest 3 are kept).
+  Logos are copied to `%APPDATA%\DevPilot\logos`. Start with Windows, the autostart entries DevPilot took over,
+  the window size and the backup settings stay as they are on this PC.
+- **Another user name**: with "adapt paths from another user folder" on (default), `C:\Users\old-name\…`
+  becomes this PC's user folder. Paths that still do not exist are kept and listed, so you can fix them in
+  **Tools & groups**.
+
+**Export… / Import…** (single `config.json`, without logos) still work as before.
 
 ## 5. Updating
 

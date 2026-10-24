@@ -14,6 +14,7 @@ One tray icon for all your tools. DevPilot is a Windows hub (C# / WPF, .NET 8) t
 - **Monitor** — real process detection (also for Python scripts), health URLs, auto-restart with an hourly limit.
 - **Customisable** — theme (dark / light / Windows), one accent colour, hub width / height / corners / opacity / density / text size / position, flyout side and hover delay, group title style; per tool symbol, colour marker, bold, italic.
 - **Global shortcuts** — open the hub, start a tool or run one of its options from anywhere.
+- **Backups** — one .zip with the whole configuration and the picked logos, manual or automatic (1–10 copies kept), restore with a preview, also on another PC (paths adapted to the new user folder).
 
 ## Install
 

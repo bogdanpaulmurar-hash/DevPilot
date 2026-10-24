@@ -61,6 +61,52 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12" svc:EditTracker.Area="{x:Static core:ConfigArea.Backup}">
+                <StackPanel>
+                    <TextBlock Text="Backup" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10" TextWrapping="Wrap"
+                               Text="One .zip with your tools, groups, colours, shortcuts and the logos you picked. Restore it here or on another PC."/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Folder" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding BackupFolderText, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource MonoFont}"/>
+                        <Button Grid.Column="2" Content="Browse…" Margin="6,0,0,0" Command="{Binding BrowseBackupFolderCommand}"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Backups" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1" HorizontalAlignment="Left" MinWidth="320" ItemsSource="{x:Static vm:SettingsViewModel.BackupModes}"
+                                  DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Settings.Backup.Mode}"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Copies kept" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1" Width="70" ItemsSource="{x:Static vm:SettingsViewModel.KeepChoices}" SelectedItem="{Binding Settings.Backup.Keep}"/>
+                        <TextBlock Grid.Column="2" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Text="Maximum 10. Older DevPilot backups are removed; other files in the folder are never touched."/>
+                    </Grid>
+                    <CheckBox Style="{StaticResource Switch}" Margin="0,0,0,8" IsChecked="{Binding Settings.Backup.AdaptUserFolder}"
+                              Content="On restore, adapt paths from another user folder (C:\Users\old-name\… becomes this PC's C:\Users\your-name\…)"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10" Text="{Binding LastBackupText, Mode=OneWay}"/>
+                    <WrapPanel>
+                        <Button Content="Back up now" Style="{StaticResource AccentButton}" Margin="0,0,6,6" Command="{Binding BackupNowCommand}" IsEnabled="{Binding BackupIdle}"/>
+                        <Button Content="Restore…" Margin="0,0,6,6" Command="{Binding RestoreCommand}" IsEnabled="{Binding BackupIdle}"/>
+                        <Button Content="Open backup folder" Margin="0,0,6,6" Command="{Binding OpenBackupFolderCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Text="Configuration" Style="{StaticResource SectionTitle}"/>
