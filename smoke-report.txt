@@ -1,0 +1,10 @@
+page hub: ok
+page tools: ok
+page keepawake: ok
+page startup: ok
+page monitor: ok
+page appearance: ok
+page settings: ok
+page guide: ok
+hub size: 400x663
+binding errors: 0
