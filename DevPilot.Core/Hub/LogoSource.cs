@@ -13,6 +13,8 @@ public enum LogoOrigin
     File,
     /// <summary>The "icon" of the tool's devpilot.tool.json.</summary>
     Manifest,
+    /// <summary>An icon.ico / logo.ico found next to the tool by its conventional name.</summary>
+    Convention,
     /// <summary>The icon of the program or document the entry opens.</summary>
     Target,
 }
@@ -44,8 +46,23 @@ public static class LogoSource
     /// <summary>A file the icon has to be extracted from (program, library, shortcut).</summary>
     public static bool IsIconHolder(string path) => IconHolderExtensions.Contains(Ext(path));
 
+    /// <summary>Names looked up (no folder scan) in the tool's folder, in this order.</summary>
+    public static readonly string[] ConventionalNames =
+        [@"icon.ico", @"logo.ico", @"assets\icon.ico", @"assets\logo.ico"];
+
+    /// <summary>"Logo from: …" text for the Tools page.</summary>
+    public static string Describe(LogoOrigin origin) => origin switch
+    {
+        LogoOrigin.File => "the file you picked",
+        LogoOrigin.Manifest => "devpilot.tool.json",
+        LogoOrigin.Convention => "icon.ico next to the tool",
+        LogoOrigin.Target => "the program's own icon",
+        _ => "none (symbol is used)",
+    };
+
     /// <param name="manifestIcon">The manifest's icon as an absolute path (see <see cref="ManifestIconPath"/>), or null.</param>
-    public static LogoRef Resolve(ToolEntry tool, string? manifestIcon)
+    /// <param name="fileExists">Checks a conventional icon path; null skips that source.</param>
+    public static LogoRef Resolve(ToolEntry tool, string? manifestIcon, Func<string, bool>? fileExists = null)
     {
         if (tool.IsSeparator) return LogoRef.None;
 
@@ -54,6 +71,17 @@ public static class LogoSource
 
         var fromManifest = Clean(manifestIcon);
         if (fromManifest.Length > 0) return new(fromManifest, LogoOrigin.Manifest);
+
+        if (fileExists is not null)
+        {
+            var dir = PathTokens.ToolDirectory(tool);
+            if (dir.Length > 0)
+                foreach (var name in ConventionalNames)
+                {
+                    var candidate = Path.Combine(dir, name);
+                    if (fileExists(candidate)) return new(candidate, LogoOrigin.Convention);
+                }
+        }
 
         var target = Clean(PathTokens.Expand(tool.Path, tool));
         if (target.Length == 0) return LogoRef.None;

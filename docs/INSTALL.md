@@ -58,7 +58,9 @@ If `winget` reports *0x8a15000f* (source data missing), install the **.NET 8 SDK
 2. Create your own groups (**Group**) and move tools with the arrows or the *Group* field.
 3. Open **Startup & conflicts** → **Take over all**: the tools stop starting with Windows on their own and DevPilot starts them instead.
 4. Turn **Keep-awake** on in DevPilot (and nowhere else).
-5. Windows 11: right-click the taskbar → *Taskbar settings* → *Other system tray icons* → switch DevPilot **on** so its icon is always visible.
+5. Start with Windows: **Startup & conflicts** → *Start DevPilot with Windows* (or install with `-StartWithWindows`). *Start hidden* opens only the tray icon.
+6. Optional: **Settings** → *DevPilot icon* to use your own icon for the tray icon and window.
+7. Windows 11: right-click the taskbar → *Taskbar settings* → *Other system tray icons* → switch DevPilot **on** so its icon is always visible.
 
 ## 4. Backups and moving to another PC
 

@@ -361,8 +361,9 @@
                                     </Grid>
                                 </StackPanel>
                             </Grid>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="{Binding LogoFromText}"/>
                             <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                       Text="Without a file, the logo comes from the tool's devpilot.tool.json, else from the program or document itself. Scripts and folders have no logo of their own: choose a file for them. When a logo can't be read, the symbol is shown."/>
+                                       Text="Without a file, the logo comes from the tool's devpilot.tool.json, then an icon.ico / logo.ico (or assets\icon.ico) next to the tool, else from the program or document itself. Scripts and folders have no logo of their own: choose a file for them. When a logo can't be read, the symbol is shown."/>
                             <Grid Margin="0,12,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

@@ -510,6 +510,16 @@ public sealed class SettingsViewModel : ObservableObject, IPage
         _config = config;
         _hotkeys = hotkeys;
         _backup = backup;
+        BrowseAppIconCommand = new RelayCommand(() =>
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "DevPilot icon (tray and window)",
+                Filter = "Icons and images (*.ico;*.png;*.jpg;*.jpeg;*.bmp)|*.ico;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*",
+            };
+            if (dlg.ShowDialog() == true) AppIconPath = dlg.FileName;
+        });
+        ClearAppIconCommand = new RelayCommand(() => AppIconPath = string.Empty);
         BackupNowCommand = new AsyncCommand(BackupNowAsync);
         RestoreCommand = new AsyncCommand(RestoreAsync);
         BrowseBackupFolderCommand = new RelayCommand(() =>
@@ -585,6 +595,22 @@ public sealed class SettingsViewModel : ObservableObject, IPage
 
     // ── Backup ──────────────────────────────────────────────────────────
     public string BackupFolder => _backup.Folder;
+    public ICommand BrowseAppIconCommand { get; }
+    public ICommand ClearAppIconCommand { get; }
+
+    /// <summary>Own icon for DevPilot's tray icon and window; empty = the built-in icon.</summary>
+    public string AppIconPath
+    {
+        get => _config.Current.AppIconPath;
+        set
+        {
+            _config.Current.AppIconPath = (value ?? string.Empty).Trim().Trim('"');
+            _config.Touch(ConfigArea.Theme);
+            using (EditTracker.Suppress()) { OnPropertyChanged(); OnPropertyChanged(nameof(HasAppIcon)); }
+        }
+    }
+    public bool HasAppIcon => !string.IsNullOrWhiteSpace(_config.Current.AppIconPath);
+
     public string DefaultBackupFolder => BackupService.DefaultFolder;
 
     /// <summary>The folder setting; empty shows (and means) the default folder.</summary>

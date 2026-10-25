@@ -46,6 +46,9 @@ public sealed class LogoCache
         return _images.TryGetValue(ImageKey(r.Path), out logo);
     }
 
+    /// <summary>Where the logo of this tool comes from, once it has been resolved (null before that).</summary>
+    public LogoOrigin? KnownOrigin(ToolEntry tool) => _refs.TryGetValue(RefKey(tool), out var r) ? r.Origin : null;
+
     /// <summary>The tool's logo, or null when it has none or it can't be read in time.</summary>
     public async Task<BitmapSource?> GetAsync(ToolEntry tool)
     {
@@ -58,7 +61,7 @@ public sealed class LogoCache
                 // The manifest is only looked up when the user did not pick a file (it means reading the tool's folder).
                 var snapshot = new ToolEntry { IconPath = tool.IconPath, Path = tool.Path, Kind = tool.Kind, WorkingDirectory = tool.WorkingDirectory, Name = tool.Name };
                 var resolve = Task.Run(() => LogoSource.Resolve(snapshot,
-                    string.IsNullOrWhiteSpace(snapshot.IconPath) ? ToolManifest.IconFor(snapshot) : null));
+                    string.IsNullOrWhiteSpace(snapshot.IconPath) ? ToolManifest.IconFor(snapshot) : null, File.Exists));
                 if (await Task.WhenAny(resolve, Task.Delay(Timeout)) != resolve) return null;
                 logoRef = await resolve;
                 _refs[refKey] = logoRef;

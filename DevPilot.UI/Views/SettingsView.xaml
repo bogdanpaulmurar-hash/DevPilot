@@ -61,6 +61,25 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="DevPilot icon" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                               Text="Your own icon for DevPilot's tray icon and window. Best is a .ico with several sizes (16 to 256 px); a square .png of at least 256 px also works. Empty = the built-in icon."/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding AppIconPath, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                        <Button Grid.Column="1" Content="Choose…" Margin="6,0,0,0" Command="{Binding BrowseAppIconCommand}"/>
+                        <Button Grid.Column="2" Content="Reset" Margin="6,0,0,0" Command="{Binding ClearAppIconCommand}"
+                                Visibility="{Binding HasAppIcon, Converter={StaticResource BoolToVis}}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}" Margin="0,0,0,12" svc:EditTracker.Area="{x:Static core:ConfigArea.Backup}">
                 <StackPanel>
                     <TextBlock Text="Backup" Style="{StaticResource SectionTitle}"/>

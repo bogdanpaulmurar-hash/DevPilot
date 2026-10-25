@@ -11,6 +11,9 @@ public class AppSettings
     /// <summary>The single accent colour of the UI.</summary>
     public string Accent { get; set; } = "#4F8EF7";
 
+    /// <summary>Optional own icon for DevPilot's tray icon and window (.ico, .png, .jpg). Empty = the built-in icon.</summary>
+    public string AppIconPath { get; set; } = string.Empty;
+
     public List<ToolGroup> Groups { get; set; } = [];
     public List<ToolEntry> Tools { get; set; } = [];
 

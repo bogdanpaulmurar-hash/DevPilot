@@ -1,3 +1,4 @@
+using DevPilot.Core.Hub;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
@@ -442,6 +443,7 @@ public sealed class ToolEditorVM : ObservableObject
             var dlg = new OpenFileDialog { Title = "Python interpreter (pythonw.exe of a venv, for example)", Filter = "Python (python*.exe;pythonw*.exe;py*.exe)|python*.exe;pythonw*.exe;py*.exe|All files|*.*" };
             if (dlg.ShowDialog() == true) { Model.Interpreter = dlg.FileName; Changed(nameof(Interpreter)); }
         });
+        RefreshLogoFrom();
         BrowseIconCommand = new RelayCommand(() =>
         {
             var dlg = new OpenFileDialog
@@ -575,7 +577,7 @@ public sealed class ToolEditorVM : ObservableObject
     public string Path
     {
         get => Model.Path;
-        set { if (Model.Path == value) return; LogoCache.Shared.Forget(Model); Model.Path = value; OnPropertyChanged(); OnPropertyChanged(nameof(Preview)); }
+        set { if (Model.Path == value) return; LogoCache.Shared.Forget(Model); Model.Path = value; OnPropertyChanged(); OnPropertyChanged(nameof(Preview)); RefreshLogoFrom(); }
     }
     public string WorkingDirectory { get => Model.WorkingDirectory; set { Model.WorkingDirectory = value; OnPropertyChanged(); } }
     public string Interpreter { get => Model.Interpreter; set { Model.Interpreter = value; OnPropertyChanged(); } }
@@ -592,10 +594,29 @@ public sealed class ToolEditorVM : ObservableObject
             LogoCache.Shared.Forget(Model);
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasIconPath));
+            RefreshLogoFrom();
             LookChanged();
         }
     }
     public bool HasIconPath => !string.IsNullOrWhiteSpace(Model.IconPath);
+
+    private string _logoFrom = string.Empty;
+    /// <summary>"Logo from: …" so it is clear which source is used.</summary>
+    public string LogoFromText
+    {
+        get => _logoFrom;
+        private set { if (_logoFrom == value) return; _logoFrom = value; OnPropertyChanged(); }
+    }
+
+    public async void RefreshLogoFrom()
+    {
+        try
+        {
+            await LogoCache.Shared.GetAsync(Model);
+            LogoFromText = LogoCache.Shared.KnownOrigin(Model) is { } origin ? "Logo from: " + LogoSource.Describe(origin) : string.Empty;
+        }
+        catch (Exception) { LogoFromText = string.Empty; }
+    }
 
     public static IReadOnlyList<Choice<HubLabelMode>> LabelModes => RowLook.LabelModes;
 

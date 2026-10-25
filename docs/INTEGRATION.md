@@ -117,9 +117,25 @@ Where a row's logo comes from, first match wins:
 
 1. the file chosen under *Tools & groups > Look in the hub > Logo*;
 2. the `icon` of the tool's `devpilot.tool.json`;
-3. the icon of what the entry opens, for programs (`.exe`, `.lnk`) and documents only. Scripts, folders and links would all get the same generic icon, so they need 1 or 2.
+3. an `icon.ico` or `logo.ico` in the tool's folder (or in its `assets` subfolder), found by name only, no folder scan;
+4. the icon of what the entry opens, for programs (`.exe`, `.lnk`) and documents only. Scripts, folders and links would all get the same generic icon, so they need 1, 2 or 3.
+
+The tool editor shows "Logo from: …" under the logo field. The tray icon DevPilot draws for a tool uses the same order, at the size of the display (16 px at 100%, 20 at 125%, 24 at 150%, 32 at 200%): the best frame of a multi-size `.ico`, or a high-quality scaled image or program icon. DevPilot cannot change the icon a tool's own window has in the taskbar; the tool owns that.
 
 Each logo is read once, scaled to a 64 px PNG and cached in `%LOCALAPPDATA%\DevPilot\logo-cache` (safe to delete; it is rebuilt). A changed file is picked up automatically. Loading happens in the background with a short timeout, so a slow or offline drive never delays the hub: the row keeps its symbol.
+
+### Starting a tool when the cloud drive is ready
+
+A tool that lives on OneDrive or Google Drive can fail to start at Windows logon because the drive is not connected yet. In *Tools & groups > Start with DevPilot*, set **Start when** to *Wait until the cloud drive is connected*:
+
+- **Cloud drive**: *Detect from the tool's path* (a `OneDrive…` folder, `My Drive`, `Shared drives`) or pick OneDrive / Google Drive.
+- Ready means the drive's app is running (OneDrive, Google Drive), its drive letter is mounted (Google Drive) and the tool's folder is reachable. It is checked every 2 seconds with process and file checks only. Only that tool waits; DevPilot, the tray and other tools start normally. Tools on the same drive share one wait.
+- **Timeout** (default 120 s) and **if still not connected**: *Do not start* (default; a notification says so, click it to start the tool, and the tool's log gets a line) or *Start anyway*.
+- The delay stays as the minimum wait. Tools on a non-cloud path never wait. The *Startup & conflicts* page shows "Waiting for …" while it lasts.
+
+### Start DevPilot with Windows
+
+*Startup & conflicts > Start DevPilot with Windows* adds `DevPilot --autostart` to `HKCU\...\Run` for your user (no admin rights); *Start hidden* keeps the window closed and leaves only the tray icon. `scripts\install.ps1 -StartWithWindows` does the same at install time. Turn the switch off to remove the entry.
 
 ## Current state of your tools
 
