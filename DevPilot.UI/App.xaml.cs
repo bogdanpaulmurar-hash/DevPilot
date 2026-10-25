@@ -99,6 +99,7 @@ public partial class App : Application
             else Notifier.Info($"{tool.Name} restarted", "It had stopped unexpectedly.");
         });
         monitor.Start();
+        _ = Task.Run(() => GetService<IToolLog>().Prune(config.Current.Tools));
 
         SetupHotkeys();
         SetupStartupGuard();
@@ -156,6 +157,7 @@ public partial class App : Application
             : new ConfigStore(dataDir, sp.GetRequiredService<ILogger<ConfigStore>>()));
         s.AddSingleton<IConfigStore>(sp => sp.GetRequiredService<ConfigStore>());
         s.AddSingleton<IProcessMonitor, ProcessMonitor>();
+        s.AddSingleton<IToolLog>(sp => new ToolLogService(sp.GetRequiredService<ILogger<ToolLogService>>(), sp.GetRequiredService<IConfigStore>()));
         s.AddSingleton<ILauncher, Launcher>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();

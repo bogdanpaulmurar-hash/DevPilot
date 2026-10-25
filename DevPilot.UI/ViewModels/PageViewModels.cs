@@ -483,6 +483,7 @@ public sealed class SettingsViewModel : ObservableObject, IPage
         new(BackupMode.EveryStart, "Automatic, every time DevPilot starts"),
     ];
     public static IReadOnlyList<int> KeepChoices { get; } = Enumerable.Range(1, BackupSettings.MaxKeep).ToList();
+    public static IReadOnlyList<int> LogSizeChoices { get; } = [64, 128, 256, 512, 1024, 2048, 4096];
     public ICommand AddHotkeyCommand { get; }
     public ICommand RemoveHotkeyCommand { get; }
     public ICommand ExportCommand { get; }

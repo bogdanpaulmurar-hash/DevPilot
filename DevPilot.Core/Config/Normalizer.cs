@@ -23,6 +23,9 @@ public static class Normalizer
         s.Backup ??= new BackupSettings();
         s.Backup.Keep = Math.Clamp(s.Backup.Keep, 1, BackupSettings.MaxKeep);
         s.Backup.Folder ??= string.Empty;
+        s.ToolLog ??= new ToolLogSettings();
+        s.ToolLog.MaxKb = Math.Clamp(s.ToolLog.MaxKb, 64, 4096);
+        s.ToolLog.Keep = Math.Clamp(s.ToolLog.Keep, 1, 10);
         s.Accent = ConfigMigrator.NormalizeColor(s.Accent) is { Length: > 0 } accent ? accent : "#4F8EF7";
 
         // Unique ids

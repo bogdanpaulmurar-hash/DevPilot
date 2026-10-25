@@ -482,6 +482,24 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Log -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Log of this tool" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="{Binding LogPath}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}"/>
+                            <TextBox Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" Height="180" Margin="0,6,0,6"
+                                     FontFamily="{StaticResource MonoFont}" FontSize="12" TextWrapping="NoWrap"
+                                     HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                     VerticalContentAlignment="Top" AcceptsReturn="True"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Refresh" Margin="0,0,6,0" Command="{Binding RefreshLogCommand}"/>
+                                <Button Content="Open file" Margin="0,0,6,0" Command="{Binding OpenLogFileCommand}"/>
+                                <Button Content="Open folder" Margin="0,0,6,0" Command="{Binding OpenLogFolderCommand}"/>
+                                <Button Content="Copy" Command="{Binding CopyLogCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Monitoring -->
                     <Border Style="{StaticResource Card}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
                         <StackPanel>

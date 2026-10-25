@@ -21,6 +21,17 @@ public class AppSettings
     public List<HotkeyConfig> Hotkeys { get; set; } = [];
     public WindowSettings Window { get; set; } = new();
     public BackupSettings Backup { get; set; } = new();
+    public ToolLogSettings ToolLog { get; set; } = new();
+}
+
+/// <summary>Per-tool log files in %LOCALAPPDATA%\DevPilot\logs\tools.</summary>
+public class ToolLogSettings
+{
+    public bool Enabled { get; set; } = true;
+    /// <summary>Size of one log file before it is rotated (64–4096 KB).</summary>
+    public int MaxKb { get; set; } = 512;
+    /// <summary>Files kept per tool, current one included (1–10).</summary>
+    public int Keep { get; set; } = 3;
 }
 
 /// <summary>Backups of the whole configuration (with chosen logos) to a folder the user picks.</summary>

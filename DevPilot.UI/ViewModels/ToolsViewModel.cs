@@ -407,6 +407,20 @@ public sealed class ToolEditorVM : ObservableObject
     public ICommand DetectCommand { get; }
     public ICommand ApplyPresetCommand { get; }
     public ICommand LoadManifestCommand { get; }
+    public ICommand RefreshLogCommand { get; }
+    public ICommand OpenLogFileCommand { get; }
+    public ICommand OpenLogFolderCommand { get; }
+    public ICommand CopyLogCommand { get; }
+
+    private string _logText = string.Empty;
+    /// <summary>Last lines of this tool's own log (start, arguments, exit code, errors).</summary>
+    public string LogText { get => _logText; private set => Set(ref _logText, value); }
+    public string LogPath => App.GetService<IToolLog>().FilePath(Model);
+    public void RefreshLog()
+    {
+        var text = App.GetService<IToolLog>().ReadTail(Model, 200);
+        LogText = text.Length == 0 ? "(no entries yet: the log fills when DevPilot starts this tool)" : text;
+    }
 
     public ToolEditorVM(ToolEntry model, ToolsViewModel owner, IConfigStore config, ILauncher launcher, IProcessMonitor monitor)
     {
@@ -467,6 +481,19 @@ public sealed class ToolEditorVM : ObservableObject
             Touch();
         });
         StartCommand = new AsyncCommand(async () => { await FlyoutBuilder.Run(_launcher.StartAsync(Model), Model.Name); await DetectAsync(); });
+        RefreshLogCommand = new RelayCommand(RefreshLog);
+        OpenLogFileCommand = new RelayCommand(() =>
+        {
+            if (File.Exists(LogPath)) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(LogPath) { UseShellExecute = true });
+        });
+        OpenLogFolderCommand = new RelayCommand(() =>
+        {
+            var tools = App.GetService<IToolLog>();
+            Directory.CreateDirectory(tools.Folder);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{tools.Folder}\"") { UseShellExecute = true });
+        });
+        CopyLogCommand = new RelayCommand(() => { if (!string.IsNullOrEmpty(LogText)) Clipboard.SetText(LogText); });
+        RefreshLog();
         StopCommand = new AsyncCommand(async () => { await _launcher.StopAsync(Model); await DetectAsync(); });
         DetectCommand = new AsyncCommand(DetectAsync);
         LoadManifestCommand = new RelayCommand(() =>

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Launch;
+using DevPilot.Core.Logging;
 using DevPilot.Models;
 using Microsoft.Extensions.Logging;
 
@@ -12,13 +13,15 @@ public sealed class Launcher : ILauncher
 {
     private readonly ILogger<Launcher> _logger;
     private readonly IProcessMonitor _monitor;
+    private readonly IToolLog? _toolLog;
 
     public event EventHandler<ToolEntry>? ToolStarted;
 
-    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor)
+    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor, IToolLog? toolLog = null)
     {
         _logger = logger;
         _monitor = monitor;
+        _toolLog = toolLog;
     }
 
     public async Task<LaunchResult> StartAsync(ToolEntry tool, LaunchReason reason = LaunchReason.Manual)
@@ -27,7 +30,9 @@ public sealed class Launcher : ILauncher
         try { plan = LaunchPlanner.ForTool(tool, reason); }
         catch (Exception ex) { return LaunchResult.Fail(ex.Message); }
 
-        var result = await Task.Run(() => Execute(plan)).ConfigureAwait(false);
+        if (plan.IsMainProcess) _toolLog?.Write(tool, ToolLogFormat.StartBlock(tool, reason, plan));
+        var result = await Task.Run(() => Execute(plan, plan.IsMainProcess ? tool : null)).ConfigureAwait(false);
+        if (plan.IsMainProcess) _toolLog?.Write(tool, ToolLogFormat.StartResult(result.Success, result.ProcessId, result.Error));
         if (plan.IsMainProcess && tool.IsProcessLike)
         {
             if (result.Success) _monitor.NotifyLaunched(tool.Id, result.ProcessId);
@@ -95,16 +100,16 @@ public sealed class Launcher : ILauncher
         return await StartAsync(tool, LaunchReason.Restart).ConfigureAwait(false);
     }
 
-    internal LaunchResult Execute(LaunchPlan plan)
+    internal LaunchResult Execute(LaunchPlan plan, ToolEntry? logTool = null)
     {
         if (string.IsNullOrWhiteSpace(plan.FileName)) return LaunchResult.Fail("Nothing to start: the path is empty.");
         try
         {
-            return plan.Mode == LaunchMode.ShellOpen ? ShellOpen(plan) : StartProcess(plan, plan.FileName);
+            return plan.Mode == LaunchMode.ShellOpen ? ShellOpen(plan) : StartProcess(plan, plan.FileName, logTool);
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 2 && TryPythonLauncher(plan.FileName, out var alt))
         {
-            try { return StartProcess(plan, alt); }
+            try { return StartProcess(plan, alt, logTool); }
             catch (Exception ex2) { return Fail(plan, ex2); }
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
@@ -144,7 +149,7 @@ public sealed class Launcher : ILauncher
     /// <summary>Processes whose stderr is still being drained (a closed pipe could break them later).</summary>
     private static readonly HashSet<Process> Watched = [];
 
-    private static LaunchResult StartProcess(LaunchPlan plan, string fileName)
+    private LaunchResult StartProcess(LaunchPlan plan, string fileName, ToolEntry? logTool)
     {
         var psi = new ProcessStartInfo
         {
@@ -159,17 +164,21 @@ public sealed class Launcher : ILauncher
         foreach (var (k, v) in plan.Environment) psi.Environment[k] = v;
         if (!plan.WatchStartup)
         {
-            using var p = Process.Start(psi);
-            return LaunchResult.Ok(p?.Id ?? 0);
+            var p = Process.Start(psi);
+            if (p is null) return LaunchResult.Ok(0);
+            int pid = p.Id;
+            if (logTool is null) { p.Dispose(); return LaunchResult.Ok(pid); }
+            LogExitWhenDone(p, logTool);
+            return LaunchResult.Ok(pid);
         }
-        return StartWatched(psi);
+        return StartWatched(psi, logTool);
     }
 
     /// <summary>
     /// Starts a windowless (pythonw) process and waits briefly: if it ends with an error right away
     /// (wrong interpreter, missing module), the last stderr line becomes the launch error instead of a silent failure.
     /// </summary>
-    private static LaunchResult StartWatched(ProcessStartInfo psi)
+    private LaunchResult StartWatched(ProcessStartInfo psi, ToolEntry? logTool)
     {
         var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var tail = new Queue<string>();
@@ -185,11 +194,17 @@ public sealed class Launcher : ILauncher
         if (!p.Start()) { p.Dispose(); return LaunchResult.Fail("The process did not start."); }
         p.BeginErrorReadLine();
         int pid = p.Id;
+        var startedAt = DateTime.Now;
         if (!p.WaitForExit((int)StartupWatch.TotalMilliseconds))
         {
             // Still running: keep draining stderr until it exits, then release it.
             lock (Watched) Watched.Add(p);
-            p.Exited += (_, _) => { lock (Watched) Watched.Remove(p); p.Dispose(); };
+            p.Exited += (_, _) =>
+            {
+                if (logTool is not null) LogExit(p, logTool, startedAt, () => { lock (tail) return tail.ToArray(); });
+                lock (Watched) Watched.Remove(p);
+                p.Dispose();
+            };
             if (p.HasExited) { lock (Watched) Watched.Remove(p); }
             return LaunchResult.Ok(pid);
         }
@@ -197,9 +212,45 @@ public sealed class Launcher : ILauncher
         int code = p.ExitCode;
         string[] lines;
         lock (tail) lines = tail.ToArray();
+        if (logTool is not null)
+        {
+            _toolLog?.Write(logTool, ToolLogFormat.ExitLine(code, DateTime.Now - startedAt));
+            if (lines.Length > 0) _toolLog?.Write(logTool, "stderr (last lines):" + Environment.NewLine + string.Join(Environment.NewLine, lines.Select(l => "  " + l)));
+        }
         p.Dispose();
         if (code == 0) return LaunchResult.Ok(pid);
         return LaunchResult.Fail(DescribeEarlyExit(code, lines));
+    }
+
+    /// <summary>Process started without stderr capture: only the exit code is logged, when it ends.</summary>
+    private void LogExitWhenDone(Process p, ToolEntry tool)
+    {
+        var startedAt = DateTime.Now;
+        try
+        {
+            p.EnableRaisingEvents = true;
+            p.Exited += (_, _) => { LogExit(p, tool, startedAt, () => []); p.Dispose(); };
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            _logger.LogDebug(ex, "Cannot watch exit of {Tool}", tool.Name);
+            p.Dispose();
+        }
+    }
+
+    private void LogExit(Process p, ToolEntry tool, DateTime startedAt, Func<string[]> stderr)
+    {
+        try
+        {
+            _toolLog?.Write(tool, ToolLogFormat.ExitLine(p.ExitCode, DateTime.Now - startedAt));
+            var lines = stderr();
+            if (lines.Length > 0)
+                _toolLog?.Write(tool, "stderr (last lines):" + Environment.NewLine + string.Join(Environment.NewLine, lines.Select(l => "  " + l)));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            _logger.LogDebug(ex, "Exit code of {Tool} not available", tool.Name);
+        }
     }
 
     internal static string DescribeEarlyExit(int code, IReadOnlyList<string> stderr)
