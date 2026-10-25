@@ -100,6 +100,8 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Text="Started by DevPilot" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="{Binding AutoStartStatusText}" Style="{StaticResource Hint}" Margin="0,0,0,6"
+                               Visibility="{Binding HasAutoStartStatus, Converter={StaticResource BoolToVis}}"/>
                     <ItemsControl ItemsSource="{Binding AutoStartTools}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type models:ToolEntry}">

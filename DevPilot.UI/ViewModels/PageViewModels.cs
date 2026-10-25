@@ -1,3 +1,4 @@
+using DevPilot.Core.Cloud;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -140,10 +141,19 @@ public sealed class StartupViewModel : ObservableObject, IPage
     public ICommand RefreshCommand { get; }
     public ICommand TakeOverAllCommand { get; }
 
-    public StartupViewModel(IConfigStore config, IStartupManager startup)
+    public string AutoStartStatusText { get; private set; } = string.Empty;
+    public bool HasAutoStartStatus => AutoStartStatusText.Length > 0;
+
+    public StartupViewModel(IConfigStore config, IStartupManager startup, AutoStartStatus autoStartStatus)
     {
         _config = config;
         _startup = startup;
+        autoStartStatus.Changed += (_, _) => System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            AutoStartStatusText = string.Join(Environment.NewLine, autoStartStatus.Lines());
+            OnPropertyChanged(nameof(AutoStartStatusText));
+            OnPropertyChanged(nameof(HasAutoStartStatus));
+        });
         RefreshCommand = new RelayCommand(OnShown);
         TakeOverAllCommand = new RelayCommand(() =>
         {

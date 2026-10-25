@@ -106,6 +106,12 @@ public class AutoStartOptions
     public int Order { get; set; }
     /// <summary>Arguments used for the automatic start instead of the normal ones (e.g. "gui --autostart"). Empty = normal arguments.</summary>
     public string Arguments { get; set; } = string.Empty;
+    /// <summary><see cref="AutoStartMode.Delay"/> (default, old configs) or wait until the cloud drive holding the tool is connected.</summary>
+    public AutoStartMode Mode { get; set; } = AutoStartMode.Delay;
+    /// <summary>Only for <see cref="AutoStartMode.WaitForCloud"/>; Auto = taken from the tool's path.</summary>
+    public CloudProvider CloudProvider { get; set; } = CloudProvider.Auto;
+    public int CloudTimeoutSeconds { get; set; } = 120;
+    public CloudTimeoutAction OnTimeout { get; set; } = CloudTimeoutAction.Skip;
 }
 
 public class MonitorOptions

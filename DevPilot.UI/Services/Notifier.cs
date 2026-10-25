@@ -21,6 +21,39 @@ public static class Notifier
         Show(title, message, BalloonIcon.Error);
     }
 
+    private static Action? _onClick;
+    private static DateTime _onClickUntil;
+    private static bool _clickHooked;
+
+    /// <summary>Warning balloon; clicking it (within 60 s) runs <paramref name="onClick"/>. Balloons have no buttons.</summary>
+    public static void Action(string title, string message, Action onClick)
+    {
+        Logger?.LogWarning("{Title}: {Message}", title, message);
+        var app = System.Windows.Application.Current;
+        if (app is null) return;
+        app.Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                if (Tray is null) return;
+                if (!_clickHooked)
+                {
+                    _clickHooked = true;
+                    Tray.TrayBalloonTipClicked += (_, _) =>
+                    {
+                        var run = DateTime.UtcNow <= _onClickUntil ? _onClick : null;
+                        _onClick = null;
+                        run?.Invoke();
+                    };
+                }
+                _onClick = onClick;
+                _onClickUntil = DateTime.UtcNow.AddSeconds(60);
+                Tray.ShowBalloonTip(title, message, BalloonIcon.Warning);
+            }
+            catch (Exception) { /* balloon tips may be disabled by policy */ }
+        });
+    }
+
     private static void Show(string title, string message, BalloonIcon icon)
     {
         var app = System.Windows.Application.Current;

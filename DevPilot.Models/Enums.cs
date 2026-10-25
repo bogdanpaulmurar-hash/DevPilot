@@ -120,3 +120,11 @@ public enum BackupMode
     /// <summary>One automatic backup every time DevPilot starts.</summary>
     EveryStart,
 }
+
+/// <summary>How DevPilot decides when to start a tool at DevPilot start.</summary>
+public enum AutoStartMode { Delay, WaitForCloud }
+
+public enum CloudProvider { Auto, OneDrive, GoogleDrive }
+
+/// <summary>What happens when the cloud drive is still not connected after the timeout.</summary>
+public enum CloudTimeoutAction { Skip, StartAnyway }

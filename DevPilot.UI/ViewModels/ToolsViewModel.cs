@@ -599,6 +599,33 @@ public sealed class ToolEditorVM : ObservableObject
 
     public static IReadOnlyList<Choice<HubLabelMode>> LabelModes => RowLook.LabelModes;
 
+    public static IReadOnlyList<Choice<AutoStartMode>> AutoStartModes { get; } =
+    [
+        new(AutoStartMode.Delay, "After a delay"),
+        new(AutoStartMode.WaitForCloud, "Wait until the cloud drive is connected"),
+    ];
+
+    public static IReadOnlyList<Choice<CloudProvider>> CloudProviders { get; } =
+    [
+        new(CloudProvider.Auto, "Detect from the tool's path"),
+        new(CloudProvider.OneDrive, "OneDrive"),
+        new(CloudProvider.GoogleDrive, "Google Drive"),
+    ];
+
+    public static IReadOnlyList<Choice<CloudTimeoutAction>> TimeoutActions { get; } =
+    [
+        new(CloudTimeoutAction.Skip, "Do not start (notify, click to start)"),
+        new(CloudTimeoutAction.StartAnyway, "Start anyway"),
+    ];
+
+    public bool IsCloudMode => Model.AutoStart.Mode == AutoStartMode.WaitForCloud;
+
+    public AutoStartMode AutoStartMode
+    {
+        get => Model.AutoStart.Mode;
+        set { if (Model.AutoStart.Mode == value) return; Model.AutoStart.Mode = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsCloudMode)); }
+    }
+
     public HubLabelMode LabelMode
     {
         get => Model.LabelMode;

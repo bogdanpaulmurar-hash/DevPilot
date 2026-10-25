@@ -52,6 +52,7 @@ public static class Normalizer
                 if (string.IsNullOrWhiteSpace(a.Id) || !aseen.Add(a.Id)) { a.Id = NewId.Short(); aseen.Add(a.Id); }
             t.Folder.Depth = Math.Clamp(t.Folder.Depth, 1, 5);
             t.Folder.MaxItems = Math.Clamp(t.Folder.MaxItems, 5, 500);
+            t.AutoStart.CloudTimeoutSeconds = Math.Clamp(t.AutoStart.CloudTimeoutSeconds, 5, 3600);
             t.Color = ConfigMigrator.NormalizeColor(t.Color);
             t.TextColor = ConfigMigrator.NormalizeColor(t.TextColor);
             t.GlyphColor = ConfigMigrator.NormalizeColor(t.GlyphColor);
