@@ -54,7 +54,7 @@ public class ToolLogTests : IDisposable
         var path = Path.Combine(_dir, "t-3.log");
         File.WriteAllLines(path, Enumerable.Range(1, 500).Select(i => "line " + i));
         var lines = ToolLogFiles.Tail(path, 3).Split(Environment.NewLine);
-        Assert.Equal(["line 498", "line 499", "line 500"], lines);
+        Assert.Equal(new[] { "line 498", "line 499", "line 500" }, lines);
         Assert.Equal(string.Empty, ToolLogFiles.Tail(Path.Combine(_dir, "missing.log"), 5));
     }
 
