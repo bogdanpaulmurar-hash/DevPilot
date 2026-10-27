@@ -22,5 +22,6 @@ public static class Defaults
         new HotkeyConfig { Id = 1, Action = "hub", Modifiers = "Ctrl+Alt", Key = "Space", IsEnabled = true },
         new HotkeyConfig { Id = 2, Action = "main", Modifiers = "Ctrl+Alt", Key = "D", IsEnabled = true },
         new HotkeyConfig { Id = 3, Action = "keepawake", Modifiers = "Ctrl+Alt", Key = "K", IsEnabled = false },
+        new HotkeyConfig { Id = 4, Action = "typer", Modifiers = "Ctrl+Alt", Key = "T", IsEnabled = true },
     ];
 }

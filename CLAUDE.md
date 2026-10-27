@@ -18,10 +18,10 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 
 ## Map
 - `DevPilot.Models` — config and tool models
-- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, KeepAwake, Startup
+- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, KeepAwake, Startup, Typer
 - `DevPilot.Infrastructure` — Windows services: config store, launcher, process monitor, keep-awake, startup manager, hotkeys
 - `DevPilot.UI` — WPF: tray hub, flyouts, main window pages (Views / ViewModels / Themes)
-- `docs/INSTALL.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware)
+- `docs/INSTALL.md`, `docs/TYPER.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware)
 - Config: `%APPDATA%\DevPilot\config.json` (restored logos in `logos\`, backups default to `Documents\DevPilot Backups`, logic in `Core/Backup`); log: `%LOCALAPPDATA%\DevPilot\logs\devpilot.log`; hub logo cache: `%LOCALAPPDATA%\DevPilot\logo-cache` (disposable)
 
 ## Rules
