@@ -161,6 +161,9 @@ public partial class App : Application
         s.AddSingleton<IStartupManager, StartupManager>();
         s.AddSingleton<BackupService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
+        s.AddSingleton<IKeyboardSender, KeyboardSender>();
+        s.AddSingleton<IForegroundProbe, ForegroundProbe>();
+        s.AddSingleton<DevPilot.UI.Typer.TyperHudController>();
         s.AddSingleton<ThemeService>();
         s.AddSingleton<FlyoutBuilder>();
         s.AddSingleton<TrayManager>();
@@ -228,6 +231,7 @@ public partial class App : Application
                 config.Touch(ConfigArea.KeepAwake);
                 Notifier.Info("Keep-awake", config.Current.KeepAwake.Enabled ? "On" : "Off");
                 break;
+            case "typer": GetService<DevPilot.UI.Typer.TyperHudController>().Toggle(); break;
             case "backup": await BackupNowAsync(); break;
             case "tool" when parts.Length >= 2:
                 if (config.Current.Tools.FirstOrDefault(t => t.Id == parts[1]) is { } tool)
