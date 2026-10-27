@@ -44,6 +44,7 @@ public partial class TyperHudWindow : Window
         var s = config.Current.Typer;
         DelaySlider.Value = Math.Clamp(s.DelayMs, 0, (int)DelaySlider.Maximum);
         CountdownSlider.Value = Math.Clamp(s.CountdownSeconds, 0, (int)CountdownSlider.Maximum);
+        ShiftEnterBox.IsChecked = s.LineBreakAsShiftEnter;
         UpdateLabels();
         _loading = false;
         PlaceWindow();
@@ -168,6 +169,13 @@ public partial class TyperHudWindow : Window
         _config.Touch(ConfigArea.Window);
     }
 
+    private void OnLineBreakChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _config.Current.Typer.LineBreakAsShiftEnter = ShiftEnterBox.IsChecked == true;
+        _config.Touch(ConfigArea.Window);
+    }
+
     private void UpdateLabels()
     {
         DelayLabel.Text = $"{(int)DelaySlider.Value} ms";
@@ -187,7 +195,7 @@ public partial class TyperHudWindow : Window
         StartButton.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
         StopButton.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         ReloadButton.IsEnabled = !running;
-        DelaySlider.IsEnabled = CountdownSlider.IsEnabled = !running;
+        DelaySlider.IsEnabled = CountdownSlider.IsEnabled = ShiftEnterBox.IsEnabled = !running;
         if (!running)
         {
             _confirmed = false;

@@ -61,8 +61,11 @@ public sealed class TyperSession
             Report(plan, 0);
 
             var pause = TimeSpan.FromMilliseconds(o.DelayMs);
-            foreach (var step in plan.Steps())
+            foreach (var planned in plan.Steps())
             {
+                var step = o.LineBreakAsShiftEnter && planned.Kind == TypingStepKind.Enter
+                    ? new TypingStep(TypingStepKind.ShiftEnter)
+                    : planned;
                 ct.ThrowIfCancellationRequested();
                 if (o.StopOnWindowChange && target != 0 && _probe.GetForegroundWindow() != target)
                 {

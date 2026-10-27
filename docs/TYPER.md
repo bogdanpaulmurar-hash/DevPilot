@@ -11,6 +11,8 @@ is blocked, for example inside some embedded web views.
 
 The window stays on top, can be dragged by its title and remembers its position. It never takes the keyboard focus.
 
+Line breaks are typed as **Shift+Enter** by default (switch in the HUD), because in chat inputs such as the Claude extension a plain Enter sends the message. Turn it off for editors and terminals, where Enter is the line break.
+
 ## Safety
 - **Esc** (global while a run is active) or the **Stop** button stops before the next key.
 - Typing stops if another window becomes active.
@@ -19,7 +21,7 @@ The window stays on top, can be dragged by its title and remembers its position.
 - An elevated (administrator) window in front rejects the input; the HUD reports it.
 
 ## Settings (`typer` in `config.json`)
-`DelayMs` (0-500, the HUD slider covers 0-200), `CountdownSeconds` (0-30), `StopOnWindowChange`, `ConfirmAboveChars`, `HudLeft`, `HudTop`.
+`DelayMs` (0-500, the HUD slider covers 0-200), `CountdownSeconds` (0-30), `StopOnWindowChange`, `LineBreakAsShiftEnter`, `ConfirmAboveChars`, `HudLeft`, `HudTop`.
 Delays under about 15 ms are rounded up by Windows timers; raise the delay if letters are lost.
 
 ## Code

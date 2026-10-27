@@ -47,6 +47,8 @@ public class TyperSettings
     /// <summary>Seconds between pressing Start and the first keystroke, to focus the target field.</summary>
     public int CountdownSeconds { get; set; } = 3;
     public bool StopOnWindowChange { get; set; } = true;
+    /// <summary>Type line breaks as Shift+Enter: in chat inputs plain Enter would send the message.</summary>
+    public bool LineBreakAsShiftEnter { get; set; } = true;
     /// <summary>Texts longer than this ask for a second click on Start. 0 = never ask.</summary>
     public int ConfirmAboveChars { get; set; } = 2000;
     /// <summary>Last HUD position (device-independent pixels); null = default corner.</summary>

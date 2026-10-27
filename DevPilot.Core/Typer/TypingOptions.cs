@@ -13,6 +13,9 @@ public sealed class TypingOptions
     /// <summary>Stop when another window takes the focus after typing started.</summary>
     public bool StopOnWindowChange { get; set; } = true;
 
+    /// <summary>Shift+Enter inserts a line break in chat inputs where plain Enter sends the message.</summary>
+    public bool LineBreakAsShiftEnter { get; set; }
+
     /// <summary>Texts longer than this need an explicit confirmation in the UI. 0 disables the prompt.</summary>
     public int ConfirmAboveChars { get; set; } = 2000;
 
@@ -27,6 +30,7 @@ public sealed class TypingOptions
         DelayMs = s.DelayMs,
         CountdownSeconds = s.CountdownSeconds,
         StopOnWindowChange = s.StopOnWindowChange,
+        LineBreakAsShiftEnter = s.LineBreakAsShiftEnter,
         ConfirmAboveChars = s.ConfirmAboveChars,
     }.Clamped();
 
@@ -35,6 +39,7 @@ public sealed class TypingOptions
         DelayMs = Math.Clamp(DelayMs, 0, MaxDelayMs),
         CountdownSeconds = Math.Clamp(CountdownSeconds, 0, MaxCountdownSeconds),
         StopOnWindowChange = StopOnWindowChange,
+        LineBreakAsShiftEnter = LineBreakAsShiftEnter,
         ConfirmAboveChars = Math.Max(0, ConfirmAboveChars),
         MaxChars = Math.Max(1, MaxChars),
     };
