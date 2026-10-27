@@ -19,6 +19,7 @@ public static class Normalizer
         s.Startup.TakenOver ??= [];
         s.Monitor ??= new MonitorSettings();
         s.Monitor.ExtraTargets ??= [];
+        s.Typer ??= new TyperSettings();
         s.Window ??= new WindowSettings();
         s.Backup ??= new BackupSettings();
         s.Backup.Keep = Math.Clamp(s.Backup.Keep, 1, BackupSettings.MaxKeep);

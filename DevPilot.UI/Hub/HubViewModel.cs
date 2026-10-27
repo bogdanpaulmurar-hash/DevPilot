@@ -37,11 +37,12 @@ public sealed class HubViewModel : ObservableObject
     public ICommand OpenMainCommand { get; }
     public ICommand OpenSettingsCommand { get; }
     public ICommand AddToolCommand { get; }
+    public ICommand OpenTyperCommand { get; }
     public ICommand ExitCommand { get; }
     public ICommand ClearSearchCommand { get; }
 
     public HubViewModel(IConfigStore config, ILauncher launcher, IProcessMonitor monitor, IKeepAwakeService keepAwake,
-        IAppShell shell, FlyoutBuilder flyouts)
+        IAppShell shell, FlyoutBuilder flyouts, DevPilot.UI.Typer.TyperHudController typer)
     {
         _config = config;
         _launcher = launcher;
@@ -58,6 +59,7 @@ public sealed class HubViewModel : ObservableObject
         OpenMainCommand = new RelayCommand(() => { _shell.HideHub(); _shell.ShowMainWindow(); });
         OpenSettingsCommand = new RelayCommand(() => { _shell.HideHub(); _shell.ShowMainWindow("appearance"); });
         AddToolCommand = new RelayCommand(() => { _shell.HideHub(); _shell.ShowMainWindow("tools"); });
+        OpenTyperCommand = new RelayCommand(() => { if (!IsPinned) _shell.HideHub(); typer.Toggle(); });
         ExitCommand = new RelayCommand(() => _shell.Exit());
         ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
 

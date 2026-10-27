@@ -705,6 +705,7 @@ public sealed class SettingsViewModel : ObservableObject, IPage
             new("hub", "Open / close the hub"),
             new("main", "Open DevPilot"),
             new("keepawake", "Turn keep-awake on / off"),
+            new("typer", "Virtual Typer (type the clipboard)"),
             new("backup", "Back up the configuration now"),
         };
         foreach (var t in _config.Current.Tools.Where(t => !t.IsSeparator).OrderBy(t => t.Name))

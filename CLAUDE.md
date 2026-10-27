@@ -1,5 +1,13 @@
 # DevPilot — notes for Claude
 
+Reguli generale (v1.1; textul complet: repo `dev-framework`, GLOBAL_RULES.md):
+- Răspunde în română, scurt; rezultatul primul; spune ce nu ai putut verifica.
+- Lucrează în etape mici: citește doar ce trebuie (caută, apoi deschide porțiunea), scrie doar funcțiile modificate, plan de 3–5 rânduri înainte de schimbări mari.
+- După fiecare etapă rulează testele proiectului și notează în CHANGELOG.md.
+- Parolele și cheile stau în keyring sau variabile de mediu; documentația vizibilă omite numele angajatorului, e-mailurile de firmă, ID-urile și numerele interne.
+- Aplicații Windows: Python cu `pythonw`, tray, fără `.exe`; respectă DevPilot (`DEVPILOT_MANAGED`, `DEVPILOT_SUPPRESS`).
+- Git: GitHub e sursa de adevăr; un singur laptop o dată; commit și push înainte de schimbarea laptopului; lasă Drive să termine sincronizarea.
+
 Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other tools from one tray icon.
 
 ## Commands
@@ -10,10 +18,10 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 
 ## Map
 - `DevPilot.Models` — config and tool models
-- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub (logo sources, icon sizes), Folders, Launch, Cloud (autostart waits for OneDrive/Google Drive via `ICloudProbe`), Logging, Presets, KeepAwake, Startup
+- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub (logo sources, icon sizes), Folders, Launch, Cloud (autostart waits for OneDrive/Google Drive via `ICloudProbe`), Logging, Presets, Detection (project folder scan), Help (editor texts), KeepAwake, Startup, Typer
 - `DevPilot.Infrastructure` — Windows services: config store, launcher, process monitor, keep-awake, startup manager, hotkeys
 - `DevPilot.UI` — WPF: tray hub, flyouts, main window pages (Views / ViewModels / Themes)
-- `docs/INSTALL.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware)
+- `docs/INSTALL.md`, `docs/TYPER.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware)
 - Config: `%APPDATA%\DevPilot\config.json` (restored logos in `logos\`, backups default to `Documents\DevPilot Backups`, logic in `Core/Backup`); log: `%LOCALAPPDATA%\DevPilot\logs\devpilot.log`; hub logo cache: `%LOCALAPPDATA%\DevPilot\logo-cache` (disposable)
 
 ## Rules

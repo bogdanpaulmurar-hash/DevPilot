@@ -103,6 +103,8 @@ public partial class App : Application
         _ = Task.Run(() => GetService<IToolLog>().Prune(config.Current.Tools));
 
         SetupHotkeys();
+        GetService<DevPilot.UI.Typer.ClipboardWatcher>().SetEnabled(config.Current.Typer.KeepClipboardHistory);
+        GetService<DevPilot.Core.Typer.ClipboardImageStore>().Cleanup();
         SetupStartupGuard();
         config.Changed += OnConfigChanged;
 
@@ -166,6 +168,13 @@ public partial class App : Application
         s.AddSingleton<IStartupManager, StartupManager>();
         s.AddSingleton<BackupService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
+        s.AddSingleton<IKeyboardSender, KeyboardSender>();
+        s.AddSingleton<IForegroundProbe, ForegroundProbe>();
+        s.AddSingleton<DevPilot.Core.Typer.ClipboardHistory>();
+        s.AddSingleton<DevPilot.UI.Typer.ClipboardWatcher>();
+        s.AddSingleton(_ => new DevPilot.Core.Typer.ClipboardImageStore(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DevPilot", "clipboard-images")));
+        s.AddSingleton<DevPilot.UI.Typer.TyperHudController>();
         s.AddSingleton<ThemeService>();
         s.AddSingleton<FlyoutBuilder>();
         s.AddSingleton<TrayManager>();
@@ -233,6 +242,7 @@ public partial class App : Application
                 config.Touch(ConfigArea.KeepAwake);
                 Notifier.Info("Keep-awake", config.Current.KeepAwake.Enabled ? "On" : "Off");
                 break;
+            case "typer": GetService<DevPilot.UI.Typer.TyperHudController>().Toggle(); break;
             case "backup": await BackupNowAsync(); break;
             case "tool" when parts.Length >= 2:
                 if (config.Current.Tools.FirstOrDefault(t => t.Id == parts[1]) is { } tool)
@@ -358,6 +368,7 @@ public partial class App : Application
             _guardTimer?.Stop();
             _services?.GetService<IHotkeyManager>()?.Dispose();
             _hotkeyWindow?.Dispose();
+            _services?.GetService<DevPilot.UI.Typer.ClipboardWatcher>()?.Dispose();
             _services?.GetService<TrayManager>()?.Dispose();
             _services?.GetService<IKeepAwakeService>()?.Dispose();
             _services?.GetService<IProcessMonitor>()?.Dispose();

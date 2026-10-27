@@ -4,6 +4,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using DevPilot.Core.Config;
+using DevPilot.Core.Detection;
+using DevPilot.Core.Help;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Presets;
 using DevPilot.Models;
@@ -72,6 +74,7 @@ public sealed class ToolsViewModel : ObservableObject, IPage
     public ICommand AddToolCommand { get; }
     public ICommand AddFolderCommand { get; }
     public ICommand AddLinkCommand { get; }
+    public ICommand AddProjectCommand { get; }
     public ICommand AddPresetCommand { get; }
     public ICommand AddGroupCommand { get; }
     public ICommand AddSeparatorCommand { get; }
@@ -88,6 +91,7 @@ public sealed class ToolsViewModel : ObservableObject, IPage
 
         AddToolCommand = new RelayCommand(() => AddTool(new ToolEntry { Name = "New tool", Kind = ToolKind.Executable }));
         AddFolderCommand = new RelayCommand(AddFolder);
+        AddProjectCommand = new RelayCommand(AddProject);
         AddLinkCommand = new RelayCommand(() => AddTool(new ToolEntry { Name = "New link", Kind = ToolKind.Url, Path = "https://" }));
         AddPresetCommand = new RelayCommand(p => { if (p is ToolPreset preset) AddPreset(preset); });
         AddGroupCommand = new RelayCommand(AddGroup);
@@ -193,6 +197,19 @@ public sealed class ToolsViewModel : ObservableObject, IPage
             Path = dlg.FolderName,
             Folder = new FolderOptions { ExpandInHub = true },
         });
+    }
+
+    /// <summary>Adds a tool from a project folder (a cloned repository): DevPilot finds how to start it.</summary>
+    private async void AddProject()
+    {
+        var dlg = new OpenFolderDialog { Title = "Choose the project folder (a cloned repository): DevPilot works out how to start it" };
+        if (dlg.ShowDialog() != true) return;
+        var folder = dlg.FolderName;
+        ProjectDetection found;
+        try { found = await Task.Run(() => ProjectScanner.Scan(folder)); }
+        catch (Exception ex) { Notifier.Error("Add from a project folder", ex.Message); return; }
+        AddTool(found.ToTool());
+        Notifier.Info(found.Name, string.Join(" ", found.NoteList) + " Check the fields, then start it.");
     }
 
     private void AddPreset(ToolPreset preset)
@@ -556,6 +573,8 @@ public sealed class ToolEditorVM : ObservableObject
     }
 
     public bool IsPython => Model.Kind == ToolKind.Python;
+    public IReadOnlyList<HelpTopic> KindHelp => ToolHelp.ForKind(Model.Kind);
+    public IReadOnlyList<HelpTopic> CommonHelp => ToolHelp.Common;
     public bool IsFolder => Model.IsFolderLike;
     public bool IsProcess => Model.IsProcessLike;
     public bool IsConsoleKind => Model.Kind is ToolKind.Python or ToolKind.PowerShell or ToolKind.Batch or ToolKind.ShellCommand or ToolKind.Executable;

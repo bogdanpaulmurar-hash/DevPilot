@@ -1,0 +1,74 @@
+<Window x:Class="DevPilot.UI.Typer.TyperHudWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Virtual Typer"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize" ShowActivated="False"
+        SizeToContent="Height" Width="340"
+        FontFamily="{StaticResource UiFont}" FontSize="13" Foreground="{DynamicResource TextBrush}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <Border Margin="8" CornerRadius="10" Background="{DynamicResource WindowBgBrush}"
+            BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" Padding="12">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Color="Black"/>
+        </Border.Effect>
+        <StackPanel>
+            <!-- Title bar: drag to move -->
+            <Grid x:Name="TitleBar" Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="OnTitleMouseDown">
+                <TextBlock Text="Virtual Typer" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Button x:Name="CloseButton" Content="&#xE711;" HorizontalAlignment="Right" Width="26" Height="26"
+                        Style="{StaticResource IconButton}" ToolTip="Close" Click="OnClose"/>
+            </Grid>
+
+            <StackPanel x:Name="HistorySection" Margin="0,10,0,0" Visibility="Collapsed">
+                <Grid>
+                    <TextBlock Text="CLIPBOARD HISTORY" Style="{StaticResource Overline}" VerticalAlignment="Center"/>
+                    <Button x:Name="ClearHistoryButton" Content="Clear" HorizontalAlignment="Right" Height="22" Padding="8,0" MinHeight="0"
+                            FontSize="11" Style="{StaticResource GhostButton}" ToolTip="Forget the collected texts" Click="OnClearHistory"/>
+                </Grid>
+                <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+                    <StackPanel x:Name="HistoryPanel"/>
+                </ScrollViewer>
+            </StackPanel>
+
+            <Border Margin="0,10,0,0" Padding="8" CornerRadius="6" Background="{DynamicResource InputBgBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <TextBlock x:Name="PreviewText" TextWrapping="Wrap" MaxHeight="110" FontFamily="{StaticResource MonoFont}"
+                           FontSize="12" TextTrimming="CharacterEllipsis"/>
+            </Border>
+            <TextBlock x:Name="InfoText" Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Delay" VerticalAlignment="Center" Width="62"/>
+                <Slider x:Name="DelaySlider" Grid.Column="1" Minimum="0" Maximum="200" SmallChange="1" LargeChange="10"
+                        IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="OnSettingChanged"/>
+                <TextBlock x:Name="DelayLabel" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid Margin="0,6,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Countdown" VerticalAlignment="Center" Width="62"/>
+                <Slider x:Name="CountdownSlider" Grid.Column="1" Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
+                        IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="OnSettingChanged"/>
+                <TextBlock x:Name="CountdownLabel" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <CheckBox x:Name="ShiftEnterBox" Style="{StaticResource Switch}" Margin="0,8,0,0"
+                      Content="Line break = Shift+Enter (chat inputs)" Click="OnLineBreakChanged"/>
+            <CheckBox x:Name="HistoryBox" Style="{StaticResource Switch}" Margin="0,6,0,0"
+                      Content="Keep clipboard history (last 10, memory only)" Click="OnHistoryToggled"/>
+
+            <ProgressBar x:Name="Bar" Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1" Value="0"/>
+            <TextBlock x:Name="StatusText" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Button x:Name="StartButton" Content="Start typing" Style="{StaticResource AccentButton}" Click="OnStart"/>
+                <Button x:Name="StopButton" Grid.Column="1" Content="Stop (Esc)" Margin="8,0,0,0" Padding="12,0"
+                        Style="{StaticResource DangerButton}" Click="OnStop" Visibility="Collapsed"/>
+                <Button x:Name="ReloadButton" Grid.Column="2" Content="&#xE72C;" Width="30" Height="30" Margin="8,0,0,0"
+                        Style="{StaticResource IconButton}" ToolTip="Read the clipboard again" Click="OnReload"/>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

@@ -25,6 +25,7 @@ public class AppSettings
     public WindowSettings Window { get; set; } = new();
     public BackupSettings Backup { get; set; } = new();
     public ToolLogSettings ToolLog { get; set; } = new();
+    public TyperSettings Typer { get; set; } = new();
 }
 
 /// <summary>Per-tool log files in %LOCALAPPDATA%\DevPilot\logs\tools.</summary>
@@ -50,6 +51,25 @@ public class BackupSettings
     /// <summary>On restore, rewrite paths under the old user folder (C:\Users\old\…) to this PC's user folder.</summary>
     public bool AdaptUserFolder { get; set; } = true;
     public DateTime? LastBackup { get; set; }
+}
+
+/// <summary>Virtual Typer: types the clipboard text into the focused window, key by key.</summary>
+public class TyperSettings
+{
+    /// <summary>Pause between keystrokes in milliseconds (0 = as fast as the target accepts).</summary>
+    public int DelayMs { get; set; } = 10;
+    /// <summary>Seconds between pressing Start and the first keystroke, to focus the target field.</summary>
+    public int CountdownSeconds { get; set; } = 3;
+    public bool StopOnWindowChange { get; set; } = true;
+    /// <summary>Type line breaks as Shift+Enter: in chat inputs plain Enter would send the message.</summary>
+    public bool LineBreakAsShiftEnter { get; set; } = true;
+    /// <summary>Keep the last 10 clipboard texts in memory (never on disk) so the HUD can pick one.</summary>
+    public bool KeepClipboardHistory { get; set; } = true;
+    /// <summary>Texts longer than this ask for a second click on Start. 0 = never ask.</summary>
+    public int ConfirmAboveChars { get; set; } = 2000;
+    /// <summary>Last HUD position (device-independent pixels); null = default corner.</summary>
+    public double? HudLeft { get; set; }
+    public double? HudTop { get; set; }
 }
 
 public class KeepAwakeSettings
