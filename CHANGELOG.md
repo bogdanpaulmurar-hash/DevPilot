@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.0
+- Tools & groups > Add > *From a project folder…*: pick a cloned repository and DevPilot works out how to start it. It recognises a `devpilot.tool.json`, a Python package (`python -m`, also under `src`) or script (using the project's `.venv` when present), a C# program (the built `.exe`, else `dotnet run`), a Node app (`npm start`), a launcher script (`start`/`run` `.cmd`/`.bat`/`.ps1`) or a single `.exe`; a known tool (ScreenPilot…) also gets its preset. Anything else is added as a folder. The scan only reads names, 3 levels deep, skips `.git`, `node_modules`, `bin`-like and virtual-environment folders and stops after 1500 entries, so large solutions stay fast. Logic in `DevPilot.Core/Detection/ProjectScanner.cs`.
+- Tests: new `ProjectScannerTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.
+
 ## 2.8.0
 - Tools & groups: the tool editor explains its fields. Under "What it starts", *How to fill in these fields* lists, for the chosen type (program, Python, PowerShell, batch, command line, folder, link, SSH, WSL…), what each field does with copy-ready examples; *What the other settings mean* covers tokens, hover options, process recognition, health URL, autostart, environment and tray. The text lives in `DevPilot.Core/Help/ToolHelp.cs`.
 - Tests: new `ToolHelpTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.

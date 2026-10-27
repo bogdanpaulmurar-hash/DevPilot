@@ -18,7 +18,7 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 
 ## Map
 - `DevPilot.Models` — config and tool models
-- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, KeepAwake, Startup, Typer
+- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, Detection (project folder scan), Help (editor texts), KeepAwake, Startup, Typer
 - `DevPilot.Infrastructure` — Windows services: config store, launcher, process monitor, keep-awake, startup manager, hotkeys
 - `DevPilot.UI` — WPF: tray hub, flyouts, main window pages (Views / ViewModels / Themes)
 - `docs/INSTALL.md`, `docs/TYPER.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware)
