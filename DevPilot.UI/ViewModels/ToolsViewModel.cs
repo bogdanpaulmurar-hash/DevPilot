@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using DevPilot.Core.Config;
+using DevPilot.Core.Help;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Presets;
 using DevPilot.Models;
@@ -527,6 +528,8 @@ public sealed class ToolEditorVM : ObservableObject
     }
 
     public bool IsPython => Model.Kind == ToolKind.Python;
+    public IReadOnlyList<HelpTopic> KindHelp => ToolHelp.ForKind(Model.Kind);
+    public IReadOnlyList<HelpTopic> CommonHelp => ToolHelp.Common;
     public bool IsFolder => Model.IsFolderLike;
     public bool IsProcess => Model.IsProcessLike;
     public bool IsConsoleKind => Model.Kind is ToolKind.Python or ToolKind.PowerShell or ToolKind.Batch or ToolKind.ShellCommand or ToolKind.Executable;

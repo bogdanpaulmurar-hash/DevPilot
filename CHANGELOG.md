@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.0
+- Tools & groups: the tool editor explains its fields. Under "What it starts", *How to fill in these fields* lists, for the chosen type (program, Python, PowerShell, batch, command line, folder, link, SSH, WSL…), what each field does with copy-ready examples; *What the other settings mean* covers tokens, hover options, process recognition, health URL, autostart, environment and tray. The text lives in `DevPilot.Core/Help/ToolHelp.cs`.
+- Tests: new `ToolHelpTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.
+
 ## Unreleased
 - `scripts/install.ps1` now builds from a local copy in `%TEMP%`, like `install.cmd`, so a repository inside Google Drive / OneDrive no longer fails with "Access to apphost.exe is denied".
 
