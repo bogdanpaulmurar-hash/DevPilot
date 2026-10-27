@@ -49,6 +49,8 @@ public class TyperSettings
     public bool StopOnWindowChange { get; set; } = true;
     /// <summary>Type line breaks as Shift+Enter: in chat inputs plain Enter would send the message.</summary>
     public bool LineBreakAsShiftEnter { get; set; } = true;
+    /// <summary>Keep the last 10 clipboard texts in memory (never on disk) so the HUD can pick one.</summary>
+    public bool KeepClipboardHistory { get; set; } = true;
     /// <summary>Texts longer than this ask for a second click on Start. 0 = never ask.</summary>
     public int ConfirmAboveChars { get; set; } = 2000;
     /// <summary>Last HUD position (device-independent pixels); null = default corner.</summary>

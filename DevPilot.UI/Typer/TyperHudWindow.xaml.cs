@@ -1,7 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Typer;
 using DevPilot.Models;
@@ -28,23 +30,31 @@ public partial class TyperHudWindow : Window
     private readonly IConfigStore _config;
     private readonly IKeyboardSender _sender;
     private readonly IForegroundProbe _probe;
+    private readonly ClipboardHistory _history;
+    private readonly ClipboardWatcher _watcher;
     private HwndSource? _source;
+    private List<ClipboardEntry> _entries = [];
+    private ClipboardEntry? _selected;
     private TypingPlan _plan = TypingPlan.Create(null);
     private TyperSession? _session;
     private bool _confirmed;
     private bool _loading = true;
 
-    public TyperHudWindow(IConfigStore config, IKeyboardSender sender, IForegroundProbe probe)
+    public TyperHudWindow(IConfigStore config, IKeyboardSender sender, IForegroundProbe probe,
+        ClipboardHistory history, ClipboardWatcher watcher)
     {
         InitializeComponent();
         _config = config;
         _sender = sender;
         _probe = probe;
+        _history = history;
+        _watcher = watcher;
 
         var s = config.Current.Typer;
         DelaySlider.Value = Math.Clamp(s.DelayMs, 0, (int)DelaySlider.Maximum);
         CountdownSlider.Value = Math.Clamp(s.CountdownSeconds, 0, (int)CountdownSlider.Maximum);
         ShiftEnterBox.IsChecked = s.LineBreakAsShiftEnter;
+        HistoryBox.IsChecked = s.KeepClipboardHistory;
         UpdateLabels();
         _loading = false;
         PlaceWindow();
@@ -103,8 +113,22 @@ public partial class TyperHudWindow : Window
         try { if (Clipboard.ContainsText()) text = Clipboard.GetText(); }
         catch (COMException) { /* clipboard locked by another app; shown as empty, user can retry with ↻ */ }
 
+        // The collected history plus the current clipboard, which may be missing from it (history off, excluded text).
+        _entries = _history.Items.ToList();
+        var current = _entries.FirstOrDefault(e => e.Text == text);
+        if (current is null && !string.IsNullOrWhiteSpace(text))
+        {
+            current = new ClipboardEntry(text, DateTime.Now, false);
+            _entries.Insert(0, current);
+        }
+        Select(current ?? _entries.FirstOrDefault());
+    }
+
+    private void Select(ClipboardEntry? entry)
+    {
+        _selected = entry;
         _confirmed = false;
-        _plan = TypingPlan.Create(text, TypingOptions.From(_config.Current.Typer).MaxChars);
+        _plan = TypingPlan.Create(entry?.Text, TypingOptions.From(_config.Current.Typer).MaxChars);
         PreviewText.Text = _plan.IsEmpty ? "(no text in the clipboard)" : _plan.Preview();
         InfoText.Text = _plan.IsEmpty ? string.Empty
             : $"{_plan.Count:N0} keystrokes" + (_plan.Truncated ? " (cut at the safety limit)" : string.Empty);
@@ -112,6 +136,61 @@ public partial class TyperHudWindow : Window
         Bar.Value = 0;
         StartButton.IsEnabled = !_plan.IsEmpty;
         StartButton.Content = "Start typing";
+        BuildHistoryList();
+    }
+
+    private void BuildHistoryList()
+    {
+        HistorySection.Visibility = _entries.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        HistoryPanel.Children.Clear();
+        foreach (var entry in _entries)
+        {
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(new TextBlock { Text = entry.Summary(), TextTrimming = TextTrimming.CharacterEllipsis });
+            var length = new TextBlock { Text = entry.Length.ToString("N0"), Margin = new Thickness(10, 0, 0, 0), Opacity = 0.6 };
+            Grid.SetColumn(length, 1);
+            row.Children.Add(length);
+
+            var selected = ReferenceEquals(entry, _selected);
+            var button = new Button
+            {
+                Content = row,
+                Tag = entry,
+                Height = 26,
+                MinHeight = 0,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Style = (Style)FindResource("GhostButton"),
+                FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = (Brush)FindResource(selected ? "TextBrush" : "TextSecondaryBrush"),
+            };
+            if (selected) button.Background = (Brush)FindResource("HoverBrush");
+            button.Click += OnPickEntry;
+            HistoryPanel.Children.Add(button);
+        }
+    }
+
+    private void OnPickEntry(object sender, RoutedEventArgs e)
+    {
+        if (!IsRunning && sender is Button { Tag: ClipboardEntry entry }) Select(entry);
+    }
+
+    private void OnClearHistory(object sender, RoutedEventArgs e)
+    {
+        if (IsRunning) return;
+        _history.Clear();
+        LoadClipboard();
+    }
+
+    private void OnHistoryToggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var on = HistoryBox.IsChecked == true;
+        _config.Current.Typer.KeepClipboardHistory = on;
+        _config.Touch(ConfigArea.Window);
+        _watcher.SetEnabled(on);
+        if (!IsRunning) LoadClipboard();
     }
 
     private async void OnStart(object sender, RoutedEventArgs e)
@@ -195,7 +274,7 @@ public partial class TyperHudWindow : Window
         StartButton.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
         StopButton.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         ReloadButton.IsEnabled = !running;
-        DelaySlider.IsEnabled = CountdownSlider.IsEnabled = ShiftEnterBox.IsEnabled = !running;
+        DelaySlider.IsEnabled = CountdownSlider.IsEnabled = ShiftEnterBox.IsEnabled = HistoryBox.IsEnabled = HistorySection.IsEnabled = !running;
         if (!running)
         {
             _confirmed = false;

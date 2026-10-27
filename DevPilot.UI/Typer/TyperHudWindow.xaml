@@ -20,6 +20,17 @@
                         Style="{StaticResource IconButton}" ToolTip="Close" Click="OnClose"/>
             </Grid>
 
+            <StackPanel x:Name="HistorySection" Margin="0,10,0,0" Visibility="Collapsed">
+                <Grid>
+                    <TextBlock Text="CLIPBOARD HISTORY" Style="{StaticResource Overline}" VerticalAlignment="Center"/>
+                    <Button x:Name="ClearHistoryButton" Content="Clear" HorizontalAlignment="Right" Height="22" Padding="8,0" MinHeight="0"
+                            FontSize="11" Style="{StaticResource GhostButton}" ToolTip="Forget the collected texts" Click="OnClearHistory"/>
+                </Grid>
+                <ScrollViewer MaxHeight="124" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+                    <StackPanel x:Name="HistoryPanel"/>
+                </ScrollViewer>
+            </StackPanel>
+
             <Border Margin="0,10,0,0" Padding="8" CornerRadius="6" Background="{DynamicResource InputBgBrush}"
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                 <TextBlock x:Name="PreviewText" TextWrapping="Wrap" MaxHeight="110" FontFamily="{StaticResource MonoFont}"
@@ -44,6 +55,8 @@
 
             <CheckBox x:Name="ShiftEnterBox" Style="{StaticResource Switch}" Margin="0,8,0,0"
                       Content="Line break = Shift+Enter (chat inputs)" Click="OnLineBreakChanged"/>
+            <CheckBox x:Name="HistoryBox" Style="{StaticResource Switch}" Margin="0,6,0,0"
+                      Content="Keep clipboard history (last 10, memory only)" Click="OnHistoryToggled"/>
 
             <ProgressBar x:Name="Bar" Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1" Value="0"/>
             <TextBlock x:Name="StatusText" Margin="0,6,0,0" TextWrapping="Wrap"/>
