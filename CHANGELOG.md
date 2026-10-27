@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.7.0
+- Virtual Typer: images from the clipboard. The HUD saves the image as a PNG (kept 24 h, max 20 files) and types its path, so a chat that cannot paste images can still reference it. See `docs/TYPER.md`.
+
 ## 2.6.0
 - Virtual Typer: clipboard history. The last 10 copied texts are kept in memory only (excluded password-manager copies are skipped) and can be picked in the HUD; switch and Clear button in the HUD. See `docs/TYPER.md`.
 

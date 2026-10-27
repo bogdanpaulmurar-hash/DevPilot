@@ -1,9 +1,12 @@
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Typer;
 using DevPilot.Models;
@@ -32,6 +35,9 @@ public partial class TyperHudWindow : Window
     private readonly IForegroundProbe _probe;
     private readonly ClipboardHistory _history;
     private readonly ClipboardWatcher _watcher;
+    private readonly ClipboardImageStore _images;
+    private string? _imageHash;
+    private string? _imagePath;
     private HwndSource? _source;
     private List<ClipboardEntry> _entries = [];
     private ClipboardEntry? _selected;
@@ -41,7 +47,7 @@ public partial class TyperHudWindow : Window
     private bool _loading = true;
 
     public TyperHudWindow(IConfigStore config, IKeyboardSender sender, IForegroundProbe probe,
-        ClipboardHistory history, ClipboardWatcher watcher)
+        ClipboardHistory history, ClipboardWatcher watcher, ClipboardImageStore images)
     {
         InitializeComponent();
         _config = config;
@@ -49,6 +55,7 @@ public partial class TyperHudWindow : Window
         _probe = probe;
         _history = history;
         _watcher = watcher;
+        _images = images;
 
         var s = config.Current.Typer;
         DelaySlider.Value = Math.Clamp(s.DelayMs, 0, (int)DelaySlider.Maximum);
@@ -116,12 +123,45 @@ public partial class TyperHudWindow : Window
         // The collected history plus the current clipboard, which may be missing from it (history off, excluded text).
         _entries = _history.Items.ToList();
         var current = _entries.FirstOrDefault(e => e.Text == text);
-        if (current is null && !string.IsNullOrWhiteSpace(text))
+        if (string.IsNullOrWhiteSpace(text) && ReadImageEntry() is { } image)
+        {
+            current = image;
+            _entries.Insert(0, image);
+        }
+        else if (current is null && !string.IsNullOrWhiteSpace(text))
         {
             current = new ClipboardEntry(text, DateTime.Now, false);
             _entries.Insert(0, current);
         }
         Select(current ?? _entries.FirstOrDefault());
+    }
+
+    /// <summary>
+    /// A clipboard image is saved as a PNG (only now, when the HUD asks) and its path becomes the text to type,
+    /// so the chat can reference the file. The same image is not saved twice.
+    /// </summary>
+    private ClipboardEntry? ReadImageEntry()
+    {
+        try
+        {
+            if (!Clipboard.ContainsImage() || Clipboard.GetImage() is not { } bitmap) return null;
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = new MemoryStream();
+            encoder.Save(stream);
+            var bytes = stream.ToArray();
+            var hash = Convert.ToHexString(SHA1.HashData(bytes));
+            if (hash != _imageHash || _imagePath is null || !File.Exists(_imagePath))
+            {
+                _imagePath = _images.Save(bytes);
+                _imageHash = hash;
+            }
+            return new ClipboardEntry(_imagePath, DateTime.Now, false, $"Image {bitmap.PixelWidth}×{bitmap.PixelHeight} (PNG path)");
+        }
+        catch (Exception ex) when (ex is ExternalException or IOException or UnauthorizedAccessException)
+        {
+            return null; // clipboard locked or folder not writable; the HUD shows an empty clipboard
+        }
     }
 
     private void Select(ClipboardEntry? entry)
@@ -131,7 +171,8 @@ public partial class TyperHudWindow : Window
         _plan = TypingPlan.Create(entry?.Text, TypingOptions.From(_config.Current.Typer).MaxChars);
         PreviewText.Text = _plan.IsEmpty ? "(no text in the clipboard)" : _plan.Preview();
         InfoText.Text = _plan.IsEmpty ? string.Empty
-            : $"{_plan.Count:N0} keystrokes" + (_plan.Truncated ? " (cut at the safety limit)" : string.Empty);
+            : $"{_plan.Count:N0} keystrokes" + (_plan.Truncated ? " (cut at the safety limit)" : string.Empty)
+              + (entry?.Label is not null ? ". The image is saved as a PNG; the path is typed so the chat can reference it." : string.Empty);
         StatusText.Text = string.Empty;
         Bar.Value = 0;
         StartButton.IsEnabled = !_plan.IsEmpty;
@@ -149,7 +190,7 @@ public partial class TyperHudWindow : Window
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.Children.Add(new TextBlock { Text = entry.Summary(), TextTrimming = TextTrimming.CharacterEllipsis });
-            var length = new TextBlock { Text = entry.Length.ToString("N0"), Margin = new Thickness(10, 0, 0, 0), Opacity = 0.6 };
+            var length = new TextBlock { Text = entry.Label is null ? entry.Length.ToString("N0") : string.Empty, Margin = new Thickness(10, 0, 0, 0), Opacity = 0.6 };
             Grid.SetColumn(length, 1);
             row.Children.Add(length);
 
