@@ -15,6 +15,7 @@ public sealed class KeyboardSender : IKeyboardSender
     private const uint KEYEVENTF_UNICODE = 0x0004;
     private const ushort VK_RETURN = 0x0D;
     private const ushort VK_TAB = 0x09;
+    private const ushort VK_SHIFT = 0x10;
     private const uint MAPVK_VK_TO_VSC = 0;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -44,6 +45,7 @@ public sealed class KeyboardSender : IKeyboardSender
 
     public bool Send(TypingStep step)
     {
+        if (step.Kind == TypingStepKind.ShiftEnter) return SendShiftEnter();
         var inputs = new INPUT[2];
         switch (step.Kind)
         {
@@ -58,6 +60,25 @@ public sealed class KeyboardSender : IKeyboardSender
                 break;
         }
         return SendInput(2, inputs, InputSize) == 2;
+    }
+
+    /// <summary>Shift down, Enter down/up, Shift up in one call, so nothing can slip between them.</summary>
+    private static bool SendShiftEnter()
+    {
+        var enterScan = (ushort)MapVirtualKey(VK_RETURN, MAPVK_VK_TO_VSC);
+        var shiftScan = (ushort)MapVirtualKey(VK_SHIFT, MAPVK_VK_TO_VSC);
+        var inputs = new INPUT[4];
+        Set(ref inputs[0], VK_SHIFT, shiftScan, 0);
+        Set(ref inputs[1], VK_RETURN, enterScan, 0);
+        Set(ref inputs[2], VK_RETURN, enterScan, KEYEVENTF_KEYUP);
+        Set(ref inputs[3], VK_SHIFT, shiftScan, KEYEVENTF_KEYUP);
+        return SendInput(4, inputs, InputSize) == 4;
+    }
+
+    private static void Set(ref INPUT input, ushort vk, ushort scan, uint flags)
+    {
+        input.type = INPUT_KEYBOARD;
+        input.U.ki = new KEYBDINPUT { wVk = vk, wScan = scan, dwFlags = flags };
     }
 
     private static void Fill(INPUT[] inputs, ushort vk, ushort scan, uint flags)

@@ -93,6 +93,8 @@ public class TyperTests
         Assert.Equal(TypingOptions.MaxCountdownSeconds, o.CountdownSeconds);
         Assert.Equal(10, o.ConfirmAboveChars);
         Assert.False(o.StopOnWindowChange);
+        Assert.True(new TypingOptions { LineBreakAsShiftEnter = true }.Clamped().LineBreakAsShiftEnter);
+        Assert.True(TypingOptions.From(new TyperSettings()).LineBreakAsShiftEnter);
     }
 
     [Fact]
@@ -105,6 +107,17 @@ public class TyperTests
         Assert.Equal(TyperState.Done, session.State);
         Assert.Equal(plan.Count, sender.Sent.Count);
         Assert.Equal(plan.Steps(), sender.Sent);
+    }
+
+    [Fact]
+    public async Task Line_breaks_become_shift_enter_when_requested()
+    {
+        var sender = new FakeSender();
+        var session = new TyperSession(sender, new FakeProbe(), NoDelay);
+        var o = Fast();
+        o.LineBreakAsShiftEnter = true;
+        await session.RunAsync(TypingPlan.Create("a\r\nb"), o);
+        Assert.Equal([TypingStepKind.Char, TypingStepKind.ShiftEnter, TypingStepKind.Char], sender.Sent.Select(s => s.Kind));
     }
 
     [Fact]
