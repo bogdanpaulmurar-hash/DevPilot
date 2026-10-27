@@ -21,6 +21,7 @@ public class AppSettings
     public List<HotkeyConfig> Hotkeys { get; set; } = [];
     public WindowSettings Window { get; set; } = new();
     public BackupSettings Backup { get; set; } = new();
+    public TyperSettings Typer { get; set; } = new();
 }
 
 /// <summary>Backups of the whole configuration (with chosen logos) to a folder the user picks.</summary>
@@ -36,6 +37,21 @@ public class BackupSettings
     /// <summary>On restore, rewrite paths under the old user folder (C:\Users\old\…) to this PC's user folder.</summary>
     public bool AdaptUserFolder { get; set; } = true;
     public DateTime? LastBackup { get; set; }
+}
+
+/// <summary>Virtual Typer: types the clipboard text into the focused window, key by key.</summary>
+public class TyperSettings
+{
+    /// <summary>Pause between keystrokes in milliseconds (0 = as fast as the target accepts).</summary>
+    public int DelayMs { get; set; } = 10;
+    /// <summary>Seconds between pressing Start and the first keystroke, to focus the target field.</summary>
+    public int CountdownSeconds { get; set; } = 3;
+    public bool StopOnWindowChange { get; set; } = true;
+    /// <summary>Texts longer than this ask for a second click on Start. 0 = never ask.</summary>
+    public int ConfirmAboveChars { get; set; } = 2000;
+    /// <summary>Last HUD position (device-independent pixels); null = default corner.</summary>
+    public double? HudLeft { get; set; }
+    public double? HudTop { get; set; }
 }
 
 public class KeepAwakeSettings

@@ -1,3 +1,5 @@
+using DevPilot.Models;
+
 namespace DevPilot.Core.Typer;
 
 public sealed class TypingOptions
@@ -19,6 +21,14 @@ public sealed class TypingOptions
 
     public const int MaxDelayMs = 500;
     public const int MaxCountdownSeconds = 30;
+
+    public static TypingOptions From(TyperSettings s) => new TypingOptions
+    {
+        DelayMs = s.DelayMs,
+        CountdownSeconds = s.CountdownSeconds,
+        StopOnWindowChange = s.StopOnWindowChange,
+        ConfirmAboveChars = s.ConfirmAboveChars,
+    }.Clamped();
 
     public TypingOptions Clamped() => new()
     {

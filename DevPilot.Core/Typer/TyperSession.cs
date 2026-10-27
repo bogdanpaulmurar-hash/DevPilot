@@ -9,7 +9,7 @@ public enum TyperStopReason { None, User, WindowChanged, SendFailed }
 public sealed record TyperProgress(TyperState State, int Sent, int Total, int SecondsLeft, TyperStopReason Reason);
 
 /// <summary>
-/// One typing run: countdown, then keystrokes one by one. Runs on the caller's context and never blocks it;
+/// One typing run: countdown, then keystrokes one by one. Runs asynchronously and never blocks the caller (events may arrive on a worker thread);
 /// <see cref="Stop"/> takes effect before the next keystroke.
 /// </summary>
 public sealed class TyperSession

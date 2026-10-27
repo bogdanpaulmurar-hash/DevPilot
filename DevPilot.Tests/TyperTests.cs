@@ -1,5 +1,6 @@
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Typer;
+using DevPilot.Models;
 using Xunit;
 
 namespace DevPilot.Tests;
@@ -82,6 +83,16 @@ public class TyperTests
         Assert.Equal(TypingOptions.MaxDelayMs, o.DelayMs);
         Assert.Equal(0, o.CountdownSeconds);
         Assert.Equal(1, o.MaxChars);
+    }
+
+    [Fact]
+    public void Options_come_from_settings_and_are_clamped()
+    {
+        var o = TypingOptions.From(new TyperSettings { DelayMs = 25, CountdownSeconds = 99, ConfirmAboveChars = 10, StopOnWindowChange = false });
+        Assert.Equal(25, o.DelayMs);
+        Assert.Equal(TypingOptions.MaxCountdownSeconds, o.CountdownSeconds);
+        Assert.Equal(10, o.ConfirmAboveChars);
+        Assert.False(o.StopOnWindowChange);
     }
 
     [Fact]

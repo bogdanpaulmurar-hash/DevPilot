@@ -161,6 +161,9 @@ public partial class App : Application
         s.AddSingleton<IStartupManager, StartupManager>();
         s.AddSingleton<BackupService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
+        s.AddSingleton<IKeyboardSender, KeyboardSender>();
+        s.AddSingleton<IForegroundProbe, ForegroundProbe>();
+        s.AddSingleton<DevPilot.UI.Typer.TyperHudController>();
         s.AddSingleton<ThemeService>();
         s.AddSingleton<FlyoutBuilder>();
         s.AddSingleton<TrayManager>();
