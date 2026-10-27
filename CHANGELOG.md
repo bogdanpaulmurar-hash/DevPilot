@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.0
+- Virtual Typer: clipboard history. The last 10 copied texts are kept in memory only (excluded password-manager copies are skipped) and can be picked in the HUD; switch and Clear button in the HUD. See `docs/TYPER.md`.
+
 ## 2.5.1
 - Virtual Typer: line breaks are typed as Shift+Enter by default (HUD switch `Line break = Shift+Enter`), so multiline text no longer sends a chat message at the first line break.
 

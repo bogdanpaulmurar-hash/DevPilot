@@ -197,4 +197,55 @@ public class TyperTests
         Assert.Equal(TyperState.Done, session.State);
         Assert.Equal(100_000, sender.Sent.Count);
     }
+
+    [Fact]
+    public void History_keeps_newest_first_and_moves_repeats_to_the_top()
+    {
+        var h = new ClipboardHistory();
+        h.Add("one");
+        h.Add("two");
+        h.Add("one");
+        Assert.Equal(["one", "two"], h.Items.Select(e => e.Text));
+    }
+
+    [Fact]
+    public void History_is_limited_and_ignores_blank_text()
+    {
+        var h = new ClipboardHistory(capacity: 3);
+        for (var i = 0; i < 5; i++) h.Add("t" + i);
+        Assert.False(h.Add("   "));
+        Assert.False(h.Add(null));
+        Assert.Equal(["t4", "t3", "t2"], h.Items.Select(e => e.Text));
+    }
+
+    [Fact]
+    public void History_cuts_huge_text_without_splitting_a_surrogate_pair()
+    {
+        var h = new ClipboardHistory(maxChars: 3);
+        h.Add("ab😀");
+        var e = Assert.Single(h.Items);
+        Assert.True(e.Truncated);
+        Assert.Equal("ab", e.Text);
+    }
+
+    [Fact]
+    public void History_clear_raises_changed_once_and_empties()
+    {
+        var h = new ClipboardHistory();
+        h.Add("x");
+        var raised = 0;
+        h.Changed += () => raised++;
+        h.Clear();
+        h.Clear();
+        Assert.Empty(h.Items);
+        Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public void Entry_summary_is_one_short_line()
+    {
+        var e = new ClipboardEntry("\n  first   line\twith  gaps\nsecond", DateTime.Now, false);
+        Assert.Equal("first line with gaps", e.Summary());
+        Assert.Equal("abc…", new ClipboardEntry("abcdef", DateTime.Now, false).Summary(3));
+    }
 }

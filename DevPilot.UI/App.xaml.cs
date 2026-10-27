@@ -101,6 +101,7 @@ public partial class App : Application
         monitor.Start();
 
         SetupHotkeys();
+        GetService<DevPilot.UI.Typer.ClipboardWatcher>().SetEnabled(config.Current.Typer.KeepClipboardHistory);
         SetupStartupGuard();
         config.Changed += OnConfigChanged;
 
@@ -163,6 +164,8 @@ public partial class App : Application
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
         s.AddSingleton<IKeyboardSender, KeyboardSender>();
         s.AddSingleton<IForegroundProbe, ForegroundProbe>();
+        s.AddSingleton<DevPilot.Core.Typer.ClipboardHistory>();
+        s.AddSingleton<DevPilot.UI.Typer.ClipboardWatcher>();
         s.AddSingleton<DevPilot.UI.Typer.TyperHudController>();
         s.AddSingleton<ThemeService>();
         s.AddSingleton<FlyoutBuilder>();
@@ -337,6 +340,7 @@ public partial class App : Application
             _guardTimer?.Stop();
             _services?.GetService<IHotkeyManager>()?.Dispose();
             _hotkeyWindow?.Dispose();
+            _services?.GetService<DevPilot.UI.Typer.ClipboardWatcher>()?.Dispose();
             _services?.GetService<TrayManager>()?.Dispose();
             _services?.GetService<IKeepAwakeService>()?.Dispose();
             _services?.GetService<IProcessMonitor>()?.Dispose();

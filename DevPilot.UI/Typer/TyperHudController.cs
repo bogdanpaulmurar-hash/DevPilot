@@ -1,4 +1,5 @@
 using DevPilot.Core.Interfaces;
+using DevPilot.Core.Typer;
 
 namespace DevPilot.UI.Typer;
 
@@ -8,10 +9,15 @@ public sealed class TyperHudController
     private readonly IConfigStore _config;
     private readonly IKeyboardSender _sender;
     private readonly IForegroundProbe _probe;
+    private readonly ClipboardHistory _history;
+    private readonly ClipboardWatcher _watcher;
     private TyperHudWindow? _window;
 
-    public TyperHudController(IConfigStore config, IKeyboardSender sender, IForegroundProbe probe)
+    public TyperHudController(IConfigStore config, IKeyboardSender sender, IForegroundProbe probe,
+        ClipboardHistory history, ClipboardWatcher watcher)
     {
+        _history = history;
+        _watcher = watcher;
         _config = config;
         _sender = sender;
         _probe = probe;
@@ -20,7 +26,7 @@ public sealed class TyperHudController
     /// <summary>Shows the HUD with a fresh clipboard preview; a second call while it is idle hides it.</summary>
     public void Toggle()
     {
-        _window ??= new TyperHudWindow(_config, _sender, _probe);
+        _window ??= new TyperHudWindow(_config, _sender, _probe, _history, _watcher);
         if (_window.IsVisible && !_window.IsRunning) _window.Hide();
         else _window.Present();
     }
