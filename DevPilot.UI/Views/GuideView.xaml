@@ -23,6 +23,7 @@
                 <StackPanel>
                     <TextBlock Text="2. Add your tools" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Style="{StaticResource Step}" Text="Tools &amp; groups → Add. Pick one of your known tools (ScreenPilot, FocusPilot, NexusX, regTester, AutoPilot DC) and DevPilot fills in its options, process detection and autostart arguments. Anything else: a program, a script, a folder or a link."/>
+                    <TextBlock Style="{StaticResource Step}" Text="Not sure what to type in a field? Open &quot;How to fill in these fields&quot; in the tool editor: it explains each field for the chosen type, with examples you can copy."/>
                     <TextBlock Style="{StaticResource Step}" Text="Folders can show their content when you hover them (nested sub-folders, filters, limits)."/>
                     <TextBlock Style="{StaticResource Step}" Text="Choose per tool whether it stays only in the hub, gets a separate DevPilot icon, or keeps its own tray icon."/>
                 </StackPanel>

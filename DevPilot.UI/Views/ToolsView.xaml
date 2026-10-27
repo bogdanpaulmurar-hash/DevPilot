@@ -286,6 +286,38 @@
                             </WrapPanel>
                             <TextBlock Text="Tokens you can use in paths and arguments: {ToolDir}, {Home}, {Pictures}, {Documents}, {Desktop}, {AppData}, {LocalAppData} and %VARIABLES%."
                                        Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+                            <Expander Header="How to fill in these fields (with examples)" Margin="0,10,0,0" Foreground="{DynamicResource TextBrush}">
+                                <ItemsControl ItemsSource="{Binding KindHelp}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Text}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                                                <TextBox Text="{Binding ExamplesText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                                                         Background="Transparent" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                                         Margin="0,4,0,0" Padding="0"
+                                                         Visibility="{Binding HasExamples, Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Expander>
+                            <Expander Header="What the other settings mean (options, status, autostart, tokens)" Margin="0,10,0,0" Foreground="{DynamicResource TextBrush}">
+                                <ItemsControl ItemsSource="{Binding CommonHelp}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Text}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                                                <TextBox Text="{Binding ExamplesText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                                                         Background="Transparent" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                                         Margin="0,4,0,0" Padding="0"
+                                                         Visibility="{Binding HasExamples, Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Expander>
 
                             <!-- Known tool -->
                             <Border Margin="0,12,0,0" Padding="12,10" CornerRadius="6" Background="{DynamicResource Surface2Brush}"
