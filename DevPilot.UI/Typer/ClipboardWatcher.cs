@@ -19,6 +19,7 @@ public sealed class ClipboardWatcher : IDisposable
     private readonly ClipboardHistory _history;
     private HwndSource? _source;
     private bool _reading;
+    private bool _again;
 
     public ClipboardWatcher(ClipboardHistory history) => _history = history;
 
@@ -60,11 +61,23 @@ public sealed class ClipboardWatcher : IDisposable
 
     private void RequestRead()
     {
-        if (_reading) return;
+        // A change that arrives while a read is running asks for one more read, so no copy is lost.
+        if (_reading)
+        {
+            _again = true;
+            return;
+        }
         _reading = true;
         Application.Current?.Dispatcher.BeginInvoke(async () =>
         {
-            try { await ReadAsync(); }
+            try
+            {
+                do
+                {
+                    _again = false;
+                    await ReadAsync();
+                } while (_again);
+            }
             finally { _reading = false; }
         });
     }
