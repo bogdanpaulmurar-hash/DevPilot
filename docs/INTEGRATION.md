@@ -111,6 +111,118 @@ A tool can describe itself. Put `devpilot.tool.json` in the tool's folder (or it
 
 `icon` is the tool's logo for the hub (and for its separate tray icon): a `.png`, `.ico`, `.jpg`, `.bmp`, or an `.exe` / `.dll` to take the icon from. A relative path starts from the manifest's folder. A square PNG of 64 px or more (or an `.ico` with a 256 px frame) stays sharp at every display scale. The logo shows when the row's *Show in the hub* mode (or the hub-wide *Rows show* setting) includes the logo; otherwise the symbol stays.
 
+### Field reference
+
+The manifest only describes the tool. *What* DevPilot starts (an `.exe`, a script, a module) comes from the file you pick when you add the tool; the manifest fills in the rest. Field names are case-insensitive, unknown fields are ignored, and `//` comments and trailing commas are allowed.
+
+| Field | What it does | Possible values | If it is missing |
+|---|---|---|---|
+| `name` | Name shown in the hub and in the tray menu. | Any text. | The name you typed (or the file name) stays. |
+| `description` | Tooltip / second line in the hub. | Any text. | No description. |
+| `glyph` | Symbol used when no logo is shown. | Segoe Fluent / MDL2 code point (`E722`) or any character. | The tool keeps its current symbol. |
+| `icon` | Logo for the hub and the tool's own tray icon. | Path to `.png`, `.ico`, `.jpg`, `.bmp`, `.exe`, `.dll`; relative to the manifest's folder, or absolute. | Logo rules below (step 3, or the symbol). |
+| `pythonModule` | Python tools only: start with `pythonw -m <module>` instead of running the picked script. | Module name, e.g. `screenpilot`. | The picked `.py` / `.pyw` file is run. |
+| `arguments` | Arguments for every normal start. | Command-line text; `{tokens}` and `%VARIABLES%` are expanded. | No arguments. |
+| `autoStartArguments` | Arguments used **instead of** `arguments` when DevPilot starts the tool with Windows. | e.g. `--minimized`. | `arguments` is used for autostart too. |
+| `noTrayArguments` | Added to the start command when DevPilot owns the tray (the tool sits in the hub). For tools that do not read `DEVPILOT_SUPPRESS`. | e.g. `--no-tray`. | Nothing is added; the tool should check `DEVPILOT_SUPPRESS` itself. |
+| `processMatch` | How DevPilot recognises the running tool (status dot, *Stop*, *Restart*). Several patterns separated by `;`. | `name.exe` = process name; a bare word = process name; anything else = text in the command line (case-insensitive). For Python tools only `python`/`pythonw`/`py` processes are checked, unless the pattern ends in `.exe`. | Derived from the target: the `.exe` name, the script name, or `-m <module>`. |
+| `healthUrl` | Address DevPilot checks to see whether the tool answers. It decides the status when the tool cannot be tracked as a process (e.g. a link or a service started elsewhere). | `http://127.0.0.1:<port>/…` | No web check. |
+| `actions` | The tool's options in the hub (its old tray menu). | List of actions, see below. | The tool keeps the actions it already has in DevPilot. |
+
+When the manifest is applied, `actions` **replace** the tool's current actions; every other field only fills a field that is still empty (the editor's **From devpilot.tool.json** can also overwrite them).
+
+Each entry in `actions`:
+
+| Field | What it does | Possible values | If it is missing |
+|---|---|---|---|
+| `label` | Text of the option. | Any text. | Empty label. |
+| `kind` | What the option runs (table under *Options in the hub*). | `Arguments`, `Command`, `Url`, `Folder`, `File`, `Separator`. | `Arguments`. |
+| `value` | Program (`Command`), address (`Url`), folder or file. Not used by `Arguments`. | Path or URL; `{tokens}` and `%VARIABLES%` are expanded. | Empty: `Url` / `Folder` / `File` / `Command` have nothing to open. |
+| `arguments` | Arguments for `Arguments` and `Command` (and for `File`, passed to the opening program). | Command-line text. | No arguments. |
+| `glyph` | Symbol next to the option. | Like the tool's `glyph`. | No symbol. |
+| `section` | Groups options with the same text under one heading in the flyout. | Any text, e.g. `Tasks`. | No heading. |
+| `featured` | Shows the option as a large button on the spotlight card. | `true` / `false`. | `false`. |
+| `bold` | Shows the option in bold. | `true` / `false`. | `false`. |
+| `id` | Stable id of the option. | Short text. | Generated automatically. |
+
+Tokens: `{ToolDir}`, `{Path}`, `{Name}`, `{Home}`, `{Pictures}`, `{Documents}`, `{Desktop}`, `{AppData}`, `{LocalAppData}`.
+
+### Ready-to-copy examples
+
+Save the file as `devpilot.tool.json` next to the program (or one folder up), then add the program in DevPilot.
+
+**1. Python app with its own tray icon** (pick `mytool.pyw`). The tool hides its tray icon when DevPilot owns it; its menu options are forwarded to the running instance with `--action`.
+
+```json
+{
+  "name": "My Tool",
+  "description": "Python tray app",
+  "glyph": "E943",
+  "icon": "assets/logo.png",
+  "autoStartArguments": "--minimized",
+  "processMatch": "mytool.pyw",
+  "actions": [
+    { "label": "Open window", "kind": "Arguments", "arguments": "--action show", "featured": true },
+    { "label": "Run now", "kind": "Arguments", "arguments": "--action run", "section": "Tasks" },
+    { "kind": "Separator" },
+    { "label": "Logs", "kind": "Folder", "value": "{LocalAppData}\\MyTool\\logs" }
+  ]
+}
+```
+
+**2. Web app on a local port** (pick `server.py`). DevPilot starts the server without its tray icon (`--no-tray`) and also checks the page address.
+
+```json
+{
+  "name": "My Web Tool",
+  "description": "Local web app on port 8765",
+  "glyph": "E774",
+  "icon": "web/icon.png",
+  "noTrayArguments": "--no-tray",
+  "processMatch": "server.py",
+  "healthUrl": "http://127.0.0.1:8765/",
+  "actions": [
+    { "label": "Open", "kind": "Url", "value": "http://127.0.0.1:8765/", "featured": true, "bold": true },
+    { "label": "Reports", "kind": "Url", "value": "http://127.0.0.1:8765/#reports" },
+    { "kind": "Separator" },
+    { "label": "Data folder", "kind": "Folder", "value": "{LocalAppData}\\MyWebTool" }
+  ]
+}
+```
+
+**3. C# program (.exe)** (pick `MyApp.exe`). The logo is taken from the `.exe` itself.
+
+```json
+{
+  "name": "My App",
+  "description": "C# desktop app",
+  "icon": "MyApp.exe",
+  "autoStartArguments": "--minimized",
+  "processMatch": "MyApp.exe",
+  "actions": [
+    { "label": "Settings", "kind": "Arguments", "arguments": "--settings" },
+    { "label": "Config file", "kind": "File", "value": "{AppData}\\MyApp\\config.json" },
+    { "label": "Install folder", "kind": "Folder", "value": "{ToolDir}" }
+  ]
+}
+```
+
+**4. Command-line script** (pick `run.bat`, `run.ps1` or `cli.py`). No window or tray of its own: every option is one run of the script with different arguments.
+
+```json
+{
+  "name": "My Script",
+  "description": "Command-line jobs",
+  "glyph": "E756",
+  "actions": [
+    { "label": "Sync", "kind": "Arguments", "arguments": "sync", "section": "Jobs", "featured": true },
+    { "label": "Clean up", "kind": "Arguments", "arguments": "cleanup --days 30", "section": "Jobs" },
+    { "label": "Open output", "kind": "Folder", "value": "{ToolDir}\\output" },
+    { "label": "Edit config", "kind": "Command", "value": "notepad.exe", "arguments": "\"{ToolDir}\\config.ini\"" }
+  ]
+}
+```
+
 ### Logos in the hub
 
 Where a row's logo comes from, first match wins:
