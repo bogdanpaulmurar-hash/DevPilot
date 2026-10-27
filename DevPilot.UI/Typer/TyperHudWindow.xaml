@@ -26,7 +26,7 @@
                     <Button x:Name="ClearHistoryButton" Content="Clear" HorizontalAlignment="Right" Height="22" Padding="8,0" MinHeight="0"
                             FontSize="11" Style="{StaticResource GhostButton}" ToolTip="Forget the collected texts" Click="OnClearHistory"/>
                 </Grid>
-                <ScrollViewer MaxHeight="124" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+                <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
                     <StackPanel x:Name="HistoryPanel"/>
                 </ScrollViewer>
             </StackPanel>
@@ -63,8 +63,8 @@
 
             <Grid Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <Button x:Name="StartButton" Content="Start typing" Height="30" Style="{StaticResource AccentButton}" Click="OnStart"/>
-                <Button x:Name="StopButton" Grid.Column="1" Content="Stop (Esc)" Height="30" Margin="8,0,0,0" Padding="12,0"
+                <Button x:Name="StartButton" Content="Start typing" Style="{StaticResource AccentButton}" Click="OnStart"/>
+                <Button x:Name="StopButton" Grid.Column="1" Content="Stop (Esc)" Margin="8,0,0,0" Padding="12,0"
                         Style="{StaticResource DangerButton}" Click="OnStop" Visibility="Collapsed"/>
                 <Button x:Name="ReloadButton" Grid.Column="2" Content="&#xE72C;" Width="30" Height="30" Margin="8,0,0,0"
                         Style="{StaticResource IconButton}" ToolTip="Read the clipboard again" Click="OnReload"/>

@@ -158,8 +158,9 @@ public partial class TyperHudWindow : Window
             {
                 Content = row,
                 Tag = entry,
-                Height = 26,
+                Height = 30,
                 MinHeight = 0,
+                Padding = new Thickness(10, 0, 10, 0),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 Style = (Style)FindResource("GhostButton"),
                 FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal,
