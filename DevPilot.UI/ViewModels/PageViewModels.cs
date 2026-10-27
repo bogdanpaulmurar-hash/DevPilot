@@ -1,3 +1,4 @@
+using DevPilot.Core.Cloud;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -140,10 +141,19 @@ public sealed class StartupViewModel : ObservableObject, IPage
     public ICommand RefreshCommand { get; }
     public ICommand TakeOverAllCommand { get; }
 
-    public StartupViewModel(IConfigStore config, IStartupManager startup)
+    public string AutoStartStatusText { get; private set; } = string.Empty;
+    public bool HasAutoStartStatus => AutoStartStatusText.Length > 0;
+
+    public StartupViewModel(IConfigStore config, IStartupManager startup, AutoStartStatus autoStartStatus)
     {
         _config = config;
         _startup = startup;
+        autoStartStatus.Changed += (_, _) => System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            AutoStartStatusText = string.Join(Environment.NewLine, autoStartStatus.Lines());
+            OnPropertyChanged(nameof(AutoStartStatusText));
+            OnPropertyChanged(nameof(HasAutoStartStatus));
+        });
         RefreshCommand = new RelayCommand(OnShown);
         TakeOverAllCommand = new RelayCommand(() =>
         {
@@ -483,6 +493,7 @@ public sealed class SettingsViewModel : ObservableObject, IPage
         new(BackupMode.EveryStart, "Automatic, every time DevPilot starts"),
     ];
     public static IReadOnlyList<int> KeepChoices { get; } = Enumerable.Range(1, BackupSettings.MaxKeep).ToList();
+    public static IReadOnlyList<int> LogSizeChoices { get; } = [64, 128, 256, 512, 1024, 2048, 4096];
     public ICommand AddHotkeyCommand { get; }
     public ICommand RemoveHotkeyCommand { get; }
     public ICommand ExportCommand { get; }
@@ -499,6 +510,16 @@ public sealed class SettingsViewModel : ObservableObject, IPage
         _config = config;
         _hotkeys = hotkeys;
         _backup = backup;
+        BrowseAppIconCommand = new RelayCommand(() =>
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "DevPilot icon (tray and window)",
+                Filter = "Icons and images (*.ico;*.png;*.jpg;*.jpeg;*.bmp)|*.ico;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*",
+            };
+            if (dlg.ShowDialog() == true) AppIconPath = dlg.FileName;
+        });
+        ClearAppIconCommand = new RelayCommand(() => AppIconPath = string.Empty);
         BackupNowCommand = new AsyncCommand(BackupNowAsync);
         RestoreCommand = new AsyncCommand(RestoreAsync);
         BrowseBackupFolderCommand = new RelayCommand(() =>
@@ -574,6 +595,22 @@ public sealed class SettingsViewModel : ObservableObject, IPage
 
     // ── Backup ──────────────────────────────────────────────────────────
     public string BackupFolder => _backup.Folder;
+    public ICommand BrowseAppIconCommand { get; }
+    public ICommand ClearAppIconCommand { get; }
+
+    /// <summary>Own icon for DevPilot's tray icon and window; empty = the built-in icon.</summary>
+    public string AppIconPath
+    {
+        get => _config.Current.AppIconPath;
+        set
+        {
+            _config.Current.AppIconPath = (value ?? string.Empty).Trim().Trim('"');
+            _config.Touch(ConfigArea.Theme);
+            using (EditTracker.Suppress()) { OnPropertyChanged(); OnPropertyChanged(nameof(HasAppIcon)); }
+        }
+    }
+    public bool HasAppIcon => !string.IsNullOrWhiteSpace(_config.Current.AppIconPath);
+
     public string DefaultBackupFolder => BackupService.DefaultFolder;
 
     /// <summary>The folder setting; empty shows (and means) the default folder.</summary>

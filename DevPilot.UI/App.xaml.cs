@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using DevPilot.Core.Cloud;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Launch;
 using DevPilot.Infrastructure.Services;
@@ -99,6 +100,7 @@ public partial class App : Application
             else Notifier.Info($"{tool.Name} restarted", "It had stopped unexpectedly.");
         });
         monitor.Start();
+        _ = Task.Run(() => GetService<IToolLog>().Prune(config.Current.Tools));
 
         SetupHotkeys();
         GetService<DevPilot.UI.Typer.ClipboardWatcher>().SetEnabled(config.Current.Typer.KeepClipboardHistory);
@@ -158,7 +160,10 @@ public partial class App : Application
             : new ConfigStore(dataDir, sp.GetRequiredService<ILogger<ConfigStore>>()));
         s.AddSingleton<IConfigStore>(sp => sp.GetRequiredService<ConfigStore>());
         s.AddSingleton<IProcessMonitor, ProcessMonitor>();
+        s.AddSingleton<IToolLog>(sp => new ToolLogService(sp.GetRequiredService<ILogger<ToolLogService>>(), sp.GetRequiredService<IConfigStore>()));
         s.AddSingleton<ILauncher, Launcher>();
+        s.AddSingleton<ICloudProbe, CloudProbe>();
+        s.AddSingleton<AutoStartStatus>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();
         s.AddSingleton<BackupService>();
@@ -316,6 +321,9 @@ public partial class App : Application
         var monitor = GetService<IProcessMonitor>();
         var tools = config.Current.Tools.Where(t => t.AutoStart.Enabled).OrderBy(t => t.AutoStart.Order).ToList();
         if (tools.Count == 0) return;
+        var gate = new CloudGate(GetService<ICloudProbe>(), OneDriveRoots());
+        var status = GetService<AutoStartStatus>();
+        var toolLog = GetService<IToolLog>();
         var started = Stopwatch.StartNew();
         foreach (var tool in tools)
         {
@@ -326,10 +334,27 @@ public partial class App : Application
                 _log?.LogInformation("Autostart: {Tool} is already running", tool.Name);
                 continue;
             }
+            var outcome = await gate.WaitAsync(tool, text => status.Set(tool.Name, text)).ConfigureAwait(true);
+            if (outcome == GateOutcome.TimedOutSkip)
+            {
+                toolLog.Write(tool, $"Autostart skipped: cloud drive not connected after {tool.AutoStart.CloudTimeoutSeconds} s.");
+                Notifier.Action($"{tool.Name} not started", "Cloud not connected. Click here to start it now.", () => _ = StartNowAsync(tool));
+                continue;
+            }
             var r = await launcher.StartAsync(tool, LaunchReason.AutoStart);
             if (!r.Success) Notifier.Error($"Could not start {tool.Name}", r.Error ?? string.Empty);
         }
     }
+
+    private async Task StartNowAsync(ToolEntry tool)
+    {
+        var r = await GetService<ILauncher>().StartAsync(tool, LaunchReason.Manual);
+        if (!r.Success) Notifier.Error($"Could not start {tool.Name}", r.Error ?? string.Empty);
+    }
+
+    private static IEnumerable<string> OneDriveRoots() =>
+        new[] { "OneDrive", "OneDriveConsumer", "OneDriveCommercial" }
+            .Select(Environment.GetEnvironmentVariable).Where(v => !string.IsNullOrWhiteSpace(v))!;
 
     // ── Exit ─────────────────────────────────────────────────────────────
     private bool _cleaned;

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using DevPilot.Core.Interfaces;
+using DevPilot.UI.Services;
 using DevPilot.UI.ViewModels;
 
 namespace DevPilot.UI.Views;
@@ -11,12 +12,29 @@ public partial class MainWindow : Window
     public bool AllowClose { get; set; }
     public MainViewModel ViewModel { get; }
 
+    private string? _iconPath;
+    private System.Windows.Media.ImageSource? _builtInIcon;
+
+    private void ApplyAppIcon()
+    {
+        var path = _config.Current.AppIconPath;
+        if (string.Equals(path, _iconPath, StringComparison.Ordinal)) return;
+        _iconPath = path;
+        _builtInIcon ??= Icon;
+        Icon = IconFactory.AppImage(path) ?? _builtInIcon;
+    }
+
     public MainWindow(MainViewModel vm, IConfigStore config)
     {
         InitializeComponent();
         ViewModel = vm;
         _config = config;
         DataContext = vm;
+        ApplyAppIcon();
+        config.Changed += (_, area) =>
+        {
+            if (area is ConfigArea.All or ConfigArea.Theme) Dispatcher.BeginInvoke(ApplyAppIcon);
+        };
         var w = config.Current.Window;
         Width = Math.Max(MinWidth, w.Width);
         Height = Math.Max(MinHeight, w.Height);

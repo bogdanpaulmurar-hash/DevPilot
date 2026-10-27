@@ -173,4 +173,39 @@ public class LogoSourceTests
     [Fact]
     public void Tool_without_manifest_has_no_manifest_icon() =>
         Assert.Equal(string.Empty, ToolManifest.IconFor(new ToolEntry { Kind = ToolKind.Python, Path = @"Z:\nowhere\none.pyw" }));
+
+    [Fact]
+    public void Conventional_icon_comes_after_the_manifest_and_before_the_program()
+    {
+        var tool = new ToolEntry { Kind = ToolKind.Executable, Path = @"C:\Apps\x\x.exe" };
+        bool Has(string p) => p.Equals(@"C:\Apps\x\assets\icon.ico", StringComparison.OrdinalIgnoreCase)
+                           || p.Equals(@"C:\Apps\x\logo.ico", StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new LogoRef(@"C:\Apps\x\logo.ico", LogoOrigin.Convention), LogoSource.Resolve(tool, null, Has));
+        Assert.Equal(LogoOrigin.Manifest, LogoSource.Resolve(tool, @"C:\Apps\m.png", Has).Origin);
+        tool.IconPath = @"C:\mine.png";
+        Assert.Equal(LogoOrigin.File, LogoSource.Resolve(tool, @"C:\Apps\m.png", Has).Origin);
+        tool.IconPath = string.Empty;
+        Assert.Equal(LogoOrigin.Target, LogoSource.Resolve(tool, null, _ => false).Origin);
+        Assert.Equal(LogoOrigin.Target, LogoSource.Resolve(tool, null).Origin);
+    }
+
+    [Theory]
+    [InlineData(96, 16)]
+    [InlineData(120, 20)]
+    [InlineData(144, 24)]
+    [InlineData(192, 32)]
+    [InlineData(288, 48)]
+    [InlineData(600, 48)]
+    public void Tray_size_follows_the_display_dpi(int dpi, int expected) => Assert.Equal(expected, IconSizes.TrayPixels(dpi));
+
+    [Fact]
+    public void Best_icon_frame_is_the_smallest_that_is_big_enough()
+    {
+        int[] frames = [16, 32, 48, 256];
+        Assert.Equal(1, IconSizes.PickFrame(frames, 24));
+        Assert.Equal(0, IconSizes.PickFrame(frames, 16));
+        Assert.Equal(3, IconSizes.PickFrame(frames, 100));
+        Assert.Equal(3, IconSizes.PickFrame(frames, 512)); // none big enough: the largest
+        Assert.Equal(-1, IconSizes.PickFrame([], 16));
+    }
 }

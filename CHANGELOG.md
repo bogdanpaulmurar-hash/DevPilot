@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.10.0
+- Per-tool log: every start and stop of a tool is written to its own rotated file in `%LOCALAPPDATA%\DevPilot\logs\tools` (size and number of files in Settings).
+- Autostart waits for OneDrive / Google Drive before starting tools that live in a synced folder; after a timeout the tool is skipped and a notification explains why (logic in `DevPilot.Core/Cloud`).
+- Better hub logos and a new DevPilot icon (more icon sizes); *Start with Windows* documented in `docs/INSTALL.md`.
+- Merged with main (2.9.0); not built locally (no .NET SDK), CI result pending.
+
 ## 2.9.0
 - Tools & groups > Add > *From a project folder…*: pick a cloned repository and DevPilot works out how to start it. It recognises a `devpilot.tool.json`, a Python package (`python -m`, also under `src`) or script (using the project's `.venv` when present), a C# program (the built `.exe`, else `dotnet run`), a Node app (`npm start`), a launcher script (`start`/`run` `.cmd`/`.bat`/`.ps1`) or a single `.exe`; a known tool (ScreenPilot…) also gets its preset. Anything else is added as a folder. The scan only reads names, 3 levels deep, skips `.git`, `node_modules`, `bin`-like and virtual-environment folders and stops after 1500 entries, so large solutions stay fast. Logic in `DevPilot.Core/Detection/ProjectScanner.cs`.
 - Tests: new `ProjectScannerTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.

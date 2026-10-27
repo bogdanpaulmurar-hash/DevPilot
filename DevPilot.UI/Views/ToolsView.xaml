@@ -393,8 +393,9 @@
                                     </Grid>
                                 </StackPanel>
                             </Grid>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="{Binding LogoFromText}"/>
                             <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                       Text="Without a file, the logo comes from the tool's devpilot.tool.json, else from the program or document itself. Scripts and folders have no logo of their own: choose a file for them. When a logo can't be read, the symbol is shown."/>
+                                       Text="Without a file, the logo comes from the tool's devpilot.tool.json, then an icon.ico / logo.ico (or assets\icon.ico) next to the tool, else from the program or document itself. Scripts and folders have no logo of their own: choose a file for them. When a logo can't be read, the symbol is shown."/>
                             <Grid Margin="0,12,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -511,6 +512,52 @@
                                     <TextBox Text="{Binding Model.AutoStart.Arguments, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
                                 </StackPanel>
                             </Grid>
+                            <StackPanel Margin="0,10,0,0" IsEnabled="{Binding Model.AutoStart.Enabled}">
+                                <TextBlock Text="Start when" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{x:Static vm:ToolEditorVM.AutoStartModes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding AutoStartMode}"/>
+                                <StackPanel Visibility="{Binding IsCloudMode, Converter={StaticResource BoolToVis}}">
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="140"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="Cloud drive" Style="{StaticResource FieldLabel}"/>
+                                            <ComboBox ItemsSource="{x:Static vm:ToolEditorVM.CloudProviders}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                      SelectedValue="{Binding Model.AutoStart.CloudProvider}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Timeout (seconds)" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding Model.AutoStart.CloudTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="If the drive is still not connected after the timeout" Style="{StaticResource FieldLabel}" Margin="0,8,0,0"/>
+                                    <ComboBox ItemsSource="{x:Static vm:ToolEditorVM.TimeoutActions}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                              SelectedValue="{Binding Model.AutoStart.OnTimeout}"/>
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="The delay above still counts as the minimum wait. Only this tool waits; DevPilot and the other tools start normally."/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Log -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsProcess, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Log of this tool" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="{Binding LogPath}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}"/>
+                            <TextBox Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" Height="180" Margin="0,6,0,6"
+                                     FontFamily="{StaticResource MonoFont}" FontSize="12" TextWrapping="NoWrap"
+                                     HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                     VerticalContentAlignment="Top" AcceptsReturn="True"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Refresh" Margin="0,0,6,0" Command="{Binding RefreshLogCommand}"/>
+                                <Button Content="Open file" Margin="0,0,6,0" Command="{Binding OpenLogFileCommand}"/>
+                                <Button Content="Open folder" Margin="0,0,6,0" Command="{Binding OpenLogFolderCommand}"/>
+                                <Button Content="Copy" Command="{Binding CopyLogCommand}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

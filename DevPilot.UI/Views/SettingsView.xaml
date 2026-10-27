@@ -61,6 +61,25 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="DevPilot icon" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                               Text="Your own icon for DevPilot's tray icon and window. Best is a .ico with several sizes (16 to 256 px); a square .png of at least 256 px also works. Empty = the built-in icon."/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding AppIconPath, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                        <Button Grid.Column="1" Content="Choose…" Margin="6,0,0,0" Command="{Binding BrowseAppIconCommand}"/>
+                        <Button Grid.Column="2" Content="Reset" Margin="6,0,0,0" Command="{Binding ClearAppIconCommand}"
+                                Visibility="{Binding HasAppIcon, Converter={StaticResource BoolToVis}}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}" Margin="0,0,0,12" svc:EditTracker.Area="{x:Static core:ConfigArea.Backup}">
                 <StackPanel>
                     <TextBlock Text="Backup" Style="{StaticResource SectionTitle}"/>
@@ -104,6 +123,33 @@
                         <Button Content="Restore…" Margin="0,0,6,6" Command="{Binding RestoreCommand}" IsEnabled="{Binding BackupIdle}"/>
                         <Button Content="Open backup folder" Margin="0,0,6,6" Command="{Binding OpenBackupFolderCommand}"/>
                     </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Tool logs" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                               Text="One log file per tool: when DevPilot started it, with which arguments, the exit code and the last error lines. Shown on the Tools page under the tool."/>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Settings.ToolLog.Enabled}" Content="Write a log for each tool" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="File size (KB)" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1" Width="90" ItemsSource="{x:Static vm:SettingsViewModel.LogSizeChoices}" SelectedItem="{Binding Settings.ToolLog.MaxKb}"/>
+                        <TextBlock Grid.Column="2" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center" Text="A full file is rotated to .1, .2 …"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Files kept per tool" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1" Width="70" ItemsSource="{x:Static vm:SettingsViewModel.KeepChoices}" SelectedItem="{Binding Settings.ToolLog.Keep}"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 

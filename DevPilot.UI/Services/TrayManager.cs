@@ -33,9 +33,11 @@ public sealed class TrayManager : IDisposable
     public void Initialize(IAppShell shell)
     {
         _shell = shell;
+        _appIconPath = _config.Current.AppIconPath;
+        _appIcon = IconFactory.AppIcon(_appIconPath);
         _main = new TaskbarIcon
         {
-            Icon = IconFactory.AppIcon(),
+            Icon = _appIcon.Icon,
             ToolTipText = "DevPilot",
             LeftClickCommand = new RelayCommand(() => Handle(_config.Current.Hub.LeftClick)),
             DoubleClickCommand = new RelayCommand(() => Handle(_config.Current.Hub.DoubleClick)),
@@ -52,9 +54,20 @@ public sealed class TrayManager : IDisposable
         };
     }
 
+    private IconFactory.OwnedIcon? _appIcon;
+    private string _appIconPath = string.Empty;
+
     private void ApplySettings()
     {
         if (_main is null) return;
+        if (!string.Equals(_appIconPath, _config.Current.AppIconPath, StringComparison.Ordinal))
+        {
+            _appIconPath = _config.Current.AppIconPath;
+            var old = _appIcon;
+            _appIcon = IconFactory.AppIcon(_appIconPath);
+            _main.Icon = _appIcon.Icon;
+            old?.Dispose();
+        }
         // Without a double-click action the single click opens instantly.
         _main.NoLeftClickDelay = _config.Current.Hub.DoubleClick == TrayClickAction.Nothing;
         UpdateToolTip();
@@ -148,5 +161,7 @@ public sealed class TrayManager : IDisposable
         _toolIcons.Clear();
         _main?.Dispose();
         _main = null;
+        _appIcon?.Dispose();
+        _appIcon = null;
     }
 }

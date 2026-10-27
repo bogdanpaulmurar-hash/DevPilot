@@ -1,3 +1,4 @@
+using DevPilot.Core.Hub;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
@@ -424,6 +425,20 @@ public sealed class ToolEditorVM : ObservableObject
     public ICommand DetectCommand { get; }
     public ICommand ApplyPresetCommand { get; }
     public ICommand LoadManifestCommand { get; }
+    public ICommand RefreshLogCommand { get; }
+    public ICommand OpenLogFileCommand { get; }
+    public ICommand OpenLogFolderCommand { get; }
+    public ICommand CopyLogCommand { get; }
+
+    private string _logText = string.Empty;
+    /// <summary>Last lines of this tool's own log (start, arguments, exit code, errors).</summary>
+    public string LogText { get => _logText; private set => Set(ref _logText, value); }
+    public string LogPath => App.GetService<IToolLog>().FilePath(Model);
+    public void RefreshLog()
+    {
+        var text = App.GetService<IToolLog>().ReadTail(Model, 200);
+        LogText = text.Length == 0 ? "(no entries yet: the log fills when DevPilot starts this tool)" : text;
+    }
 
     public ToolEditorVM(ToolEntry model, ToolsViewModel owner, IConfigStore config, ILauncher launcher, IProcessMonitor monitor)
     {
@@ -445,6 +460,7 @@ public sealed class ToolEditorVM : ObservableObject
             var dlg = new OpenFileDialog { Title = "Python interpreter (pythonw.exe of a venv, for example)", Filter = "Python (python*.exe;pythonw*.exe;py*.exe)|python*.exe;pythonw*.exe;py*.exe|All files|*.*" };
             if (dlg.ShowDialog() == true) { Model.Interpreter = dlg.FileName; Changed(nameof(Interpreter)); }
         });
+        RefreshLogoFrom();
         BrowseIconCommand = new RelayCommand(() =>
         {
             var dlg = new OpenFileDialog
@@ -484,6 +500,19 @@ public sealed class ToolEditorVM : ObservableObject
             Touch();
         });
         StartCommand = new AsyncCommand(async () => { await FlyoutBuilder.Run(_launcher.StartAsync(Model), Model.Name); await DetectAsync(); });
+        RefreshLogCommand = new RelayCommand(RefreshLog);
+        OpenLogFileCommand = new RelayCommand(() =>
+        {
+            if (File.Exists(LogPath)) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(LogPath) { UseShellExecute = true });
+        });
+        OpenLogFolderCommand = new RelayCommand(() =>
+        {
+            var tools = App.GetService<IToolLog>();
+            Directory.CreateDirectory(tools.Folder);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{tools.Folder}\"") { UseShellExecute = true });
+        });
+        CopyLogCommand = new RelayCommand(() => { if (!string.IsNullOrEmpty(LogText)) Clipboard.SetText(LogText); });
+        RefreshLog();
         StopCommand = new AsyncCommand(async () => { await _launcher.StopAsync(Model); await DetectAsync(); });
         DetectCommand = new AsyncCommand(DetectAsync);
         LoadManifestCommand = new RelayCommand(() =>
@@ -567,7 +596,7 @@ public sealed class ToolEditorVM : ObservableObject
     public string Path
     {
         get => Model.Path;
-        set { if (Model.Path == value) return; LogoCache.Shared.Forget(Model); Model.Path = value; OnPropertyChanged(); OnPropertyChanged(nameof(Preview)); }
+        set { if (Model.Path == value) return; LogoCache.Shared.Forget(Model); Model.Path = value; OnPropertyChanged(); OnPropertyChanged(nameof(Preview)); RefreshLogoFrom(); }
     }
     public string WorkingDirectory { get => Model.WorkingDirectory; set { Model.WorkingDirectory = value; OnPropertyChanged(); } }
     public string Interpreter { get => Model.Interpreter; set { Model.Interpreter = value; OnPropertyChanged(); } }
@@ -584,12 +613,58 @@ public sealed class ToolEditorVM : ObservableObject
             LogoCache.Shared.Forget(Model);
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasIconPath));
+            RefreshLogoFrom();
             LookChanged();
         }
     }
     public bool HasIconPath => !string.IsNullOrWhiteSpace(Model.IconPath);
 
+    private string _logoFrom = string.Empty;
+    /// <summary>"Logo from: …" so it is clear which source is used.</summary>
+    public string LogoFromText
+    {
+        get => _logoFrom;
+        private set { if (_logoFrom == value) return; _logoFrom = value; OnPropertyChanged(); }
+    }
+
+    public async void RefreshLogoFrom()
+    {
+        try
+        {
+            await LogoCache.Shared.GetAsync(Model);
+            LogoFromText = LogoCache.Shared.KnownOrigin(Model) is { } origin ? "Logo from: " + LogoSource.Describe(origin) : string.Empty;
+        }
+        catch (Exception) { LogoFromText = string.Empty; }
+    }
+
     public static IReadOnlyList<Choice<HubLabelMode>> LabelModes => RowLook.LabelModes;
+
+    public static IReadOnlyList<Choice<AutoStartMode>> AutoStartModes { get; } =
+    [
+        new(AutoStartMode.Delay, "After a delay"),
+        new(AutoStartMode.WaitForCloud, "Wait until the cloud drive is connected"),
+    ];
+
+    public static IReadOnlyList<Choice<CloudProvider>> CloudProviders { get; } =
+    [
+        new(CloudProvider.Auto, "Detect from the tool's path"),
+        new(CloudProvider.OneDrive, "OneDrive"),
+        new(CloudProvider.GoogleDrive, "Google Drive"),
+    ];
+
+    public static IReadOnlyList<Choice<CloudTimeoutAction>> TimeoutActions { get; } =
+    [
+        new(CloudTimeoutAction.Skip, "Do not start (notify, click to start)"),
+        new(CloudTimeoutAction.StartAnyway, "Start anyway"),
+    ];
+
+    public bool IsCloudMode => Model.AutoStart.Mode == AutoStartMode.WaitForCloud;
+
+    public AutoStartMode AutoStartMode
+    {
+        get => Model.AutoStart.Mode;
+        set { if (Model.AutoStart.Mode == value) return; Model.AutoStart.Mode = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsCloudMode)); }
+    }
 
     public HubLabelMode LabelMode
     {
