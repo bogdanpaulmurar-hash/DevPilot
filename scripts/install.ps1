@@ -46,8 +46,14 @@ if ($sdks -notmatch '^(8|9|10)\.') {
 
 Stop-DevPilot
 
+# Build from a local copy: the repository may live in a synced folder (Google Drive, OneDrive) that locks obj\ files.
+$build = Join-Path $env:TEMP 'DevPilot-build'
+Write-Host "Copying sources to $build ..."
+& robocopy $repo $build /MIR /XD .git bin obj .vs publish TestResults /NFL /NDL /NJH /NJS /NP | Out-Null
+if ($LASTEXITCODE -ge 8) { throw 'Copy failed.' }
+
 Write-Host "Building DevPilot..."
-& dotnet publish (Join-Path $repo 'DevPilot.UI\DevPilot.UI.csproj') -c Release -r win-x64 --self-contained false -o $InstallDir --nologo
+& dotnet publish (Join-Path $build 'DevPilot.UI\DevPilot.UI.csproj') -c Release -r win-x64 --self-contained false -o $InstallDir --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
 $shell = New-Object -ComObject WScript.Shell
