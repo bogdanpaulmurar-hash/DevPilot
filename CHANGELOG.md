@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- `scripts/install.ps1` now builds from a local copy in `%TEMP%`, like `install.cmd`, so a repository inside Google Drive / OneDrive no longer fails with "Access to apphost.exe is denied".
+
 ## 2.7.0
 - Virtual Typer: images from the clipboard. The HUD saves the image as a PNG (kept 24 h, max 20 files) and types its path, so a chat that cannot paste images can still reference it. See `docs/TYPER.md`.
 
