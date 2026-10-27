@@ -102,6 +102,7 @@ public partial class App : Application
 
         SetupHotkeys();
         GetService<DevPilot.UI.Typer.ClipboardWatcher>().SetEnabled(config.Current.Typer.KeepClipboardHistory);
+        GetService<DevPilot.Core.Typer.ClipboardImageStore>().Cleanup();
         SetupStartupGuard();
         config.Changed += OnConfigChanged;
 
@@ -166,6 +167,8 @@ public partial class App : Application
         s.AddSingleton<IForegroundProbe, ForegroundProbe>();
         s.AddSingleton<DevPilot.Core.Typer.ClipboardHistory>();
         s.AddSingleton<DevPilot.UI.Typer.ClipboardWatcher>();
+        s.AddSingleton(_ => new DevPilot.Core.Typer.ClipboardImageStore(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DevPilot", "clipboard-images")));
         s.AddSingleton<DevPilot.UI.Typer.TyperHudController>();
         s.AddSingleton<ThemeService>();
         s.AddSingleton<FlyoutBuilder>();

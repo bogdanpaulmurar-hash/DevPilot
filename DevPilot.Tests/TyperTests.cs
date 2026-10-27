@@ -248,4 +248,56 @@ public class TyperTests
         Assert.Equal("first line with gaps", e.Summary());
         Assert.Equal("abc…", new ClipboardEntry("abcdef", DateTime.Now, false).Summary(3));
     }
+
+    private static string TempFolder() => Path.Combine(Path.GetTempPath(), "devpilot-test-" + Guid.NewGuid().ToString("N"));
+
+    [Fact]
+    public void ImageStore_saves_a_png_and_returns_its_path()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var store = new ClipboardImageStore(folder);
+            var path = store.Save([1, 2, 3]);
+            Assert.StartsWith(folder, path);
+            Assert.EndsWith(".png", path);
+            Assert.Equal([1, 2, 3], File.ReadAllBytes(path));
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [Fact]
+    public void ImageStore_removes_old_and_surplus_files_but_keeps_the_new_one()
+    {
+        var folder = TempFolder();
+        try
+        {
+            Directory.CreateDirectory(folder);
+            var old = Path.Combine(folder, "clip-old.png");
+            File.WriteAllBytes(old, [0]);
+            File.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddDays(-3));
+            var other = Path.Combine(folder, "notes.txt");
+            File.WriteAllText(other, "keep");
+
+            var store = new ClipboardImageStore(folder, maxFiles: 2);
+            var a = store.Save([1]);
+            File.SetLastWriteTimeUtc(a, DateTime.UtcNow.AddMinutes(-2));
+            var b = store.Save([2]);
+            File.SetLastWriteTimeUtc(b, DateTime.UtcNow.AddMinutes(-1));
+            var c = store.Save([3]);
+
+            Assert.False(File.Exists(old));
+            Assert.False(File.Exists(a));
+            Assert.True(File.Exists(b));
+            Assert.True(File.Exists(c));
+            Assert.True(File.Exists(other));
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [Fact]
+    public void Image_entry_shows_its_label_in_lists()
+    {
+        Assert.Equal("Image 10×10", new ClipboardEntry("C:\\x\\clip.png", DateTime.Now, false, "Image 10×10").Summary());
+    }
 }

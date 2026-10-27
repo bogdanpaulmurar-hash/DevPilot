@@ -19,6 +19,12 @@ DevPilot keeps the last 10 copied texts in memory (never on disk; forgotten on e
 - **Clear** forgets the list; the switch "Keep clipboard history" turns collecting off (and clears it).
 - It listens to the Windows clipboard-change event, no polling.
 
+## Images
+If the clipboard holds an image (and no text), the HUD saves it as a PNG in `%LOCALAPPDATA%\DevPilot\clipboard-images` and offers the file path as the text to type. Type the path into a chat that supports file references (for example `@` + path in the Claude Code extension) to let the chat read the image.
+- The image is saved only when the HUD opens or is reloaded, never in the background, and not twice for the same image.
+- Files are deleted automatically after 24 hours, and only the newest 20 are kept.
+- Images are not part of the clipboard history list.
+
 ## Safety
 - **Esc** (global while a run is active) or the **Stop** button stops before the next key.
 - Typing stops if another window becomes active.

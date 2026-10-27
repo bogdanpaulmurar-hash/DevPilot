@@ -11,11 +11,13 @@ public sealed class TyperHudController
     private readonly IForegroundProbe _probe;
     private readonly ClipboardHistory _history;
     private readonly ClipboardWatcher _watcher;
+    private readonly ClipboardImageStore _images;
     private TyperHudWindow? _window;
 
     public TyperHudController(IConfigStore config, IKeyboardSender sender, IForegroundProbe probe,
-        ClipboardHistory history, ClipboardWatcher watcher)
+        ClipboardHistory history, ClipboardWatcher watcher, ClipboardImageStore images)
     {
+        _images = images;
         _history = history;
         _watcher = watcher;
         _config = config;
@@ -26,7 +28,7 @@ public sealed class TyperHudController
     /// <summary>Shows the HUD with a fresh clipboard preview; a second call while it is idle hides it.</summary>
     public void Toggle()
     {
-        _window ??= new TyperHudWindow(_config, _sender, _probe, _history, _watcher);
+        _window ??= new TyperHudWindow(_config, _sender, _probe, _history, _watcher, _images);
         if (_window.IsVisible && !_window.IsRunning) _window.Hide();
         else _window.Present();
     }

@@ -1,13 +1,15 @@
 namespace DevPilot.Core.Typer;
 
 /// <summary>One text that was on the clipboard.</summary>
-public sealed record ClipboardEntry(string Text, DateTime CapturedAt, bool Truncated)
+/// <param name="Label">Shown instead of the text in lists (used for images, whose text is the file path).</param>
+public sealed record ClipboardEntry(string Text, DateTime CapturedAt, bool Truncated, string? Label = null)
 {
     public int Length => Text.Length;
 
     /// <summary>First non-empty line, whitespace collapsed, cut for a list row.</summary>
     public string Summary(int maxChars = 60)
     {
+        if (Label is not null) return Label;
         var line = Text.Split('\r', '\n').FirstOrDefault(l => !string.IsNullOrWhiteSpace(l)) ?? string.Empty;
         line = string.Join(' ', line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries));
         return line.Length <= maxChars ? line : line[..maxChars] + "…";
