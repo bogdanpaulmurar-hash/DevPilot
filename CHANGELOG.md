@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.10.0
+- Groups: each group header can have its own logo (.png/.ico/.jpg/.bmp, or the icon of an .exe/.dll/.lnk; it replaces the symbol), a title centred on the row, a larger title (Large / Extra large), a font (hub font, Semibold, Serif, Monospace), bold and italic. Set in Tools & groups > group > Look, with a live preview. Only the header changes; the tools under it keep the hub's look. The count and the chevron stay on the right.
+- Backup: group logos are saved in the .zip and restored like tool logos; paths under the old user folder are adapted too.
+- Logic in `DevPilot.Core/Hub/GroupHeaderLook.cs`; tests: new `GroupHeaderLookTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.
+
 ## 2.9.0
 - Tools & groups > Add > *From a project folder…*: pick a cloned repository and DevPilot works out how to start it. It recognises a `devpilot.tool.json`, a Python package (`python -m`, also under `src`) or script (using the project's `.venv` when present), a C# program (the built `.exe`, else `dotnet run`), a Node app (`npm start`), a launcher script (`start`/`run` `.cmd`/`.bat`/`.ps1`) or a single `.exe`; a known tool (ScreenPilot…) also gets its preset. Anything else is added as a folder. The scan only reads names, 3 levels deep, skips `.git`, `node_modules`, `bin`-like and virtual-environment folders and stops after 1500 entries, so large solutions stay fast. Logic in `DevPilot.Core/Detection/ProjectScanner.cs`.
 - Tests: new `ProjectScannerTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.

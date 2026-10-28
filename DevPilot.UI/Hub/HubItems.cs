@@ -148,7 +148,43 @@ public sealed class HubGroupVM : ObservableObject
         Theme = theme ?? RowTheme.Current();
         _collapsed = model.Collapsed;
         ToggleCommand = new RelayCommand(() => IsCollapsed = !IsCollapsed);
+        _logoCarrier = GroupHeaderLook.LogoCarrier(model);
+        if (_logoCarrier is not null)
+        {
+            if (LogoCache.Shared.TryGetCached(_logoCarrier, out var cached)) _logo = cached;
+            else _ = LoadLogoAsync();
+        }
     }
+
+    // ── Logo, alignment and title font (per group) ──
+    private readonly ToolEntry? _logoCarrier;
+    private BitmapSource? _logo;
+    public BitmapSource? Logo => _logo;
+    public bool HasLogo => _logo is not null;
+    /// <summary>The symbol is shown only when there is no logo, so the header never carries both.</summary>
+    public bool ShowGlyph => HasGlyph && !HasLogo;
+    public double LogoSize => GroupHeaderLook.LogoSize(TitleFontSize);
+
+    private async Task LoadLogoAsync()
+    {
+        var logo = await LogoCache.Shared.GetAsync(_logoCarrier!);
+        if (logo is null) return;
+        _logo = logo;
+        OnPropertyChanged(nameof(Logo));
+        OnPropertyChanged(nameof(HasLogo));
+        OnPropertyChanged(nameof(ShowGlyph));
+    }
+
+    public bool IsCentered => Model.TitleAlign == GroupTitleAlign.Center;
+    public System.Windows.HorizontalAlignment TitleAlignment =>
+        IsCentered ? System.Windows.HorizontalAlignment.Center : System.Windows.HorizontalAlignment.Left;
+    public double TitleFontSize => GroupHeaderLook.TitleSize(Model.TitleSize, Look.GroupHeaderStyle, Look.FontSize);
+    public System.Windows.FontWeight TitleWeight =>
+        System.Windows.FontWeight.FromOpenTypeWeight(GroupHeaderLook.TitleWeight(Model, Look.GroupHeaderStyle));
+    public System.Windows.FontStyle TitleStyle => Model.Italic ? System.Windows.FontStyles.Italic : System.Windows.FontStyles.Normal;
+    public bool HasTitleFont => GroupHeaderLook.FontFamily(Model.TitleFont).Length > 0;
+    public System.Windows.Media.FontFamily? TitleFontFamily =>
+        HasTitleFont ? new System.Windows.Media.FontFamily(GroupHeaderLook.FontFamily(Model.TitleFont)) : null;
 
     public string Title => Look.GroupHeaderStyle == GroupHeaderStyle.SmallCaps ? Model.Title.ToUpperInvariant() : Model.Title;
     public bool HeaderVisible => Look.GroupHeaderStyle != GroupHeaderStyle.Hidden;

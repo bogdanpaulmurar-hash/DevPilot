@@ -76,9 +76,14 @@ public static class BackupRestore
         result.Backup = Clone(current.Backup);
 
         if (logoMap is { Count: > 0 })
+        {
             foreach (var t in result.Tools)
                 if (!string.IsNullOrWhiteSpace(t.IconPath) && logoMap.TryGetValue(t.IconPath.Trim(), out var local))
                     t.IconPath = local;
+            foreach (var g in result.Groups)
+                if (!string.IsNullOrWhiteSpace(g.IconPath) && logoMap.TryGetValue(g.IconPath.Trim(), out var local))
+                    g.IconPath = local;
+        }
 
         adaptedPaths = adaptUserFolder && !string.IsNullOrWhiteSpace(oldUserFolder) && !string.IsNullOrWhiteSpace(newUserFolder)
             ? UserFolderRemap.Apply(result, oldUserFolder, newUserFolder)

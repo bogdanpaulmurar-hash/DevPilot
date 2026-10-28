@@ -35,6 +35,10 @@ public static class Normalizer
             g.Color = ConfigMigrator.NormalizeColor(g.Color);
             g.TextColor = ConfigMigrator.NormalizeColor(g.TextColor);
             g.GlyphColor = ConfigMigrator.NormalizeColor(g.GlyphColor);
+            g.IconPath = g.IconPath?.Trim() ?? string.Empty;
+            if (!Enum.IsDefined(g.TitleAlign)) g.TitleAlign = GroupTitleAlign.Left;
+            if (!Enum.IsDefined(g.TitleSize)) g.TitleSize = GroupTitleSize.Default;
+            if (!Enum.IsDefined(g.TitleFont)) g.TitleFont = GroupTitleFont.Default;
         }
         seen.Clear();
         foreach (var t in s.Tools)

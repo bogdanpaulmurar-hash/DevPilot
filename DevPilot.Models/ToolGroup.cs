@@ -13,6 +13,16 @@ public class ToolGroup
     public string TextColor { get; set; } = string.Empty;
     /// <summary>Optional symbol colour (#RRGGBB); empty = theme colour.</summary>
     public string GlyphColor { get; set; } = string.Empty;
+    /// <summary>Optional logo (.png, .ico, .jpg, .bmp, or an .exe / .dll / .lnk to take the icon from) shown before the title.</summary>
+    public string IconPath { get; set; } = string.Empty;
+    /// <summary>Title placement in the header row; the count and the chevron stay on the right.</summary>
+    public GroupTitleAlign TitleAlign { get; set; } = GroupTitleAlign.Left;
+    /// <summary>Title size; <see cref="GroupTitleSize.Default"/> follows the hub's group header style.</summary>
+    public GroupTitleSize TitleSize { get; set; } = GroupTitleSize.Default;
+    public GroupTitleFont TitleFont { get; set; } = GroupTitleFont.Default;
+    /// <summary>Bold title even when the hub's header style is not bold.</summary>
+    public bool Bold { get; set; }
+    public bool Italic { get; set; }
     public int Order { get; set; }
     public bool Collapsed { get; set; }
     public bool Hidden { get; set; }

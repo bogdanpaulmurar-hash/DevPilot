@@ -766,6 +766,87 @@ public sealed class GroupEditorVM : ObservableObject
         _owner = owner;
         SetGlyphCommand = new RelayCommand(p => Glyph = p as string ?? string.Empty);
         SetColorCommand = new RelayCommand(p => Color = p as string ?? string.Empty);
+        BrowseIconCommand = new RelayCommand(() =>
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "Group logo",
+                Filter = "Logos and programs (*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.exe;*.dll;*.lnk)|*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.exe;*.dll;*.lnk|All files (*.*)|*.*",
+            };
+            if (dlg.ShowDialog() == true) IconPath = dlg.FileName;
+        });
+        ClearIconCommand = new RelayCommand(() => IconPath = string.Empty);
+    }
+
+    public ICommand BrowseIconCommand { get; }
+    public ICommand ClearIconCommand { get; }
+
+    /// <summary>Logo before the title; when set, it replaces the symbol in the header.</summary>
+    public string IconPath
+    {
+        get => Model.IconPath;
+        set
+        {
+            value = (value ?? string.Empty).Trim();
+            if (Model.IconPath == value) return;
+            if (DevPilot.Core.Hub.GroupHeaderLook.LogoCarrier(Model) is { } before) LogoCache.Shared.Forget(before);
+            Model.IconPath = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasIconPath));
+            Notify();
+        }
+    }
+    public bool HasIconPath => !string.IsNullOrWhiteSpace(Model.IconPath);
+
+    public static IReadOnlyList<Choice<GroupTitleAlign>> Alignments { get; } =
+    [
+        new(GroupTitleAlign.Left, "Left"),
+        new(GroupTitleAlign.Center, "Centred on the row"),
+    ];
+
+    public static IReadOnlyList<Choice<GroupTitleSize>> Sizes { get; } =
+    [
+        new(GroupTitleSize.Default, "As the hub (Appearance)"),
+        new(GroupTitleSize.Large, "Large"),
+        new(GroupTitleSize.ExtraLarge, "Extra large"),
+    ];
+
+    public static IReadOnlyList<Choice<GroupTitleFont>> Fonts { get; } =
+    [
+        new(GroupTitleFont.Default, "Hub font"),
+        new(GroupTitleFont.Semibold, "Semibold"),
+        new(GroupTitleFont.Serif, "Serif (Georgia)"),
+        new(GroupTitleFont.Mono, "Monospace (Consolas)"),
+    ];
+
+    public GroupTitleAlign TitleAlign
+    {
+        get => Model.TitleAlign;
+        set { if (Model.TitleAlign == value) return; Model.TitleAlign = value; OnPropertyChanged(); Notify(); }
+    }
+
+    public GroupTitleSize TitleSize
+    {
+        get => Model.TitleSize;
+        set { if (Model.TitleSize == value) return; Model.TitleSize = value; OnPropertyChanged(); Notify(); }
+    }
+
+    public GroupTitleFont TitleFont
+    {
+        get => Model.TitleFont;
+        set { if (Model.TitleFont == value) return; Model.TitleFont = value; OnPropertyChanged(); Notify(); }
+    }
+
+    public bool Bold
+    {
+        get => Model.Bold;
+        set { if (Model.Bold == value) return; Model.Bold = value; OnPropertyChanged(); Notify(); }
+    }
+
+    public bool Italic
+    {
+        get => Model.Italic;
+        set { if (Model.Italic == value) return; Model.Italic = value; OnPropertyChanged(); Notify(); }
     }
 
     public string Glyph
