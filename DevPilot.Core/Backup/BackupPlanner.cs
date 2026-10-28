@@ -72,13 +72,17 @@ public static class BackupPlanner
         return ImageExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>The picked logos (<see cref="ToolEntry.IconPath"/>) that are image files and exist, each once, with a unique entry name.</summary>
+    /// <summary>
+    /// The picked logos (<see cref="ToolEntry.IconPath"/> and <see cref="ToolGroup.IconPath"/>) that are image files
+    /// and exist, each once, with a unique entry name.
+    /// </summary>
     public static IReadOnlyList<LogoToCopy> PlanLogos(AppSettings settings, Func<string, bool> fileExists)
     {
         var bySource = new Dictionary<string, (string Entry, List<string> Raw)>(StringComparer.OrdinalIgnoreCase);
         var order = new List<string>();
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var tool in settings.Tools)
+        var groupLogos = (settings.Groups ?? []).Select(Hub.GroupHeaderLook.LogoCarrier).OfType<ToolEntry>();
+        foreach (var tool in settings.Tools.Concat(groupLogos))
         {
             var raw = tool.IconPath?.Trim() ?? string.Empty;
             if (raw.Length == 0) continue;

@@ -113,17 +113,24 @@
             </DataTemplate.Triggers>
         </DataTemplate>
         <DataTemplate x:Key="GroupHeaderPreview" DataType="{x:Type hub:HubGroupVM}">
-            <Border CornerRadius="5" Padding="10,8,10,6" MinWidth="260" HorizontalAlignment="Left"
+            <Border CornerRadius="5" Padding="10,8,10,6" Width="300" HorizontalAlignment="Left"
                     Background="{Binding HighlightColor, Converter={StaticResource HexToBrush}}">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center"
-                             Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
-                             Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock x:Name="GroupGlyph" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
-                               Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding HasGlyph, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock x:Name="Title" Text="{Binding Title}" Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"
-                               FontWeight="{Binding HeaderBold, Converter={StaticResource BoolToWeight}}"/>
-                </StackPanel>
+                <Grid>
+                    <StackPanel x:Name="TitleBlock" Orientation="Horizontal" HorizontalAlignment="{Binding TitleAlignment}" Margin="0,0,24,0">
+                        <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center"
+                                 Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
+                                 Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
+                        <Image Source="{Binding Logo}" Width="{Binding LogoSize}" Height="{Binding LogoSize}" Margin="0,0,7,0"
+                               VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"
+                               Visibility="{Binding HasLogo, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock x:Name="GroupGlyph" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding ShowGlyph, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock x:Name="Title" Text="{Binding Title}" Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"
+                                   FontSize="{Binding TitleFontSize}" FontWeight="{Binding TitleWeight}" FontStyle="{Binding TitleStyle}"/>
+                    </StackPanel>
+                    <TextBlock Text="&#xE70D;" Style="{StaticResource Glyph}" FontSize="9" HorizontalAlignment="Right"
+                               Foreground="{DynamicResource TextTertiaryBrush}"/>
+                </Grid>
             </Border>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding HasTextColor}" Value="True">
@@ -132,8 +139,11 @@
                 <DataTrigger Binding="{Binding HasGlyphColor}" Value="True">
                     <Setter TargetName="GroupGlyph" Property="Foreground" Value="{Binding GlyphColor, Converter={StaticResource HexToBrush}}"/>
                 </DataTrigger>
-                <DataTrigger Binding="{Binding HeaderSmall}" Value="True">
-                    <Setter TargetName="Title" Property="FontSize" Value="11"/>
+                <DataTrigger Binding="{Binding IsCentered}" Value="True">
+                    <Setter TargetName="TitleBlock" Property="Margin" Value="24,0,24,0"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasTitleFont}" Value="True">
+                    <Setter TargetName="Title" Property="FontFamily" Value="{Binding TitleFontFamily}"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
@@ -717,6 +727,34 @@
                                     <views:ColorField Value="{Binding GlyphColor}"/>
                                 </StackPanel>
                             </Grid>
+                            <TextBlock Text="Logo (optional: .png, .ico, .exe, .lnk…)" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding IconPath, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                         ToolTip="Shown before the title instead of the symbol. Empty = no logo."/>
+                                <Button Grid.Column="1" Content="Choose…" Margin="6,0,0,0" Command="{Binding BrowseIconCommand}"/>
+                                <Button Grid.Column="2" Content="Clear" Margin="6,0,0,0" Command="{Binding ClearIconCommand}"
+                                        Visibility="{Binding HasIconPath, Converter={StaticResource BoolToVis}}"/>
+                            </Grid>
+                            <TextBlock Text="Title" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+                            <WrapPanel>
+                                <ComboBox ItemsSource="{x:Static vm:GroupEditorVM.Alignments}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding TitleAlign}" Width="170" Margin="0,0,8,6" ToolTip="Placement of the title"/>
+                                <ComboBox ItemsSource="{x:Static vm:GroupEditorVM.Sizes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding TitleSize}" Width="190" Margin="0,0,8,6" ToolTip="Size of the title"/>
+                                <ComboBox ItemsSource="{x:Static vm:GroupEditorVM.Fonts}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding TitleFont}" Width="190" Margin="0,0,8,6" ToolTip="Font of the title"/>
+                            </WrapPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Content="Bold" IsChecked="{Binding Bold}" Margin="0,0,16,0"/>
+                                <CheckBox Content="Italic" IsChecked="{Binding Italic}"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Text="These apply to this group's header only; the tools under it keep the hub's look. Capitals and the default size follow the group header style in Appearance."/>
                             <TextBlock Text="Preview" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
                             <Border Style="{StaticResource PreviewSurface}" Margin="0,4,0,0">
                                 <ContentControl Content="{Binding Preview}" ContentTemplate="{StaticResource GroupHeaderPreview}" Focusable="False"/>

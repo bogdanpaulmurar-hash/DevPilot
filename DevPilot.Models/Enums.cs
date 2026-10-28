@@ -106,6 +106,14 @@ public enum FlyoutSide { Auto, Left, Right }
 
 public enum GroupHeaderStyle { SmallCaps, Normal, Bold, Hidden }
 
+public enum GroupTitleAlign { Left, Center }
+
+/// <summary>Size of one group's title, relative to the hub font size.</summary>
+public enum GroupTitleSize { Default, Large, ExtraLarge }
+
+/// <summary>A few title fonts, enough to set a group apart from the tools under it.</summary>
+public enum GroupTitleFont { Default, Semibold, Serif, Mono }
+
 public enum TrayClickAction { OpenHub, OpenMainWindow, QuickMenu, Nothing }
 
 public enum ToolRunState { Unknown, Stopped, Running, Starting, Failed }

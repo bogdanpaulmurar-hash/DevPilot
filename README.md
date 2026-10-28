@@ -12,7 +12,7 @@ One tray icon for all your tools. DevPilot is a Windows hub (C# / WPF, .NET 8) t
 - **One owner for duplicated features** — DevPilot is the only one that keeps the PC awake and starts with Windows. Managed tools get `DEVPILOT_MANAGED=1` and `DEVPILOT_SUPPRESS=tray,keepawake,autostart`; the *Startup & conflicts* page takes over their Windows autostart entries (with a backup) and starts them itself.
 - **Keep-awake** — silent power request (recommended), mouse nudge or F15 key, only when idle, with a schedule.
 - **Monitor** — real process detection (also for Python scripts), health URLs, auto-restart with an hourly limit.
-- **Customisable** — theme (dark / light / Windows), one accent colour, hub width / height / corners / opacity / density / text size / position, flyout side and hover delay, group title style; per tool symbol, colour marker, bold, italic.
+- **Customisable** — theme (dark / light / Windows), one accent colour, hub width / height / corners / opacity / density / text size / position, flyout side and hover delay, group title style; per group logo, centred title, larger size, font (semibold / serif / mono), bold, italic; per tool symbol, colour marker, bold, italic.
 - **Global shortcuts** — open the hub, start a tool or run one of its options from anywhere.
 - **Backups** — one .zip with the whole configuration and the picked logos, manual or automatic (1–10 copies kept), restore with a preview, also on another PC (paths adapted to the new user folder).
 

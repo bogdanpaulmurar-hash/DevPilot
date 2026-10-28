@@ -278,24 +278,25 @@
                                     <Border CornerRadius="5" Margin="4,0" Background="{Binding HighlightColor, Converter={StaticResource HexToBrush}}"
                                             Visibility="{Binding HeaderVisible, Converter={StaticResource BoolToVis}}">
                                     <Button Style="{StaticResource GroupHeaderButton}" Margin="-4,0" Command="{Binding ToggleCommand}" MouseEnter="GroupHeader_MouseEnter">
+                                        <!-- Two layers: the title block (left or centred on the whole row) and the count + chevron on the right. -->
                                         <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center"
-                                                     Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
-                                                     Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
-                                            <TextBlock x:Name="GroupGlyph" Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
-                                                       Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding HasGlyph, Converter={StaticResource BoolToVis}}"/>
-                                            <TextBlock x:Name="Title" Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource TextTertiaryBrush}"
-                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                                       FontWeight="{Binding HeaderBold, Converter={StaticResource BoolToWeight}}"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding CountText}" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" Margin="6,0,6,0" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="4" Text="{Binding ChevronGlyph}" Style="{StaticResource Glyph}" FontSize="9" Foreground="{DynamicResource TextTertiaryBrush}"/>
+                                            <DockPanel x:Name="TitleBlock" HorizontalAlignment="{Binding TitleAlignment}" Margin="0,0,40,0" LastChildFill="True">
+                                                <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center"
+                                                         Fill="{Binding Color, Converter={StaticResource HexToBrush}}"
+                                                         Visibility="{Binding HasColor, Converter={StaticResource BoolToVis}}"/>
+                                                <Image DockPanel.Dock="Left" Source="{Binding Logo}" Width="{Binding LogoSize}" Height="{Binding LogoSize}" Margin="0,0,7,0"
+                                                       VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"
+                                                       Visibility="{Binding HasLogo, Converter={StaticResource BoolToVis}}"/>
+                                                <TextBlock x:Name="GroupGlyph" DockPanel.Dock="Left" Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="11" Margin="0,0,6,0"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}" Visibility="{Binding ShowGlyph, Converter={StaticResource BoolToVis}}"/>
+                                                <TextBlock x:Name="Title" Text="{Binding Title}" Foreground="{DynamicResource TextTertiaryBrush}"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                           FontSize="{Binding TitleFontSize}" FontWeight="{Binding TitleWeight}" FontStyle="{Binding TitleStyle}"/>
+                                            </DockPanel>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding CountText}" FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}" Margin="6,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding ChevronGlyph}" Style="{StaticResource Glyph}" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}"/>
+                                            </StackPanel>
                                         </Grid>
                                     </Button>
                                     </Border>
@@ -303,8 +304,11 @@
                                                   Visibility="{Binding IsCollapsed, Converter={StaticResource BoolToVisInv}}"/>
                                 </StackPanel>
                                 <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding HeaderSmall}" Value="True">
-                                        <Setter TargetName="Title" Property="FontSize" Value="11"/>
+                                    <DataTrigger Binding="{Binding IsCentered}" Value="True">
+                                        <Setter TargetName="TitleBlock" Property="Margin" Value="40,0,40,0"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding HasTitleFont}" Value="True">
+                                        <Setter TargetName="Title" Property="FontFamily" Value="{Binding TitleFontFamily}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding HasTextColor}" Value="True">
                                         <Setter TargetName="Title" Property="Foreground" Value="{Binding TextColor, Converter={StaticResource HexToBrush}}"/>

@@ -56,6 +56,8 @@ public static class UserFolderRemap
                 a.Arguments = Map(a.Arguments);
             }
         }
+        foreach (var g in settings.Groups ?? [])
+            g.IconPath = Map(g.IconPath);
         return changed;
     }
 }
