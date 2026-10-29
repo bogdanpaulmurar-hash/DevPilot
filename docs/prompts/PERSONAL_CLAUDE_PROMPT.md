@@ -1,40 +1,89 @@
-# Prompt: build the Egress Guard in DevPilot (personal environment)
+# Prompt for the personal Claude (paste as-is)
 
-Copy everything below the line into a Claude session that has the DevPilot repo.
-
----
-
-You are working on DevPilot (C# WPF, .NET 8). Read `CLAUDE.md` first and follow it.
-
-## Ground rules for this session
-- This is a personal environment. **Do not ask me for anything about an employer, a company policy, internal names, e-mail addresses, IDs, hosts or numbers.** If a step seems to need one, use a placeholder and keep going (see "Policy data stays outside the repo").
-- Code, comments, commits and docs: English. Replies to me: Romanian, short, phone-friendly.
-- Logic goes in `DevPilot.Core` so it is testable without WPF. No `.exe` files added to the repo.
-- One small PR per step below, in order. Each PR: build + tests green, `CHANGELOG.md` updated, version bumped in `DevPilot.UI.csproj` only when the PR is user-visible. Stop after each PR and wait for my "go" before the next. Plan in 3-5 lines first.
-- Do not start items from the MODIFICARI document unless I ask.
+You are working on DevPilot (C# WPF, .NET 8, Windows tray hub). Read `CLAUDE.md` and
+`docs/claudepolicy.md` first. Replies to me in Romanian, short; code, comments,
+commits, docs in English. Work in small steps, run `dotnet test DevPilot.Tests`
+after each, note changes in CHANGELOG.md, bump `<Version>` in
+`DevPilot.UI/DevPilot.UI.csproj`, use a feature branch + PR.
 
 ## Goal
-An **Egress Guard**: an opt-in feature that watches the outbound network activity of the tools DevPilot launches and checks it against a user-supplied policy file (IT and AI-use rules). It must be useful to anyone, not tied to one organisation. Default: **off**, observe-only.
+Add **Egress Guard**: a feature that checks what a tool could send out of the machine
+and lets me limit or stop it. DevPilot manages tools that I build privately and run
+on a managed work laptop, so I want visibility and control over their outbound data
+flow. Build it as a generic security feature. Do not assume anything about the
+laptop's network or any employer; do not ask me for such details.
 
-## Policy data stays outside the repo
-- The repo ships only the **schema**, a generic **sample** policy (`example.com`-style hosts) and the engine.
-- The real policy file is loaded from a path set in Settings (or `DEVPILOT_EGRESS_POLICY`). Nothing from it is copied into logs, docs, tests or the config backup (only the path is).
-- Anything that depends on real policy content is a **work item for the work-side Claude**: record it in `docs/WORK_HANDOFF.md` (create it in PR 11) as a checklist line, do not guess it.
+## Hard constraints
+- No employer names, internal hosts, IDs, e-mails or policy text anywhere (code,
+  tests, docs, samples, commits). Use placeholders such as `example.internal`.
+- Deny-list terms and company-specific rules are NOT in the repo. Load them at
+  runtime from `%APPDATA%\DevPilot\policy.local.json` (optional; absent = empty;
+  never logged, never copied into reports, never part of backups/exports).
+- Never bypass, disable, hide from or tamper with any OS/endpoint security tool.
+  No admin-only tricks by default. Anything needing elevation is optional,
+  off by default, and clearly labelled.
+- Backward compatible with existing `devpilot.tool.json` files (ScreenPilot,
+  AutoMailCAT, AutoTemplates). New data goes in an optional `network` block.
+- Logic in `DevPilot.Core` (testable without WPF); Windows APIs in
+  `DevPilot.Infrastructure`; UI in `DevPilot.UI`. Nothing hardcoded per tool.
+- No telemetry, no network calls made by DevPilot itself for this feature.
 
-## The 11 PRs (keep this order)
-1. **Settings model** - `EgressGuardSettings` in `DevPilot.Models` (enabled=false, mode=Observe, policy path, log folder, retention), wired into config with defaults and a migration test.
-2. **Policy schema + loader** - `Core/Egress/PolicyFile`: versioned JSON, strict validation with readable errors, sample file in `docs/`. No network.
-3. **Rule evaluator** - pure function: (tool, process, host, port, protocol, category) -> Allow / Warn / Deny + matched rule id. Wildcards, precedence, default action. Heavy unit tests.
-4. **Categories** - `Core/Egress/Categories`: classify destinations (for example "ai-service", "storage", "unknown") from the policy file only; nothing hardcoded per vendor.
-5. **Audit log** - metadata only (time, tool, process, host, port, decision, rule id). Never payloads, never URLs with query strings. Rotation, retention, export to CSV. Core writer + Infrastructure file sink.
-6. **Connection sampler** - `Infrastructure`: enumerate TCP connections per managed process tree (IP Helper table), map to the tool that DevPilot launched, resolve host names with a cache. Polling, low overhead, no admin rights, no driver.
-7. **Guard service** - ties 3-6 together: runs only for managed tools, Observe and Warn modes. Fails open and says so when the policy is missing or invalid (clear status, never a silent stop).
-8. **Tool contract** - optional `egress` block in `devpilot.tool.json` (expected hosts, purpose), backward compatible; new env var `DEVPILOT_EGRESS_GUARD=1` for managed tools. Update `docs/INTEGRATION.md`.
-9. **Hub status** - tray/hub indicator and per-tool badge (off / ok / warning), colours from existing theme settings, no per-tool special cases.
-10. **Egress page** - main-window page: live connections, last decisions, filter, CSV export, "policy loaded from..." status and a self-check button.
-11. **Docs, backup, handoff** - `docs/EGRESS.md`, backup includes settings (not the policy file or logs), `docs/WORK_HANDOFF.md` checklist, `CLAUDE.md` update (map + rules).
+## Components (implement in this order, one PR each)
+1. **Core/Guard model + policy**: `EgressMode {Off, Monitor, Block}`, `ToolNetworkPolicy`
+   (allowed hosts with wildcard, ports, `allowNone`), `GuardFinding` (severity
+   Info/Warn/High, rule id, file, line, message), `GuardReport`. Parse the optional
+   `network` block of `devpilot.tool.json` and the optional local policy file.
+2. **Static scanner** (`Core/Guard/ToolScanner`, extends the idea of
+   `Detection/ProjectScanner`): scan a tool folder (C#, Python, JS/TS, PowerShell,
+   batch, config) for: HTTP/socket/WebSocket/FTP/SMTP clients, hard-coded URLs and
+   IPs, telemetry/analytics SDKs, auto-update code, file/cloud upload, clipboard /
+   screenshot / keystroke capture, process spawning of shells, registry Run keys and
+   scheduled tasks, AI/LLM API clients and keys, embedded secret patterns, and
+   local deny-list terms. Skip `bin`, `obj`, `node_modules`, `.git`. Rules are data
+   (JSON), not code, so they can be extended. Unit tests with fixture snippets.
+3. **Provenance + drift**: record git remote and HEAD (read from `.git` files, no
+   git.exe needed), plus a SHA-256 manifest of tool files at approval time. Detect
+   change since approval and mark the tool "needs re-review". Store approvals in
+   the DevPilot config (hash, date, mode, allowlist), not in the tool folder.
+4. **Approval gate**: a tool is `Unreviewed`, `Approved`, or `Blocked`. In `Block`
+   mode only `Approved` tools with an unchanged manifest start; in `Monitor` mode
+   everything starts but findings and warnings are shown and logged.
+5. **Runtime monitor** (Infrastructure): poll per-process TCP/UDP endpoints for
+   managed process trees (IP Helper `GetExtendedTcpTable`/`GetExtendedUdpTable`, no
+   packet capture, no driver). Compare with the tool's allowlist (resolve names
+   through reverse/cached DNS where possible; unknown = flagged). Actions by mode:
+   log, tray notification, or stop the process tree. Rate-limit notifications.
+6. **Soft offline mode**: launch a tool with `HTTP_PROXY/HTTPS_PROXY/ALL_PROXY` set
+   to a dead local address and `NO_PROXY` empty; document that it only affects
+   tools that honour proxy variables and is not a security boundary.
+7. **Kill switch**: tray menu item "Pause external access": stops monitored
+   network-capable tools or refuses new starts until resumed; state persisted.
+8. **UI**: a "Guard" page in the main window: mode selector, per-tool status
+   (Unreviewed/Approved/Blocked/Drifted), findings list with severity, allowlist
+   editor, last connections per tool, "Scan now", "Approve", "Export report"
+   (report contains rule ids and counts, redacts matched deny-list terms).
+9. **Pre-flight text check**: a small Core service plus tray action that checks the
+   clipboard or a file for deny-list terms and common secret/PII patterns before I
+   paste it into an AI tool; shows only the category and position, never the term.
+10. **Repo hygiene**: add `backups/` to `.gitignore`; add a CI step (GitHub Actions)
+    that fails on generic secret patterns; add a pre-commit hook script under
+    `scripts/` that runs the same check locally plus the local deny-list when
+    the file exists.
+11. **Docs**: `docs/GUARD.md` (how it works, limits, modes), extend
+    `docs/INTEGRATION.md` with the `network` block, update `CLAUDE.md` map and rules
+    (keep under ~60 lines), CHANGELOG.
 
-Block mode (terminating a process or touching the firewall) is **out of scope** until I ask for it separately.
+## Design notes
+- Honest limits belong in the UI and docs: DevPilot only sees processes it launches;
+  it is an audit and guard-rail layer, not a replacement for organisational controls.
+- Defaults: mode `Monitor`, local-only logging with sensitive matches redacted,
+  logs in `%LOCALAPPDATA%\DevPilot\logs`.
+- Keep the scanner conservative: report, explain, never auto-delete or modify tools.
+- Each finding has a short "why it matters" and "how to fix" text (editor Help
+  style, see `Core/Help`).
 
-## Definition of done per PR
-Build and tests green in CI, no new warnings, no secrets, no employer-specific text, `CHANGELOG.md` entry, short Romanian summary: what was done, what is left, next step.
+## Definition of done
+Tests green, CI green, version bumped, CHANGELOG and docs updated, PR opened.
+At the end give me a 10-line summary in Romanian: what was added, what is
+Windows-only unverified, and what remains. Do not ask me for any work-environment
+information; if something depends on it, expose it as a setting.

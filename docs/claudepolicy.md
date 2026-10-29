@@ -1,37 +1,56 @@
-# Working across a personal and a managed laptop
+# claudepolicy.md — how personal projects reach a managed work laptop
 
-Neutral guide for how DevPilot work flows between two machines, and why some things behave differently on a managed (company) laptop. It contains no policy details. Anything that needs them is listed at the end as a task for the Claude that runs on the managed laptop.
+Neutral, safe-to-publish version. It describes the workflow and the rules that
+keep it clean. It contains no employer name, no internal identifiers and no
+confidential details. Employer-specific rules live only in a local file on the
+work laptop (`%APPDATA%\DevPilot\policy.local.json`, never synced, never in git).
 
-## The flow
-1. GitHub is the source of truth. Only one laptop works on a repo at a time.
-2. Commit and push before switching laptops; let Google Drive finish syncing, then `git pull` on the other one.
-3. Implementation, tests and PRs happen in the personal environment (cloud or personal laptop). CI is the compile and test check, because the cloud session has no .NET SDK and WPF tests need Windows.
-4. The managed laptop pulls `main`, installs with `scripts\install.cmd` and reports results (steps are in `TESTING`/`MODIFICARI`, results only).
-5. Two Claude contexts exist: the **personal** one (builds features from `docs/prompts/PERSONAL_CLAUDE_PROMPT.md`, never sees company data) and the **work** one (runs checks that need the managed environment and writes back only sanitised findings).
+## 1. The workflow (why odd things can happen)
 
-## Why odd behaviour can appear only on the managed laptop
-These are common causes on managed Windows machines. They are hypotheses to check, not confirmed facts.
+1. A tool is written **privately**, with a personal AI subscription, on a personal
+   machine, in a personal GitHub repo. Nothing from the work environment goes in.
+2. The repo is the source of truth; Google Drive (personal) syncs the working copy.
+3. The work laptop receives the tool through that synced folder or a `git pull`
+   and runs it under DevPilot.
+4. A second AI session on the work laptop finishes the integration. It never sends
+   work-environment details back to the personal side.
 
-| Symptom | Likely cause class | First check |
-|---|---|---|
-| `install.ps1` says "not digitally signed" even with `-ExecutionPolicy Bypass` | Script execution enforced centrally | Use `scripts\install.cmd` (already documented in `docs/INSTALL.md`) |
-| App starts but the tray icon or hotkeys do nothing | Application control or input restrictions | Check `%LOCALAPPDATA%\DevPilot\logs\devpilot.log` |
-| New `.dll`/binaries blocked or quarantined after build | Application allow-listing or endpoint protection | Build output location and what the log reports |
-| Downloads or NuGet restore fail, TLS errors | Proxy or TLS inspection with a custom root certificate | Does the same command work on the personal laptop? |
-| Drive clone is slow, `.git` conflicts, duplicate nested folders | Drive sync touching `.git` | Keep one clone, let sync finish (see `scripts/fix-drive-clone.cmd`) |
-| Backups or logs land somewhere unexpected | Redirected `Documents` or profile folders | Resolve the real folder path in Settings |
-| A tool cannot reach a service only here | Outbound filtering for network or AI services | Motivation for the Egress Guard: it records what was attempted, not why it was blocked |
+Consequences to expect: tools arrive without any knowledge of the work network
+(proxy, TLS inspection, blocked domains, restricted APIs), so they may fail to
+connect, fail to update, or behave differently than at home. That is by design.
+Fix it on the work side with local configuration, not by adding work details to
+the repo.
 
-## What stays out of the repo
-Employer name, company e-mails, internal IDs, host names, ticket numbers, policy text and exact security-product names. Use generic wording ("managed laptop", "policy file").
+## 2. Hard rules
 
-## Work-side handoff (for the Claude on the managed laptop)
-Do these only there, and report back **sanitised** results (yes/no/short note, no names or values):
-- [ ] Is PowerShell script execution restricted? Does `scripts\install.cmd` complete?
-- [ ] Is a user-level app (no admin) allowed to start with Windows and show a tray icon?
-- [ ] Is polling the TCP connection table from a user process allowed (needed by the Egress Guard sampler)?
-- [ ] Where does `Documents` actually point, and is the default backup folder writable?
-- [ ] Can the policy file location chosen for the Egress Guard be read by a user process?
-- [ ] Which categories of destinations does the real policy distinguish (names only for the work-side policy file, never copied here)?
+- **Two sides, one-way information.** Code and docs flow personal → work. Nothing
+  about the work environment flows work → personal (names, hosts, paths, tickets,
+  policy text, screenshots, logs with internal data).
+- **No confidential or customer data** in any AI tool, prompt, commit, issue or log.
+- **No personal data** without a legal basis.
+- **No unapproved data-sending extensions**, plugins, MCP servers or auto-updaters.
+- **AI output is never the sole basis** for security, legal, compliance or HR decisions.
+- **Secrets** only in keyring or environment variables; never in files in the repo.
+- **Deviations** go through the employer's exception/reporting process, not around it.
 
-Open questions for the author: confirm which of the symptoms above you actually saw, so the table can be trimmed to facts.
+## 3. What DevPilot checks (Egress Guard)
+
+| Stage | Check |
+|---|---|
+| Intake (new tool / folder / pull) | Static scan: network APIs, hard-coded hosts, telemetry, auto-update, upload, clipboard/screen/keyboard capture, process spawning, persistence, embedded secrets, local deny-list terms |
+| Provenance | Git remote + commit, SHA-256 manifest of files; any change after approval = re-review |
+| Approval | Per-tool allowlist of hosts/ports in `devpilot.tool.json` (`network` block); unapproved tools do not start in `block` mode |
+| Runtime | Per-process outbound connection monitor compared with the allowlist; log, warn, or stop the tool |
+| Kill switch | One tray action: pause external access for all managed tools |
+| Repo hygiene | Secret scan before commit/CI; local deny-list scan on the work side only |
+
+Modes (`DEVPILOT_EGRESS` / setting): `off`, `monitor` (default), `block`.
+Limits: DevPilot sees and controls only what it launches. It is a guard rail and an
+audit aid, not a substitute for the employer's own controls, and it never tries to
+bypass, disable or hide from them.
+
+## 4. Roles
+
+- Personal AI session: builds features from generic requirements only.
+- Work AI session: adds local policy, deny-list, allowlists, approval records.
+- Owner: decides, approves, reports exceptions.
