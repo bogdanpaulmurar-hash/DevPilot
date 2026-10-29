@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DevPilot.Core.Config;
+using DevPilot.Core.Guard;
 using DevPilot.Models;
 
 namespace DevPilot.Core.Presets;
@@ -25,6 +26,8 @@ public sealed class ToolManifest
     public string ProcessMatch { get; set; } = string.Empty;
     public string HealthUrl { get; set; } = string.Empty;
     public List<ToolAction> Actions { get; set; } = [];
+    /// <summary>Optional Egress Guard allowlist (hosts / ports the tool needs). Absent = nothing declared.</summary>
+    public ToolNetworkPolicy? Network { get; set; }
 
     /// <summary>Where the manifest was read from (not part of the file).</summary>
     [JsonIgnore] public string SourcePath { get; set; } = string.Empty;
