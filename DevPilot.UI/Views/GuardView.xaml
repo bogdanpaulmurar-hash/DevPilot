@@ -46,11 +46,12 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <Ellipse Width="8" Height="8" Fill="{Binding Dot, Converter={StaticResource RunStateBrush}}" HorizontalAlignment="Left"/>
+                                            <Ellipse Width="14" Height="14" Fill="{Binding LightColor}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,3,0,0" ToolTip="{Binding LightReason}"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" HorizontalAlignment="Left" TextAlignment="Left"/>
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
                                                 <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{Binding LightReason}" Style="{StaticResource Hint}" FontWeight="SemiBold" Margin="0,1,0,0"/>
                                                 <TextBlock Text="{Binding ScanText}" Style="{StaticResource Hint}" Margin="0,1,0,0"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
@@ -85,17 +86,16 @@
                                         </Grid>
                                         <TextBlock Text="Press Approve to store these values together with the tool's current files. Hosts and ports start from the tool's own devpilot.tool.json when there is one." Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="48,6,0,0"/>
 
-                                        <ItemsControl ItemsSource="{Binding Findings}" Margin="48,10,0,0">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type vm:GuardFindingVM}">
-                                                    <StackPanel Margin="0,0,0,6">
-                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
-                                                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
-                                                        <TextBlock Text="{Binding Help}" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                        <StackPanel Margin="48,10,0,0" Visibility="{Binding HasFindings, Converter={StaticResource BoolToVis}}">
+                                            <Grid>
+                                                <TextBlock Text="Findings (select text, or use Copy)" Style="{StaticResource FieldLabel}"/>
+                                                <Button Content="Copy" HorizontalAlignment="Right"
+                                                        Command="{Binding DataContext.CopyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            </Grid>
+                                            <TextBox Text="{Binding FindingsText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                                     MaxHeight="170" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                                     FontFamily="{StaticResource MonoFont}" FontSize="12" Margin="0,4,0,0"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -109,14 +109,12 @@
                 <StackPanel>
                     <TextBlock Text="Recent events" Style="{StaticResource SectionTitle}"/>
                     <TextBlock Text="Connections outside an allowlist, or from tools that declared none. Kept in memory only." Style="{StaticResource Hint}" TextWrapping="Wrap"/>
-                    <ItemsControl ItemsSource="{Binding Recent}" Margin="0,8,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontFamily="{StaticResource MonoFont}" FontSize="12" Margin="0,0,0,3"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Text="Nothing so far." Style="{StaticResource Hint}" Visibility="{Binding Recent.Count, Converter={StaticResource BoolToVisInv}}"/>
+                    <Button Content="Copy" HorizontalAlignment="Right" Command="{Binding CopyCommand}" Visibility="{Binding HasRecent, Converter={StaticResource BoolToVis}}"/>
+                    <TextBox Text="{Binding RecentText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             FontFamily="{StaticResource MonoFont}" FontSize="12" Margin="0,8,0,0"
+                             Visibility="{Binding HasRecent, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="Nothing so far." Style="{StaticResource Hint}" Visibility="{Binding HasRecent, Converter={StaticResource BoolToVisInv}}"/>
                 </StackPanel>
             </Border>
         </StackPanel>

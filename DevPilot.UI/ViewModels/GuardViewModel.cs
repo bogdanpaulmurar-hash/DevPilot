@@ -14,15 +14,6 @@ using Microsoft.Win32;
 
 namespace DevPilot.UI.ViewModels;
 
-public sealed class GuardFindingVM
-{
-    public GuardFinding Finding { get; }
-    public GuardFindingVM(GuardFinding f) { Finding = f; }
-    public string Title => $"{Finding.Severity} · {Finding.RuleId} · {Finding.File}:{Finding.Line}";
-    public string Message => Finding.Message;
-    public string Help => string.IsNullOrEmpty(Finding.Why) ? Finding.Fix : $"{Finding.Why} {Finding.Fix}";
-}
-
 public sealed class GuardToolRowVM : ObservableObject
 {
     private GuardStatus _status = GuardStatus.Unreviewed;
@@ -35,7 +26,9 @@ public sealed class GuardToolRowVM : ObservableObject
 
     public ToolEntry Tool { get; }
     public GuardReport? Report { get; private set; }
-    public ObservableCollection<GuardFindingVM> Findings { get; } = [];
+    private string _findingsText = string.Empty;
+    private int _violations;
+    private GuardLightResult _light = new(GuardLight.Unknown, "Checking…");
 
     public GuardToolRowVM(ToolEntry tool, IConfigStore config)
     {
@@ -46,7 +39,31 @@ public sealed class GuardToolRowVM : ObservableObject
     public string Name => Tool.Name;
     public string Glyph => FlyoutBuilder.GlyphOf(Tool);
 
-    public GuardStatus Status { get => _status; private set { if (Set(ref _status, value)) { OnPropertyChanged(nameof(StatusText)); OnPropertyChanged(nameof(Dot)); } } }
+    public GuardStatus Status { get => _status; private set { if (Set(ref _status, value)) { OnPropertyChanged(nameof(StatusText)); RefreshLight(); } } }
+
+    public string LightColor => _checked ? _light.Light switch
+    {
+        GuardLight.Green => "#1E8E3E",
+        GuardLight.Amber => "#F9AB00",
+        GuardLight.Red => "#D93025",
+        _ => "#8A8A8A",
+    } : "#8A8A8A";
+
+    public string LightReason => _checked ? _light.Reason : "Checking…";
+
+    public void SetViolations(int count)
+    {
+        if (_violations == count) return;
+        _violations = count;
+        RefreshLight();
+    }
+
+    private void RefreshLight()
+    {
+        _light = GuardTrafficLight.Evaluate(_status, Report, _violations);
+        OnPropertyChanged(nameof(LightColor));
+        OnPropertyChanged(nameof(LightReason));
+    }
 
     public string StatusText => !_checked ? "Checking…" : _status switch
     {
@@ -56,16 +73,9 @@ public sealed class GuardToolRowVM : ObservableObject
         _ => "Not reviewed",
     };
 
-    public ToolRunState Dot => !_checked ? ToolRunState.Unknown : _status switch
-    {
-        GuardStatus.Approved => ToolRunState.Running,
-        GuardStatus.Drifted => ToolRunState.Starting,
-        GuardStatus.Blocked => ToolRunState.Failed,
-        _ => ToolRunState.Unknown,
-    };
-
     public string ScanText { get => _scanText; private set => Set(ref _scanText, value); }
-    public bool HasFindings => Findings.Count > 0;
+    public string FindingsText { get => _findingsText; private set { if (Set(ref _findingsText, value)) OnPropertyChanged(nameof(HasFindings)); } }
+    public bool HasFindings => _findingsText.Length > 0;
 
     public bool Offline
     {
@@ -91,18 +101,17 @@ public sealed class GuardToolRowVM : ObservableObject
         _checked = true;
         Status = status;
         OnPropertyChanged(nameof(StatusText));
-        OnPropertyChanged(nameof(Dot));
+        RefreshLight();
     }
 
     public void SetReport(GuardReport report, string? note = null)
     {
         Report = report;
-        Findings.Clear();
-        foreach (var f in report.Findings.OrderByDescending(f => f.Severity)) Findings.Add(new GuardFindingVM(f));
+        FindingsText = GuardFindingsText.Format(report);
         ScanText = note ?? (report.Findings.Count == 0
             ? "Scanned: nothing found"
             : $"Scanned: {report.Count(GuardSeverity.High)} high · {report.Count(GuardSeverity.Warn)} warn · {report.Count(GuardSeverity.Info)} info");
-        OnPropertyChanged(nameof(HasFindings));
+        RefreshLight();
     }
 }
 
@@ -120,7 +129,9 @@ public sealed class GuardViewModel : ObservableObject, IPage
     ];
 
     public ObservableCollection<GuardToolRowVM> Rows { get; } = [];
-    public ObservableCollection<string> Recent { get; } = [];
+    private readonly List<string> _recent = [];
+    public string RecentText => string.Join(Environment.NewLine, _recent);
+    public bool HasRecent => _recent.Count > 0;
 
     public ICommand ScanCommand { get; }
     public ICommand ScanAllCommand { get; }
@@ -129,6 +140,7 @@ public sealed class GuardViewModel : ObservableObject, IPage
     public ICommand ResetCommand { get; }
     public ICommand ExportCommand { get; }
     public ICommand PauseCommand { get; }
+    public ICommand CopyCommand { get; }
 
     public GuardViewModel(IConfigStore config, KillSwitchService killSwitch, GuardEventLog events)
     {
@@ -154,6 +166,13 @@ public sealed class GuardViewModel : ObservableObject, IPage
             await RefreshStatusAsync(r);
         });
         ExportCommand = new RelayCommand(Export);
+        CopyCommand = new RelayCommand(p =>
+        {
+            var text = p is GuardToolRowVM r ? r.FindingsText : RecentText;
+            if (text.Length == 0) return;
+            try { Clipboard.SetText(text); }
+            catch (System.Runtime.InteropServices.COMException) { Notifier.Error("Could not copy", "The clipboard is in use by another program."); }
+        });
         PauseCommand = new AsyncCommand(async () =>
         {
             if (_killSwitch.IsPaused) _killSwitch.Resume();
@@ -207,8 +226,11 @@ public sealed class GuardViewModel : ObservableObject, IPage
         Rows.Clear();
         foreach (var tool in _config.Current.Tools.Where(ApprovalGate.Applies))
             Rows.Add(new GuardToolRowVM(tool, _config));
-        Recent.Clear();
-        foreach (var e in _events.Recent(50)) AddRecent(e);
+        _recent.Clear();
+        foreach (var e in _events.Recent(50)) AddRecent(e, notify: false);
+        OnPropertyChanged(nameof(RecentText));
+        OnPropertyChanged(nameof(HasRecent));
+        UpdateViolations();
         OnPropertyChanged(nameof(Mode));
         OnPropertyChanged(nameof(ModeHint));
         OnPropertyChanged(nameof(IsPaused));
@@ -217,11 +239,22 @@ public sealed class GuardViewModel : ObservableObject, IPage
         foreach (var row in Rows.ToList()) _ = RefreshStatusAsync(row, loadDraft: true);
     }
 
-    private void AddRecent(GuardEvent e)
+    private void AddRecent(GuardEvent e, bool notify = true)
     {
         var what = e.Verdict == ConnectionVerdict.NotAllowed ? "outside allowlist" : "no allowlist declared";
-        Recent.Insert(0, $"{e.TimeUtc.ToLocalTime():HH:mm:ss} · {e.ToolName} → {e.Host}:{e.Port} · {what}");
-        while (Recent.Count > 50) Recent.RemoveAt(Recent.Count - 1);
+        _recent.Insert(0, $"{e.TimeUtc.ToLocalTime():HH:mm:ss} · {e.ToolName} → {e.Host}:{e.Port} · {what}");
+        while (_recent.Count > 50) _recent.RemoveAt(_recent.Count - 1);
+        if (!notify) return;
+        OnPropertyChanged(nameof(RecentText));
+        OnPropertyChanged(nameof(HasRecent));
+        UpdateViolations();
+    }
+
+    private void UpdateViolations()
+    {
+        var recent = _events.Recent();
+        foreach (var row in Rows)
+            row.SetViolations(recent.Count(e => e.ToolName == row.Name && e.Verdict == ConnectionVerdict.NotAllowed));
     }
 
     private async Task RefreshStatusAsync(GuardToolRowVM row, bool loadDraft = false)

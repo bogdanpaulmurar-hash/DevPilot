@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.12.1
+- Egress Guard page: a traffic light per tool (red = blocked, a connection outside the allowlist or a high-risk finding; amber = not approved, changed since approval, not scanned or warnings; green = approved and the last scan is clean) with the reason shown next to it. Findings and recent events are now one scrollable, selectable text box each (with a Copy button) capped at 60 findings, instead of thousands of controls that made the page slow and could freeze it. Core: `GuardTrafficLight`, `GuardFindingsText`. Tests: `GuardLightTests`.
+
 ## 2.12.0
 - Egress Guard: incident reports. A connection outside the allowlist now writes a plain-text report to `%LOCALAPPDATA%\DevPilot\incidents\` (tool, start path, processes, destination, verdict and why, allowlist in force, recent events, what to do). In `block` mode the tool is stopped *and marked Blocked* (auto-restart no longer restarts it) and a dialog offers to open the report; in `monitor` mode only a notification. Core: `GuardIncident`, `IncidentReport`; `EgressMonitorService.IncidentRecorded` replaces `NotificationRequested`.
 - Deny terms: `*` matches up to 40 characters (`project*alpha`), `re:` starts a regular expression; plain terms are unchanged. Used by the scanner, the pre-flight check and `scripts/check-secrets.ps1`. Broken patterns are counted (`LocalPolicy.InvalidTermCount`), never shown. Tests: `DenyTermAndIncidentTests`. Built and tested from a local copy (307 tests pass); not run on a live tool yet.
