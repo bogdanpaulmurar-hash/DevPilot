@@ -34,7 +34,13 @@ Per tool: the `network` block of `devpilot.tool.json` (see INTEGRATION.md), or w
 { "denyTerms": ["some-internal-name"], "alwaysAllowedHosts": ["updates.example.org"] }
 ```
 
+A deny term is plain text (matched anywhere, ignoring case, so `acme` also catches `AcmeCorp`), or uses `*` for "up to 40 characters" (`project*alpha` catches `project-x-alpha`; a leading or trailing `*` changes nothing), or starts with `re:` for a regular expression (`re:PRJ-\d{4}`). Use a few specific names (client, project, product, internal domain, code prefix); common words cause false alarms.
+
 `denyTerms` feed the scanner, the pre-flight check and the secret check script; matches report positions or files, never the term. `alwaysAllowedHosts` apply to all tools.
+
+## Incidents
+
+When a tool connects outside its allowlist, DevPilot writes a plain-text report to `%LOCALAPPDATA%\DevPilot\incidents\` (time, tool, start path, processes, destination, verdict and why, the allowlist in force, the tool's recent events, what to do). In `monitor` mode you get a notification and the tool keeps running. In `block` mode the tool is stopped and marked Blocked (so auto-restart cannot bring it back), and a dialog offers to open the report; it stays blocked until you review it on the Egress Guard page (*Reset*, then approve a corrected allowlist). The report is local: it names paths and destinations, so do not paste it outside the work PC. Detection happens after the connection opened; prevention is the approval gate plus a declared allowlist.
 
 ## Limits
 
