@@ -49,7 +49,10 @@ public class TextPreflightTests
     public void Positions_are_one_based_and_sorted()
     {
         var result = TextPreflight.Check("ok\r\nmail a@example.com\r\nand b@example.com");
-        Assert.Equal([(2, 6), (3, 5)], result.Hits.Select(h => (h.Line, h.Column)).ToArray());
+        var positions = result.Hits.Select(h => (h.Line, h.Column)).ToList();
+        Assert.Equal(2, positions.Count);
+        Assert.Equal((2, 6), positions[0]);
+        Assert.Equal((3, 5), positions[1]);
     }
 
     [Fact]
