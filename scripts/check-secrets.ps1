@@ -29,6 +29,18 @@ if ($env:APPDATA -and (Test-Path $policy)) {
     } catch { Write-Output 'note: policy.local.json could not be read; deny terms skipped.' }
 }
 
+# Same syntax as DevPilot: plain text, "*" = up to 40 characters, "re:" = regular expression.
+function Test-DenyTerm([string]$text, [string]$term) {
+    try {
+        if ($term -like 're:*') { return [regex]::IsMatch($text, $term.Substring(3), 'IgnoreCase', [TimeSpan]::FromMilliseconds(500)) }
+        $core = $term.Trim('*')
+        if ($core.Length -eq 0) { return $false }
+        if ($core.IndexOf('*') -lt 0) { return $text.IndexOf($core, [StringComparison]::OrdinalIgnoreCase) -ge 0 }
+        $pattern = ($core.Split('*') | ForEach-Object { [regex]::Escape($_) }) -join '.{0,40}?'
+        return [regex]::IsMatch($text, $pattern, 'IgnoreCase', [TimeSpan]::FromMilliseconds(500))
+    } catch { return $false }
+}
+
 $bad = 0
 foreach ($f in $files) {
     if (-not $f -or ($skip | Where-Object { $f -match $_ })) { continue }
@@ -40,7 +52,7 @@ foreach ($f in $files) {
         $bad++
     }
     foreach ($t in $terms) {
-        if ($t -and $text.IndexOf([string]$t, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+        if ($t -and (Test-DenyTerm $text ([string]$t))) {
             Write-Output "::error file=$f::Matches a local deny term"
             $bad++
             break

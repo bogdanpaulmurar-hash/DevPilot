@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.12.0
+- Egress Guard: incident reports. A connection outside the allowlist now writes a plain-text report to `%LOCALAPPDATA%\DevPilot\incidents\` (tool, start path, processes, destination, verdict and why, allowlist in force, recent events, what to do). In `block` mode the tool is stopped *and marked Blocked* (auto-restart no longer restarts it) and a dialog offers to open the report; in `monitor` mode only a notification. Core: `GuardIncident`, `IncidentReport`; `EgressMonitorService.IncidentRecorded` replaces `NotificationRequested`.
+- Deny terms: `*` matches up to 40 characters (`project*alpha`), `re:` starts a regular expression; plain terms are unchanged. Used by the scanner, the pre-flight check and `scripts/check-secrets.ps1`. Broken patterns are counted (`LocalPolicy.InvalidTermCount`), never shown. Tests: `DenyTermAndIncidentTests`. Built and tested from a local copy (307 tests pass); not run on a live tool yet.
+
 ## 2.11.0
 - Egress Guard, step 11 of 11: docs (`docs/GUARD.md`, `network` block in `docs/INTEGRATION.md`) and version 2.11.0. The Guard is new in this release: modes off / monitor (default) / block, scan, approval and drift, runtime monitor, soft offline, kill switch, pre-flight check, repo secret check. Details per step below. Untested on a real Windows desktop; see `docs/GUARD.md` for limits.
 - Egress Guard, step 10 of 11 (repo hygiene): `backups/` is git-ignored; CI runs `scripts/check-secrets.ps1` (generic secret patterns in tracked files, same shapes as the scanner's `secret` rule; Guard rules and tests are excluded). The same script runs as a pre-commit hook (`scripts\install-hooks.cmd`, staged files only) and, when `%APPDATA%\DevPilot\policy.local.json` exists, also checks its deny terms; a match reports the file only, never the term. Not run locally; CI pending.

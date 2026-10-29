@@ -69,10 +69,8 @@ public static class TextPreflight
             if (line.Length > MaxLineLength) line = line[..MaxLineLength];
             if (line.Length == 0) continue;
 
-            foreach (var term in policy.DenyTerms)
-                for (int at = line.IndexOf(term, StringComparison.OrdinalIgnoreCase); at >= 0 && term.Length > 0;
-                     at = line.IndexOf(term, at + term.Length, StringComparison.OrdinalIgnoreCase))
-                    Add(result, DenyCategory, i, at);
+            foreach (var at in policy.FindDenyMatches(line))
+                Add(result, DenyCategory, i, at);
 
             if (secret is not null) AddMatches(result, secret, SecretCategory, line, i, _ => true);
             AddMatches(result, Email, EmailCategory, line, i, _ => true);

@@ -33,7 +33,11 @@ public sealed class EgressMonitorService : IDisposable
     private int _busy;
 
     /// <summary>Raised (rate-limited) when a connection outside the allowlist is seen. Handlers must marshal to the UI thread.</summary>
-    public event EventHandler<GuardEvent>? NotificationRequested;
+    public event EventHandler<RecordedIncident>? IncidentRecorded;
+
+    /// <summary>Folder for incident reports (disposable, local to this PC).</summary>
+    public static string IncidentFolder => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DevPilot", "incidents");
 
     public EgressMonitorService(IConfigStore config, IProcessMonitor processes, IConnectionSource source,
         GuardEventLog events, ILogger<EgressMonitorService> logger)
@@ -99,9 +103,40 @@ public sealed class EgressMonitorService : IDisposable
             _events.Add(e);
             _logger.LogWarning("Egress {Verdict}: {Tool} -> {Host}:{Port} ({Action})", verdict, tool.Name, e.Host, e.Port, decision.Action);
 
-            if (decision.Action is RuntimeAction.Notify or RuntimeAction.Stop && _limiter.ShouldNotify($"{tool.Id}|{e.Host}|{e.Port}"))
-                NotificationRequested?.Invoke(this, e);
-            if (decision.Action == RuntimeAction.Stop) { Stop(tool, roots); return; }
+            var report = decision.Action is RuntimeAction.Notify or RuntimeAction.Stop
+                && (decision.Action == RuntimeAction.Stop || _limiter.ShouldNotify($"{tool.Id}|{e.Host}|{e.Port}"));
+            RecordedIncident? recorded = null;
+            if (report)
+            {
+                var incident = new GuardIncident(e.TimeUtc, tool.Name, tool.Id, tool.Path, mode, decision.Action, verdict,
+                    e.Host, e.Address, e.Port, roots, policy, _events.Recent(100));
+                recorded = new RecordedIncident(incident, WriteReport(incident));
+            }
+            if (decision.Action == RuntimeAction.Stop)
+            {
+                // Blocked until reviewed: otherwise auto-restart would start the same tool again.
+                ApprovalGate.Block(tool);
+                _config.Save();
+                Stop(tool, roots);
+            }
+            if (recorded is not null) IncidentRecorded?.Invoke(this, recorded);
+            if (decision.Action == RuntimeAction.Stop) return;
+        }
+    }
+
+    private string? WriteReport(GuardIncident incident)
+    {
+        try
+        {
+            Directory.CreateDirectory(IncidentFolder);
+            var path = Path.Combine(IncidentFolder, IncidentReport.FileName(incident));
+            File.WriteAllText(path, IncidentReport.Format(incident));
+            return path;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "Writing incident report failed");
+            return null;
         }
     }
 
@@ -191,3 +226,6 @@ public sealed class EgressMonitorService : IDisposable
         return seen;
     }
 }
+
+/// <summary>An incident and the report file written for it (null when the file could not be written).</summary>
+public sealed record RecordedIncident(GuardIncident Incident, string? FilePath);

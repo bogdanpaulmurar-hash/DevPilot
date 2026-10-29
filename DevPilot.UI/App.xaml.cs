@@ -101,11 +101,7 @@ public partial class App : Application
         monitor.Start();
 
         var egress = GetService<EgressMonitorService>();
-        egress.NotificationRequested += (_, e) => Dispatcher.BeginInvoke(() =>
-        {
-            var what = e.Action == DevPilot.Core.Guard.RuntimeAction.Stop ? "was stopped" : "connected outside its allowlist";
-            Notifier.Error($"{e.ToolName} {what}", $"{e.Host}:{e.Port}");
-        });
+        egress.IncidentRecorded += (_, r) => Dispatcher.BeginInvoke(() => ShowIncident(r));
         egress.Start();
 
         SetupHotkeys();
@@ -219,6 +215,24 @@ public partial class App : Application
     }
 
     // ── Hotkeys ──────────────────────────────────────────────────────────
+    private static void ShowIncident(RecordedIncident r)
+    {
+        var i = r.Incident;
+        if (i.Action != DevPilot.Core.Guard.RuntimeAction.Stop)
+        {
+            Notifier.Error($"{i.ToolName} connected outside its allowlist", $"{i.Host}:{i.Port}");
+            return;
+        }
+        var nl = Environment.NewLine;
+        var text = $"{i.ToolName} was stopped and blocked.{nl}{nl}It connected to {i.Host}:{i.Port}, which is not in its allowlist.{nl}"
+                   + $"It stays blocked until you review it on the Egress Guard page.{nl}{nl}"
+                   + (r.FilePath is null ? "The report file could not be written." : $"Report: {r.FilePath}{nl}{nl}Open the report now?");
+        var open = MessageBox.Show(text, "DevPilot Egress Guard", r.FilePath is null ? MessageBoxButton.OK : MessageBoxButton.YesNo,
+            MessageBoxImage.Warning, MessageBoxResult.No);
+        if (open == MessageBoxResult.Yes && r.FilePath is not null)
+            Process.Start(new ProcessStartInfo(r.FilePath) { UseShellExecute = true });
+    }
+
     private void SetupHotkeys()
     {
         var p = new HwndSourceParameters("DevPilotHotkeys") { Width = 0, Height = 0, WindowStyle = 0, ParentWindow = new IntPtr(-3) };
