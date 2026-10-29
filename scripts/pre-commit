@@ -1,0 +1,3 @@
+#!/bin/sh
+# Install with scripts/install-hooks.cmd (copies this file to .git/hooks/pre-commit).
+exec powershell -NoProfile -ExecutionPolicy Bypass -File "$(git rev-parse --show-toplevel)/scripts/check-secrets.ps1" -Staged
