@@ -1,6 +1,7 @@
 using System.Windows;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Presets;
+using DevPilot.Infrastructure.Services;
 using DevPilot.Models;
 using DevPilot.UI.Hub;
 using DevPilot.UI.Mvvm;
@@ -17,12 +18,14 @@ public sealed class TrayManager : IDisposable
     private readonly IConfigStore _config;
     private readonly IKeepAwakeService _keepAwake;
     private readonly FlyoutBuilder _flyouts;
+    private readonly KillSwitchService _killSwitch;
     private readonly Dictionary<string, (TaskbarIcon Icon, IconFactory.OwnedIcon Image, string Signature)> _toolIcons = [];
     private TaskbarIcon? _main;
     private IAppShell? _shell;
 
-    public TrayManager(IConfigStore config, IKeepAwakeService keepAwake, FlyoutBuilder flyouts)
+    public TrayManager(IConfigStore config, IKeepAwakeService keepAwake, FlyoutBuilder flyouts, KillSwitchService killSwitch)
     {
+        _killSwitch = killSwitch;
         _config = config;
         _keepAwake = keepAwake;
         _flyouts = flyouts;
@@ -131,6 +134,20 @@ public sealed class TrayManager : IDisposable
             _config.Current.KeepAwake.Enabled = !_config.Current.KeepAwake.Enabled;
             _config.Touch(ConfigArea.KeepAwake);
         }, detail: _keepAwake.IsActive ? "on" : "off"),
+        FlyoutItem.Action(_killSwitch.IsPaused ? "Resume external access" : "Pause external access", Glyphs.Lock, async () =>
+        {
+            if (_killSwitch.IsPaused)
+            {
+                _killSwitch.Resume();
+                Notifier.Info("External access resumed", "Tools can start and connect again.");
+            }
+            else
+            {
+                int stopped = await _killSwitch.PauseAsync();
+                Notifier.Info("External access paused", stopped == 0 ? "New starts of network tools are refused until you resume." : $"{stopped} tool(s) stopped; new starts are refused until you resume.");
+            }
+            return true;
+        }, detail: _killSwitch.IsPaused ? "paused" : string.Empty),
         FlyoutItem.Action("Back up now", Glyphs.Save, async () => { await App.BackupNowAsync(); return true; }),
         FlyoutItem.Action("Tools", Glyphs.List, () => shell.ShowMainWindow("tools")),
         FlyoutItem.Action("Settings", Glyphs.Settings, () => shell.ShowMainWindow("settings")),

@@ -32,6 +32,8 @@ public enum EgressMode { Off, Monitor, Block }
 public class GuardSettings
 {
     public EgressMode Mode { get; set; } = EgressMode.Monitor;
+    /// <summary>Kill switch: external access is paused for all managed tools (persisted across restarts).</summary>
+    public bool Paused { get; set; }
 }
 
 /// <summary>Backups of the whole configuration (with chosen logos) to a folder the user picks.</summary>

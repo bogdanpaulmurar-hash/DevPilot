@@ -19,12 +19,16 @@ public sealed class GuardGate : IGuardGate
 
     public Task<GateDecision> CheckAsync(ToolEntry tool)
     {
-        var mode = _store.Current.Guard.Mode;
-        if (mode == EgressMode.Off || !ApprovalGate.Applies(tool)) return Task.FromResult(GateDecision.Skipped);
+        var guard = _store.Current.Guard;
+        var mode = guard.Mode;
+        bool paused = guard.Paused;
+        if ((mode == EgressMode.Off && !paused) || !ApprovalGate.Applies(tool)) return Task.FromResult(GateDecision.Skipped);
         return Task.Run(() =>
         {
             try
             {
+                if (KillSwitch.Check(paused, tool, GuardManifest.Network(tool)) is { } refusal) return refusal;
+                if (mode == EgressMode.Off) return GateDecision.Skipped;
                 var decision = ApprovalGate.Evaluate(mode, tool, () => ProvenanceReader.ReadForTool(tool));
                 _logger.LogInformation("Egress Guard ({Mode}) {Tool}: {Status}, start {CanStart}", mode, tool.Name, decision.Status, decision.CanStart);
                 return decision;
