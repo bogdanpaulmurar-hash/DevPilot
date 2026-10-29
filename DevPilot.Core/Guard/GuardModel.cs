@@ -1,8 +1,5 @@
 namespace DevPilot.Core.Guard;
 
-/// <summary>How the Egress Guard reacts: nothing, log and warn, or refuse/stop.</summary>
-public enum EgressMode { Off, Monitor, Block }
-
 public enum GuardSeverity { Info, Warn, High }
 
 /// <summary>One thing a scan or the runtime monitor found. Never carries a matched deny-list term.</summary>

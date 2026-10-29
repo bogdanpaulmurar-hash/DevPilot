@@ -12,17 +12,32 @@ public sealed class Launcher : ILauncher
 {
     private readonly ILogger<Launcher> _logger;
     private readonly IProcessMonitor _monitor;
+    private readonly IGuardGate? _gate;
 
     public event EventHandler<ToolEntry>? ToolStarted;
 
-    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor)
+    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor, IGuardGate? gate = null)
     {
         _logger = logger;
         _monitor = monitor;
+        _gate = gate;
     }
 
     public async Task<LaunchResult> StartAsync(ToolEntry tool, LaunchReason reason = LaunchReason.Manual)
     {
+        if (_gate is not null)
+        {
+            var decision = await _gate.CheckAsync(tool).ConfigureAwait(false);
+            if (!decision.CanStart)
+            {
+                _logger.LogWarning("Egress Guard refused to start {Tool}: {Reason}", tool.Name, decision.Message);
+                if (tool.IsProcessLike) _monitor.NotifyLaunchFailed(tool.Id, decision.Message);
+                return LaunchResult.Fail(decision.Message);
+            }
+            if (decision.Message.Length > 0)
+                _logger.LogWarning("Egress Guard: {Tool} starts with a warning: {Reason}", tool.Name, decision.Message);
+        }
+
         LaunchPlan plan;
         try { plan = LaunchPlanner.ForTool(tool, reason); }
         catch (Exception ex) { return LaunchResult.Fail(ex.Message); }

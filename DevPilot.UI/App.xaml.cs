@@ -158,6 +158,7 @@ public partial class App : Application
             : new ConfigStore(dataDir, sp.GetRequiredService<ILogger<ConfigStore>>()));
         s.AddSingleton<IConfigStore>(sp => sp.GetRequiredService<ConfigStore>());
         s.AddSingleton<IProcessMonitor, ProcessMonitor>();
+        s.AddSingleton<IGuardGate, GuardGate>();
         s.AddSingleton<ILauncher, Launcher>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();

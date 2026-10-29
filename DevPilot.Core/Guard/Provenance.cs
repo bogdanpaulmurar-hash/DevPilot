@@ -14,11 +14,49 @@ public static class ProvenanceReader
     public const int MaxFiles = 5000;
     private const int MaxParentSearch = 6;
 
+    /// <summary>Files larger than this are identified by their size instead of their content, so a start stays fast.</summary>
+    public const long MaxHashedFileBytes = 64L * 1024 * 1024;
+
     public static Provenance Read(string folder)
     {
         var (remote, commit) = ReadGit(folder);
         var (digest, count, truncated) = HashFiles(folder);
         return new Provenance(remote, commit, digest, count, truncated);
+    }
+
+    /// <summary>
+    /// Provenance of a tool: its folder when that is a project folder; just the program file itself when the folder is
+    /// shared (a drive root, Windows, Program Files) or unknown, so a start never hashes half the disk.
+    /// </summary>
+    public static Provenance ReadForTool(ToolEntry tool)
+    {
+        var dir = Launch.PathTokens.ToolDirectory(tool);
+        if (dir.Length > 0 && Directory.Exists(dir) && !IsSharedFolder(dir)) return Read(dir);
+
+        string file;
+        try { file = Environment.ExpandEnvironmentVariables(tool.Path.Trim().Trim('"')); }
+        catch (ArgumentException) { return new Provenance(string.Empty, string.Empty, string.Empty, 0, false); }
+        if (!File.Exists(file)) return new Provenance(string.Empty, string.Empty, string.Empty, 0, false);
+        var (digest, count, truncated) = HashList([file], Path.GetDirectoryName(file) ?? string.Empty);
+        return new Provenance(string.Empty, string.Empty, digest, count, truncated);
+    }
+
+    internal static bool IsSharedFolder(string dir)
+    {
+        string full;
+        try { full = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar); }
+        catch (ArgumentException) { return true; }
+        if (Path.GetPathRoot(full)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) == full) return true;
+        foreach (var special in new[]
+        {
+            Environment.SpecialFolder.Windows, Environment.SpecialFolder.System, Environment.SpecialFolder.ProgramFiles,
+            Environment.SpecialFolder.ProgramFilesX86, Environment.SpecialFolder.UserProfile,
+        })
+        {
+            var root = Environment.GetFolderPath(special).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (root.Length > 0 && string.Equals(full, root, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     // ── git ─────────────────────────────────────────────────────────────
@@ -120,22 +158,29 @@ public static class ProvenanceReader
 
     // ── files ───────────────────────────────────────────────────────────
 
-    internal static (string Digest, int Count, bool Truncated) HashFiles(string folder)
+    internal static (string Digest, int Count, bool Truncated) HashFiles(string folder) =>
+        Directory.Exists(folder) ? HashList(EnumerateAllFiles(folder), folder) : (string.Empty, 0, false);
+
+    internal static (string Digest, int Count, bool Truncated) HashList(IEnumerable<string> files, string root)
     {
-        if (!Directory.Exists(folder)) return (string.Empty, 0, false);
         var entries = new List<string>();
         bool truncated = false;
-        foreach (var file in EnumerateAllFiles(folder))
+        foreach (var file in files)
         {
             if (entries.Count >= MaxFiles) { truncated = true; break; }
             string hash;
             try
             {
-                using var stream = File.OpenRead(file);
-                hash = Convert.ToHexString(SHA256.HashData(stream));
+                var length = new FileInfo(file).Length;
+                if (length > MaxHashedFileBytes) hash = "size:" + length;
+                else
+                {
+                    using var stream = File.OpenRead(file);
+                    hash = Convert.ToHexString(SHA256.HashData(stream));
+                }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { hash = "unreadable"; }
-            var relative = Path.GetRelativePath(folder, file).Replace('\\', '/');
+            var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
             entries.Add(relative + "\0" + hash);
         }
         entries.Sort(StringComparer.Ordinal);
