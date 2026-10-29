@@ -17,6 +17,8 @@ public sealed class ToolNetworkPolicy
 
     public bool IsDeclared => AllowNone || AllowedHosts.Count > 0 || Ports.Count > 0;
 
+    public bool PortAllowed(int port) => Ports.Count == 0 || Ports.Contains(port);
+
     public bool Allows(string host, int port)
     {
         if (AllowNone) return false;

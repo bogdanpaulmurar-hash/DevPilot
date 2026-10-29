@@ -100,6 +100,14 @@ public partial class App : Application
         });
         monitor.Start();
 
+        var egress = GetService<EgressMonitorService>();
+        egress.NotificationRequested += (_, e) => Dispatcher.BeginInvoke(() =>
+        {
+            var what = e.Action == DevPilot.Core.Guard.RuntimeAction.Stop ? "was stopped" : "connected outside its allowlist";
+            Notifier.Error($"{e.ToolName} {what}", $"{e.Host}:{e.Port}");
+        });
+        egress.Start();
+
         SetupHotkeys();
         GetService<DevPilot.UI.Typer.ClipboardWatcher>().SetEnabled(config.Current.Typer.KeepClipboardHistory);
         GetService<DevPilot.Core.Typer.ClipboardImageStore>().Cleanup();
@@ -159,6 +167,9 @@ public partial class App : Application
         s.AddSingleton<IConfigStore>(sp => sp.GetRequiredService<ConfigStore>());
         s.AddSingleton<IProcessMonitor, ProcessMonitor>();
         s.AddSingleton<IGuardGate, GuardGate>();
+        s.AddSingleton<DevPilot.Core.Guard.GuardEventLog>();
+        s.AddSingleton<IConnectionSource, TcpTableReader>();
+        s.AddSingleton<EgressMonitorService>();
         s.AddSingleton<ILauncher, Launcher>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();
