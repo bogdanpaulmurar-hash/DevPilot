@@ -132,3 +132,22 @@ Each logo is read once, scaled to a 64 px PNG and cached in `%LOCALAPPDATA%\DevP
 | AutoPilot DC | — | Keeps the PC awake only while a flow runs: no conflict. |
 
 Until a tool reads the variables, its own tray icon stays (Windows 11 can hide it in the overflow area) and DevPilot's *Startup & conflicts* page removes its autostart entry again whenever the tool re-creates it.
+
+## Network declaration (Egress Guard)
+
+A tool can list where it connects, in an optional `network` block of `devpilot.tool.json`. It is backward compatible: older readers ignore it, and a tool without it is only logged by the Egress Guard (see GUARD.md).
+
+```json
+{
+  "network": {
+    "allowedHosts": ["api.example.org", "*.cdn.example.org"],
+    "ports": [443],
+    "allowNone": false
+  }
+}
+```
+
+- `allowedHosts`: exact names, or `*.` wildcards that match subdomains only.
+- `ports`: optional; empty means any port on an allowed host.
+- `allowNone: true`: the tool needs no external access; any non-loopback connection is a violation.
+- Leave the block out when unknown. Do not guess.
