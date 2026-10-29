@@ -213,6 +213,7 @@ public static class LaunchPlanner
             env[EnvToolId] = tool.Id;
             env[EnvVersion] = AppVersion;
         }
+        if (tool.GuardOffline && tool.IsProcessLike) Guard.SoftOffline.Apply(env);
         foreach (var line in (tool.Managed.ExtraEnvironment ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
             var idx = line.IndexOf('=');

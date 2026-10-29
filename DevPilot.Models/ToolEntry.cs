@@ -63,6 +63,11 @@ public class ToolEntry
     public GuardApproval? GuardApproval { get; set; }
     /// <summary>The user blocked this tool in the Egress Guard (it does not start in block mode).</summary>
     public bool GuardBlocked { get; set; }
+    /// <summary>
+    /// Soft offline mode: the tool starts with proxy variables pointing at a dead local address. Only tools that
+    /// honour HTTP_PROXY / HTTPS_PROXY / ALL_PROXY are affected; this is not a security boundary.
+    /// </summary>
+    public bool GuardOffline { get; set; }
 
     public TrayMode Tray { get; set; } = TrayMode.HubOnly;
     public ManagedOptions Managed { get; set; } = new();
