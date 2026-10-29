@@ -17,6 +17,9 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
       - uses: actions/checkout@v4
+      - name: Secret check
+        shell: pwsh
+        run: ./scripts/check-secrets.ps1
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
