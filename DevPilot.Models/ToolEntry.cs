@@ -59,6 +59,9 @@ public class ToolEntry
 
     public List<ToolAction> Actions { get; set; } = [];
 
+    /// <summary>Egress Guard approval of this tool's files and allowlist; null = never reviewed.</summary>
+    public GuardApproval? GuardApproval { get; set; }
+
     public TrayMode Tray { get; set; } = TrayMode.HubOnly;
     public ManagedOptions Managed { get; set; } = new();
     public FolderOptions Folder { get; set; } = new();
