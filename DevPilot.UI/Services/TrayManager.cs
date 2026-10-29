@@ -148,6 +148,8 @@ public sealed class TrayManager : IDisposable
             }
             return true;
         }, detail: _killSwitch.IsPaused ? "paused" : string.Empty),
+        FlyoutItem.Action("Check clipboard before pasting into AI", Glyphs.Eye, () => PreflightActions.CheckClipboard()),
+        FlyoutItem.Action("Check a file before pasting into AI…", Glyphs.OpenFile, () => PreflightActions.CheckFile()),
         FlyoutItem.Action("Back up now", Glyphs.Save, async () => { await App.BackupNowAsync(); return true; }),
         FlyoutItem.Action("Tools", Glyphs.List, () => shell.ShowMainWindow("tools")),
         FlyoutItem.Action("Settings", Glyphs.Settings, () => shell.ShowMainWindow("settings")),
