@@ -194,6 +194,7 @@ public partial class App : Application
         s.AddSingleton<KeepAwakeViewModel>();
         s.AddSingleton<StartupViewModel>();
         s.AddSingleton<MonitorViewModel>();
+        s.AddSingleton<GuardViewModel>();
         s.AddSingleton<AppearanceViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<GuideViewModel>();

@@ -23,7 +23,7 @@ public sealed class MainViewModel : ObservableObject
     public string Version => "v" + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0");
 
     public MainViewModel(IConfigStore config, OverviewViewModel overview, ToolsViewModel tools, KeepAwakeViewModel keepAwake,
-        StartupViewModel startup, MonitorViewModel monitor, AppearanceViewModel appearance, SettingsViewModel settings, GuideViewModel guide)
+        StartupViewModel startup, MonitorViewModel monitor, GuardViewModel guard, AppearanceViewModel appearance, SettingsViewModel settings, GuideViewModel guide)
     {
         _config = config;
         Pages =
@@ -33,6 +33,7 @@ public sealed class MainViewModel : ObservableObject
             new NavItem { Key = "keepawake", Title = "Keep-awake", Glyph = Glyphs.Sun, Page = keepAwake },
             new NavItem { Key = "startup", Title = "Startup & conflicts", Glyph = Glyphs.Play, Page = startup },
             new NavItem { Key = "monitor", Title = "Monitor", Glyph = Glyphs.Diagnostic, Page = monitor },
+            new NavItem { Key = "guard", Title = "Egress Guard", Glyph = Glyphs.Lock, Page = guard },
             new NavItem { Key = "appearance", Title = "Appearance", Glyph = Glyphs.Color, Page = appearance },
         ];
         FooterPages =

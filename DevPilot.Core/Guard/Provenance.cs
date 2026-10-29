@@ -41,7 +41,7 @@ public static class ProvenanceReader
         return new Provenance(string.Empty, string.Empty, digest, count, truncated);
     }
 
-    internal static bool IsSharedFolder(string dir)
+    public static bool IsSharedFolder(string dir)
     {
         string full;
         try { full = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar); }

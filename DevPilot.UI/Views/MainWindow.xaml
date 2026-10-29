@@ -20,6 +20,7 @@
         <DataTemplate DataType="{x:Type vm:KeepAwakeViewModel}"><views:KeepAwakeView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:StartupViewModel}"><views:StartupView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:MonitorViewModel}"><views:MonitorView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:GuardViewModel}"><views:GuardView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:AppearanceViewModel}"><views:AppearanceView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:GuideViewModel}"><views:GuideView/></DataTemplate>

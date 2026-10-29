@@ -1,0 +1,124 @@
+<UserControl x:Class="DevPilot.UI.Views.GuardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DevPilot.UI.ViewModels">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,4,32,32" MaxWidth="900" HorizontalAlignment="Left">
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Egress Guard" Style="{StaticResource PageTitle}"/>
+                    <TextBlock Text="Checks what the tools DevPilot starts could send out, and lets you limit or stop it. It only sees tools DevPilot launches and is an audit aid, not a replacement for your organisation's controls." Style="{StaticResource PageSubtitle}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Style="{StaticResource Card}" Margin="0,20,0,12">
+                <StackPanel>
+                    <TextBlock Text="Mode" Style="{StaticResource SectionTitle}"/>
+                    <ComboBox ItemsSource="{x:Static vm:GuardViewModel.Modes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                              SelectedValue="{Binding Mode}" HorizontalAlignment="Left" MinWidth="360"/>
+                    <TextBlock Text="{Binding ModeHint}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="{Binding PauseLabel}" Command="{Binding PauseCommand}"/>
+                        <TextBlock Text="Stops tools that could use the network and refuses to start them until you resume." Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding PolicyStatus}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="Tools" Style="{StaticResource SectionTitle}"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Scan all" Command="{Binding ScanAllCommand}" Margin="0,0,8,0"/>
+                            <Button Content="Export report" Command="{Binding ExportCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:GuardToolRowVM}">
+                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,12">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="20"/>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Ellipse Width="8" Height="8" Fill="{Binding Dot, Converter={StaticResource RunStateBrush}}" HorizontalAlignment="Left"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Glyph}" Style="{StaticResource Glyph}" HorizontalAlignment="Left" TextAlignment="Left"/>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{Binding ScanText}" Style="{StaticResource Hint}" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="Scan" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.ScanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="Approve" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.ApproveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="Block" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.BlockCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="Reset"
+                                                        Command="{Binding DataContext.ResetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="48,10,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="180"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Allowed hosts (one per line, *.example.internal for subdomains)" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox Style="{StaticResource MultiLineBox}" Text="{Binding HostsText, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Ports (empty = any)" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox Text="{Binding PortsText, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                                <CheckBox Content="Needs no external access" IsChecked="{Binding AllowNone}" Margin="0,8,0,0"/>
+                                                <CheckBox Content="Start offline (soft)" IsChecked="{Binding Offline}" Margin="0,6,0,0"
+                                                          ToolTip="Sets proxy variables to a dead address. Only affects tools that honour them; not a security boundary."/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock Text="Press Approve to store these values together with the tool's current files. Hosts and ports start from the tool's own devpilot.tool.json when there is one." Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="48,6,0,0"/>
+
+                                        <ItemsControl ItemsSource="{Binding Findings}" Margin="48,10,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:GuardFindingVM}">
+                                                    <StackPanel Margin="0,0,0,6">
+                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                                                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="{Binding Help}" Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="No tools that start a program yet." Style="{StaticResource Hint}" Visibility="{Binding Rows.Count, Converter={StaticResource BoolToVisInv}}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Recent events" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="Connections outside an allowlist, or from tools that declared none. Kept in memory only." Style="{StaticResource Hint}" TextWrapping="Wrap"/>
+                    <ItemsControl ItemsSource="{Binding Recent}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontFamily="{StaticResource MonoFont}" FontSize="12" Margin="0,0,0,3"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Nothing so far." Style="{StaticResource Hint}" Visibility="{Binding Recent.Count, Converter={StaticResource BoolToVisInv}}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
