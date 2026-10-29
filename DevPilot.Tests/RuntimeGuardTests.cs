@@ -29,7 +29,7 @@ public class RuntimeGuardTests
         Assert.Equal(ConnectionVerdict.Allowed, ConnectionEvaluator.Judge(p, NoLocal, "198.51.100.1", "x.cdn.example.internal", 443));
         Assert.Equal(ConnectionVerdict.Allowed, ConnectionEvaluator.Judge(p, NoLocal, "203.0.113.9", null, 443));
         Assert.Equal(ConnectionVerdict.Allowed, ConnectionEvaluator.Judge(p, NoLocal, "198.51.100.77", "ec2-odd-name.example.test", 443,
-            host => host == "api.example.internal" ? ["198.51.100.77"] : []));
+            host => host == "api.example.internal" ? new[] { "198.51.100.77" } : Array.Empty<string>()));
         Assert.Equal(ConnectionVerdict.NotAllowed, ConnectionEvaluator.Judge(p, NoLocal, "198.51.100.5", "other.example.test", 443));
     }
 
@@ -69,11 +69,11 @@ public class RuntimeGuardTests
         var t = new ConnectionTracker();
         var a = new ConnectionInfo(1, "198.51.100.1", 443, 50000);
         var b = new ConnectionInfo(1, "198.51.100.2", 443, 50001);
-        Assert.Equal([a], t.NewOnes([a]));
-        Assert.Equal([b], t.NewOnes([a, b]));
-        Assert.Empty(t.NewOnes([a, b]));
-        Assert.Empty(t.NewOnes([]));
-        Assert.Equal([a], t.NewOnes([a]));
+        Assert.Equal(a, Assert.Single(t.NewOnes(new[] { a })));
+        Assert.Equal(b, Assert.Single(t.NewOnes(new[] { a, b })));
+        Assert.Empty(t.NewOnes(new[] { a, b }));
+        Assert.Empty(t.NewOnes(Array.Empty<ConnectionInfo>()));
+        Assert.Equal(a, Assert.Single(t.NewOnes(new[] { a })));
     }
 
     [Fact]
@@ -115,8 +115,8 @@ public class RuntimeGuardTests
         ApprovalGate.Approve(tool, new Provenance("", "", "AAA", 1, false), EgressMode.Monitor,
             new ToolNetworkPolicy { AllowedHosts = ["api.example.internal"], Ports = [443] }, DateTime.UtcNow);
         var effective = ApprovalGate.PolicyFor(tool, manifest)!;
-        Assert.Equal(["api.example.internal"], effective.AllowedHosts);
-        Assert.Equal([443], effective.Ports);
+        Assert.Equal("api.example.internal", Assert.Single(effective.AllowedHosts));
+        Assert.Equal(443, Assert.Single(effective.Ports));
     }
 
     [Fact]
