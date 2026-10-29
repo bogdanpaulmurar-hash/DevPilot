@@ -56,6 +56,17 @@ public static class ApprovalGate
         return true;
     }
 
+    /// <summary>
+    /// The allowlist that applies at run time: what the user approved if the tool was approved, otherwise what the
+    /// tool's own manifest declares (null when nothing is declared).
+    /// </summary>
+    public static ToolNetworkPolicy? PolicyFor(ToolEntry tool, ToolNetworkPolicy? manifest)
+    {
+        if (tool.GuardApproval is { } a)
+            return new ToolNetworkPolicy { AllowedHosts = [.. a.AllowedHosts], Ports = [.. a.Ports], AllowNone = a.AllowNone };
+        return manifest;
+    }
+
     public static void Block(ToolEntry tool) => tool.GuardBlocked = true;
 
     /// <summary>Removes the block and any approval, so the tool goes back to Unreviewed.</summary>
