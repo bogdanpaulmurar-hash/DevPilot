@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Egress Guard, step 1 of 11 (internal, no visible change): Core/Guard model (`EgressMode`, `GuardFinding`, `GuardReport`), `ToolNetworkPolicy` for an optional `network` block in `devpilot.tool.json` (hosts with `*.` wildcard, ports, `allowNone`), and `LocalPolicy` read from `%APPDATA%\DevPilot\policy.local.json` (optional, never logged). Tests: new `GuardModelTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.
+
 ## 2.10.0
 - Groups: each group header can have its own logo (.png/.ico/.jpg/.bmp, or the icon of an .exe/.dll/.lnk; it replaces the symbol), a title centred on the row, a larger title (Large / Extra large), a font (hub font, Semibold, Serif, Monospace), bold and italic. Set in Tools & groups > group > Look, with a live preview. Only the header changes; the tools under it keep the hub's look. The count and the chevron stay on the right.
 - Backup: group logos are saved in the .zip and restored like tool logos; paths under the old user folder are adapted too.
