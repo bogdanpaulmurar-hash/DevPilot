@@ -112,7 +112,7 @@ public class ProvenanceTests
         var approval = GuardApprovals.Create(now, EgressMode.Monitor,
             new ToolNetworkPolicy { AllowedHosts = ["api.example.internal"], Ports = [443] }, new DateTime(2026, 10, 29, 0, 0, 0, DateTimeKind.Utc));
         Assert.Equal("monitor", approval.ApprovedMode);
-        Assert.Equal(["api.example.internal"], approval.AllowedHosts);
+        Assert.Equal(new[] { "api.example.internal" }, approval.AllowedHosts.ToArray());
         Assert.Equal(DriftState.Unchanged, GuardApprovals.CheckDrift(approval, now).State);
 
         File.WriteAllText(P(tmp.Path, "a.py"), "changed");
