@@ -125,3 +125,46 @@ public class ApprovalGateTests
         Assert.NotEqual(p.ManifestDigest, ProvenanceReader.ReadForTool(tool).ManifestDigest);
     }
 }
+
+public class SoftOfflineTests
+{
+    [Fact]
+    public void Offline_tool_gets_dead_proxies_and_an_empty_no_proxy()
+    {
+        var tool = new ToolEntry { Kind = ToolKind.Python, Path = @"C:\t\main.pyw", GuardOffline = true };
+        var env = DevPilot.Core.Launch.LaunchPlanner.ManagedEnvironment(tool);
+        Assert.Equal(SoftOffline.DeadProxy, env["HTTP_PROXY"]);
+        Assert.Equal(SoftOffline.DeadProxy, env["HTTPS_PROXY"]);
+        Assert.Equal(SoftOffline.DeadProxy, env["ALL_PROXY"]);
+        Assert.Equal(string.Empty, env["NO_PROXY"]);
+        Assert.Equal("1", env[SoftOffline.EnvOffline]);
+    }
+
+    [Fact]
+    public void Offline_works_even_when_the_tool_is_not_managed()
+    {
+        var tool = new ToolEntry { Kind = ToolKind.Python, Path = @"C:\t\main.pyw", GuardOffline = true };
+        tool.Managed.Enabled = false;
+        var env = DevPilot.Core.Launch.LaunchPlanner.ManagedEnvironment(tool);
+        Assert.False(env.ContainsKey("DEVPILOT_MANAGED"));
+        Assert.True(env.ContainsKey("HTTP_PROXY"));
+    }
+
+    [Fact]
+    public void Normal_tool_has_no_proxy_variables_and_extra_environment_can_override()
+    {
+        var plain = new ToolEntry { Kind = ToolKind.Python, Path = @"C:\t\main.pyw" };
+        Assert.False(DevPilot.Core.Launch.LaunchPlanner.ManagedEnvironment(plain).ContainsKey("HTTP_PROXY"));
+
+        var tool = new ToolEntry { Kind = ToolKind.Python, Path = @"C:\t\main.pyw", GuardOffline = true };
+        tool.Managed.ExtraEnvironment = "NO_PROXY=localhost";
+        Assert.Equal("localhost", DevPilot.Core.Launch.LaunchPlanner.ManagedEnvironment(tool)["NO_PROXY"]);
+    }
+
+    [Fact]
+    public void Non_process_tools_are_untouched()
+    {
+        var folder = new ToolEntry { Kind = ToolKind.Folder, Path = @"C:\data", GuardOffline = true };
+        Assert.False(DevPilot.Core.Launch.LaunchPlanner.ManagedEnvironment(folder).ContainsKey("HTTP_PROXY"));
+    }
+}
