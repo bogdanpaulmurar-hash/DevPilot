@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Egress Guard, step 2 of 11 (internal): `Core/Guard/ToolScanner` scans a tool folder (C#, Python, JS/TS, PowerShell, batch, config; skips `bin`, `obj`, `node_modules`, `.git`; 3000 files, 512 KB per file) for HTTP/socket/FTP/SMTP clients, hard-coded URLs and IPs, telemetry, auto-update, uploads, clipboard/screen/key capture, process spawning, persistence, AI clients, embedded secrets and local deny-list terms. Rules are JSON data (`GuardRuleSet`), each with a short why and fix. Findings never contain the matched text. Tests: new `ToolScannerTests`. Not run locally; CI pending.
 - Egress Guard, step 1 of 11 (internal, no visible change): Core/Guard model (`EgressMode`, `GuardFinding`, `GuardReport`), `ToolNetworkPolicy` for an optional `network` block in `devpilot.tool.json` (hosts with `*.` wildcard, ports, `allowNone`), and `LocalPolicy` read from `%APPDATA%\DevPilot\policy.local.json` (optional, never logged). Tests: new `GuardModelTests`. Not run locally (no .NET SDK in the authoring environment); CI result pending.
 
 ## 2.10.0

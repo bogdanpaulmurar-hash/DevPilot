@@ -11,7 +11,9 @@ public sealed record GuardFinding(
     string RuleId,
     string File,
     int Line,
-    string Message);
+    string Message,
+    string Why = "",
+    string Fix = "");
 
 /// <summary>The result of looking at one tool: findings, newest scan first when listed by callers.</summary>
 public sealed class GuardReport
