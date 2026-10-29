@@ -4,7 +4,6 @@ using System.Management;
 using System.Net;
 using DevPilot.Core.Guard;
 using DevPilot.Core.Interfaces;
-using DevPilot.Core.Presets;
 using DevPilot.Models;
 using Microsoft.Extensions.Logging;
 
@@ -88,7 +87,7 @@ public sealed class EgressMonitorService : IDisposable
 
     private void Handle(EgressMode mode, ToolEntry tool, IReadOnlyList<int> roots, List<ConnectionInfo> fresh, LocalPolicy local)
     {
-        var policy = ApprovalGate.PolicyFor(tool, ManifestNetwork(tool));
+        var policy = ApprovalGate.PolicyFor(tool, GuardManifest.Network(tool));
         foreach (var c in fresh)
         {
             var host = ReverseLookup(c.RemoteAddress);
@@ -122,12 +121,6 @@ public sealed class EgressMonitorService : IDisposable
         }
         _logger.LogWarning("Egress Guard stopped {Tool}", tool.Name);
         _ = _processes.RefreshNowAsync();
-    }
-
-    private static ToolNetworkPolicy? ManifestNetwork(ToolEntry tool)
-    {
-        try { return ToolManifest.Find(tool) is { } path ? ToolManifest.Load(path).Network : null; }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException) { return null; }
     }
 
     // ── name lookups (cached; a slow or failing DNS never blocks the poll for long) ──

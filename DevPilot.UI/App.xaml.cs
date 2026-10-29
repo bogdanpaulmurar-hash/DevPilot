@@ -170,6 +170,7 @@ public partial class App : Application
         s.AddSingleton<DevPilot.Core.Guard.GuardEventLog>();
         s.AddSingleton<IConnectionSource, TcpTableReader>();
         s.AddSingleton<EgressMonitorService>();
+        s.AddSingleton<KillSwitchService>();
         s.AddSingleton<ILauncher, Launcher>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();
