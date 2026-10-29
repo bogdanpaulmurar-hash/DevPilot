@@ -17,7 +17,7 @@ public static class ToolScanner
 
     public const string DenyTermRuleId = "deny-term";
 
-    private static readonly HashSet<string> Skipped = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly HashSet<string> Skipped = new(StringComparer.OrdinalIgnoreCase)
     {
         ".git", ".vs", ".idea", ".vscode", "bin", "obj", "node_modules", "packages", "__pycache__", ".venv", "venv",
         "env", ".tox", ".mypy_cache", ".pytest_cache", "site-packages", "dist", "TestResults",
