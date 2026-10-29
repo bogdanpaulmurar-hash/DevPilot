@@ -61,6 +61,8 @@ public class ToolEntry
 
     /// <summary>Egress Guard approval of this tool's files and allowlist; null = never reviewed.</summary>
     public GuardApproval? GuardApproval { get; set; }
+    /// <summary>The user blocked this tool in the Egress Guard (it does not start in block mode).</summary>
+    public bool GuardBlocked { get; set; }
 
     public TrayMode Tray { get; set; } = TrayMode.HubOnly;
     public ManagedOptions Managed { get; set; } = new();

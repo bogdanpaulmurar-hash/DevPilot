@@ -22,6 +22,16 @@ public class AppSettings
     public WindowSettings Window { get; set; } = new();
     public BackupSettings Backup { get; set; } = new();
     public TyperSettings Typer { get; set; } = new();
+    public GuardSettings Guard { get; set; } = new();
+}
+
+/// <summary>How the Egress Guard reacts: nothing, log and warn, or refuse/stop.</summary>
+public enum EgressMode { Off, Monitor, Block }
+
+/// <summary>Egress Guard settings. Local-only; the machine-local policy file is never part of the config.</summary>
+public class GuardSettings
+{
+    public EgressMode Mode { get; set; } = EgressMode.Monitor;
 }
 
 /// <summary>Backups of the whole configuration (with chosen logos) to a folder the user picks.</summary>
