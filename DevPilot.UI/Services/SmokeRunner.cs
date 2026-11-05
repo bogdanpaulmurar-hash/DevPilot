@@ -189,6 +189,9 @@ public static class SmokeRunner
         var config = App.GetService<IConfigStore>();
         var s = config.Current;
         if (s.Tools.Count > 0) return;
+        // CI starts DevPilot inside the checkout: its parent shows the Repositories page with one clone (scan only, no pull).
+        var parent = Path.GetDirectoryName(Environment.CurrentDirectory.TrimEnd(Path.DirectorySeparatorChar));
+        if (parent is not null && DevPilot.Core.Repos.RepoScanner.IsRepo(Environment.CurrentDirectory)) s.Repos.Root = parent;
         s.Groups.Clear();
         var work = new ToolGroup { Title = "Daily work", Order = 0, Color = "#4F8EF7" };
         var dev = new ToolGroup { Title = "Development", Order = 1, Color = "#A371F7", ColorStyle = RowColorStyle.Highlight, TextColor = "#A371F7" };

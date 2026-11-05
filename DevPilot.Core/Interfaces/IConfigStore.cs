@@ -2,7 +2,7 @@ using DevPilot.Models;
 
 namespace DevPilot.Core.Interfaces;
 
-public enum ConfigArea { All, Tools, Groups, Hub, Theme, KeepAwake, Startup, Monitor, Hotkeys, Window, Backup }
+public enum ConfigArea { All, Tools, Groups, Hub, Theme, KeepAwake, Startup, Monitor, Hotkeys, Window, Backup, Repos }
 
 /// <summary>Single source of truth for the configuration. Every editor writes here; the hub listens to <see cref="Changed"/>.</summary>
 public interface IConfigStore

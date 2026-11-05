@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.13.0
+- New **Repositories** page and *Pull repositories* (hub header button, tray menu): choose the folder that holds your clones once; DevPilot finds the git repositories in it (3 levels deep, not inside a repository, not in `node_modules`/`bin`/`obj`/virtual environments) and lists them with their branch. Tick the ones to pull (new clones are ticked automatically), then pull them all, or one with its own *Pull* button.
+- Safe by design: a repository with uncommitted changes to tracked files is skipped; the pull is `git pull --ff-only`, so DevPilot never merges, rebases or stashes. Repositories are pulled one after another. git runs hidden, with English output and terminal prompts off (a missing sign-in fails instead of hanging). Each repository shows its result: updated (with the change line), up to date, skipped (local changes / no upstream / diverged), not trusted by git (dubious ownership, with the command to fix it), sign-in failed, remote unreachable, git not found, timed out.
+- Automatic pull (off by default): once when DevPilot starts, or at start and every N minutes (5–1440); optionally notify only when something changed or needs attention. Not run in the CI smoke test.
+- Core: `Core/Repos/RepoScanner`, `Core/Repos/RepoPull`, `IGitRunner`; Infrastructure: `GitRunner`, `RepoSyncService`; settings: `Repos` in config.json. Tests: `RepoPullTests` (scanner, output classification, safety rules with a fake git, and a real git round trip: update, skip on local changes, refuse to merge diverged branches, no upstream). Docs: `docs/REPOS.md`, `TESTING.md`.
+
 ## 2.12.1
 - Egress Guard page: a traffic light per tool (red = blocked, a connection outside the allowlist or a high-risk finding; amber = not approved, changed since approval, not scanned or warnings; green = approved and the last scan is clean) with the reason shown next to it. Findings and recent events are now one scrollable, selectable text box each (with a Copy button) capped at 60 findings, instead of thousands of controls that made the page slow and could freeze it. Core: `GuardTrafficLight`, `GuardFindingsText`. Tests: `GuardLightTests`.
 

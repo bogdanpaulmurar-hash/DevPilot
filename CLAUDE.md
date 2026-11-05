@@ -18,10 +18,10 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 
 ## Map
 - `DevPilot.Models` — config and tool models
-- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, Detection (project folder scan), Guard (egress policy, scanner, approval gate, monitor logic), Help (editor texts), KeepAwake, Startup, Typer
+- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, Detection (project folder scan), Repos (git clone scan + fast-forward pull), Guard (egress policy, scanner, approval gate, monitor logic), Help (editor texts), KeepAwake, Startup, Typer
 - `DevPilot.Infrastructure` — Windows services: config store, launcher, process monitor, keep-awake, startup manager, hotkeys
 - `DevPilot.UI` — WPF: tray hub, flyouts, main window pages (Views / ViewModels / Themes)
-- `docs/INSTALL.md`, `docs/TYPER.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware, incl. the `network` block), `docs/GUARD.md` (Egress Guard)
+- `docs/INSTALL.md`, `docs/TYPER.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware, incl. the `network` block), `docs/GUARD.md` (Egress Guard), `docs/REPOS.md` (Pull repositories)
 - Config: `%APPDATA%\DevPilot\config.json` (restored logos in `logos\`, backups default to `Documents\DevPilot Backups`, logic in `Core/Backup`); log: `%LOCALAPPDATA%\DevPilot\logs\devpilot.log`; hub logo cache: `%LOCALAPPDATA%\DevPilot\logo-cache` (disposable)
 
 ## Rules
@@ -30,6 +30,8 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 - Egress Guard: findings, logs and exports never contain matched text or deny terms; `policy.local.json` (`%APPDATA%\DevPilot\`) stays machine-local and uncommitted; fail open in monitor mode.
 - Settings over special cases: groups, colours, symbols and sizes are configurable, nothing hardcoded per tool (ScreenPilot's spotlight card is the only deliberate exception).
 - Keep logic in Core so it stays testable without WPF.
+- Pull repositories: never merge, rebase, stash or reset; skip dirty repos. git runs hidden with `LC_ALL=C` so its output can be classified.
+- Test steps per version live in `TESTING.md`.
 - `v1-legacy` is the old version; `ci-shots` holds CI UI screenshots. Work on `main` or a feature branch + PR.
 - Code, comments, commits and docs in English; replies to the user in Romanian, short.
 - Visible docs: never the employer's name, company e-mails, internal IDs or numbers.

@@ -1,0 +1,116 @@
+<UserControl x:Class="DevPilot.UI.Views.ReposView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:DevPilot.UI.ViewModels"
+             xmlns:svc="clr-namespace:DevPilot.UI.Services"
+             xmlns:core="clr-namespace:DevPilot.Core.Interfaces;assembly=DevPilot.Core">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" svc:EditTracker.Area="{x:Static core:ConfigArea.Repos}">
+        <StackPanel Margin="32,4,32,32" MaxWidth="900" HorizontalAlignment="Left">
+            <TextBlock Text="Repositories" Style="{StaticResource PageTitle}"/>
+            <TextBlock Style="{StaticResource PageSubtitle}"
+                       Text="Pull every ticked clone in one go, from here, the hub or the tray menu. A repository with uncommitted changes is skipped, and DevPilot only fast-forwards: it never merges, rebases or stashes."/>
+
+            <Border Style="{StaticResource Card}" Margin="0,20,0,12">
+                <StackPanel>
+                    <TextBlock Text="Folder with your clones" Style="{StaticResource SectionTitle}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding RootText, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource MonoFont}"/>
+                        <Button Grid.Column="1" Content="Browse…" Margin="6,0,0,0" Command="{Binding BrowseCommand}"/>
+                        <Button Grid.Column="2" Content="Open" Margin="6,0,0,0" Command="{Binding OpenRootCommand}"/>
+                    </Grid>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Text="Searched up to 3 levels deep. New clones are ticked automatically; untick the ones you do not want pulled."/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Repositories" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            <TextBlock Text="{Binding StatusLine}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                            <Button Content="All" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Command="{Binding SelectAllCommand}"/>
+                            <Button Content="None" Style="{StaticResource GhostButton}" Margin="0,0,6,0" Command="{Binding SelectNoneCommand}"/>
+                            <Button Content="Scan again" Margin="0,0,6,0" Command="{Binding RescanCommand}"/>
+                            <Button Content="Pull selected" Style="{StaticResource AccentButton}" Command="{Binding PullAllCommand}" IsEnabled="{Binding IsIdle}"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="No git repositories in this folder. A repository is a folder with a .git folder inside." Style="{StaticResource Hint}" Margin="0,10,0,0"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}"/>
+                    <ItemsControl ItemsSource="{Binding Items}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:RepoRowVM}">
+                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,7">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,10,0" ToolTip="Include in Pull selected"/>
+                                        <StackPanel Grid.Column="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Branch}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}" Margin="10,0,0,0"
+                                                           Visibility="{Binding HasBranch, Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>
+                                                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
+                                                       Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                                            <Button Style="{StaticResource IconButton}" Content="&#xE838;" Command="{Binding OpenCommand}" ToolTip="Open folder"/>
+                                            <Button Content="Pull" Margin="4,0,0,0" Command="{Binding PullCommand}"
+                                                    IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Tone}" Value="ok">
+                                        <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource StatusRunningBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Tone}" Value="updated">
+                                        <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource AccentBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Tone}" Value="skipped">
+                                        <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource StatusStartingBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Tone}" Value="failed">
+                                        <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource StatusFailedBrush}"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Automatic pull" Style="{StaticResource SectionTitle}"/>
+                    <ComboBox HorizontalAlignment="Left" MinWidth="340" ItemsSource="{x:Static vm:ReposViewModel.AutoModes}"
+                              DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Auto}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding ShowInterval, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Every" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Text="{Binding Settings.IntervalMinutes, UpdateSourceTrigger=LostFocus}" Width="60"/>
+                        <TextBlock Text="minutes (5 to 1440)" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" Margin="0,10,0,0" IsChecked="{Binding Settings.QuietWhenUpToDate}"
+                              Content="Automatic pulls notify only when something changed or needs attention"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0" TextWrapping="Wrap"
+                               Text="Clones inside a synced drive (Google Drive, OneDrive): let the sync finish before a pull, and work on a repository from one PC at a time. If git reports 'dubious ownership', run the command shown under that repository once."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -19,12 +19,14 @@ public sealed class TrayManager : IDisposable
     private readonly IKeepAwakeService _keepAwake;
     private readonly FlyoutBuilder _flyouts;
     private readonly KillSwitchService _killSwitch;
+    private readonly RepoSyncService _repos;
     private readonly Dictionary<string, (TaskbarIcon Icon, IconFactory.OwnedIcon Image, string Signature)> _toolIcons = [];
     private TaskbarIcon? _main;
     private IAppShell? _shell;
 
-    public TrayManager(IConfigStore config, IKeepAwakeService keepAwake, FlyoutBuilder flyouts, KillSwitchService killSwitch)
+    public TrayManager(IConfigStore config, IKeepAwakeService keepAwake, FlyoutBuilder flyouts, KillSwitchService killSwitch, RepoSyncService repos)
     {
+        _repos = repos;
         _killSwitch = killSwitch;
         _config = config;
         _keepAwake = keepAwake;
@@ -151,6 +153,8 @@ public sealed class TrayManager : IDisposable
         FlyoutItem.Action("Check clipboard before pasting into AI", Glyphs.Eye, () => PreflightActions.CheckClipboard()),
         FlyoutItem.Action("Check a file before pasting into AI…", Glyphs.OpenFile, () => PreflightActions.CheckFile()),
         FlyoutItem.Action("Back up now", Glyphs.Save, async () => { await App.BackupNowAsync(); return true; }),
+        FlyoutItem.Action("Pull repositories", Glyphs.Sync, async () => { await RepoActions.PullNowAsync(_repos, shell); return true; },
+            detail: _repos.IsRunning ? "running" : string.Empty),
         FlyoutItem.Action("Tools", Glyphs.List, () => shell.ShowMainWindow("tools")),
         FlyoutItem.Action("Settings", Glyphs.Settings, () => shell.ShowMainWindow("settings")),
         FlyoutItem.Separator(),
