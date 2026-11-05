@@ -24,6 +24,11 @@ public static class Normalizer
         s.Backup ??= new BackupSettings();
         s.Backup.Keep = Math.Clamp(s.Backup.Keep, 1, BackupSettings.MaxKeep);
         s.Backup.Folder ??= string.Empty;
+        s.Repos ??= new RepoSettings();
+        s.Repos.Root = s.Repos.Root?.Trim() ?? string.Empty;
+        s.Repos.Excluded ??= [];
+        s.Repos.IntervalMinutes = Math.Clamp(s.Repos.IntervalMinutes, RepoSettings.MinInterval, RepoSettings.MaxInterval);
+        if (!Enum.IsDefined(s.Repos.Auto)) s.Repos.Auto = RepoAutoPull.Off;
         s.Accent = ConfigMigrator.NormalizeColor(s.Accent) is { Length: > 0 } accent ? accent : "#4F8EF7";
 
         // Unique ids

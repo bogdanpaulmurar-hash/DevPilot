@@ -23,6 +23,28 @@ public class AppSettings
     public BackupSettings Backup { get; set; } = new();
     public TyperSettings Typer { get; set; } = new();
     public GuardSettings Guard { get; set; } = new();
+    public RepoSettings Repos { get; set; } = new();
+}
+
+/// <summary>When DevPilot runs <c>git pull</c> on the selected repositories by itself.</summary>
+public enum RepoAutoPull { Off, AtStartup, Interval }
+
+/// <summary>Repositories: a root folder with clones, the ones to pull, and when to pull them.</summary>
+public class RepoSettings
+{
+    public const int MinInterval = 5;
+    public const int MaxInterval = 1440;
+
+    /// <summary>Folder that holds the clones (searched a few levels deep). Empty = not set up.</summary>
+    public string Root { get; set; } = string.Empty;
+    /// <summary>Full paths of repositories found under <see cref="Root"/> that are NOT pulled. New clones are pulled until unticked.</summary>
+    public List<string> Excluded { get; set; } = [];
+    public RepoAutoPull Auto { get; set; } = RepoAutoPull.Off;
+    /// <summary>Minutes between automatic pulls when <see cref="Auto"/> is Interval.</summary>
+    public int IntervalMinutes { get; set; } = 60;
+    /// <summary>Automatic pulls notify only when something was updated or failed.</summary>
+    public bool QuietWhenUpToDate { get; set; } = true;
+    public DateTime? LastRun { get; set; }
 }
 
 /// <summary>How the Egress Guard reacts: nothing, log and warn, or refuse/stop.</summary>
