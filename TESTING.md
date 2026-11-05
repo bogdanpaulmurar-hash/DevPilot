@@ -2,6 +2,37 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.15.0 — Update (pull, close, install, start again)
+
+Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.
+
+1. DevPilot > Repositories > open the gear of a Python repository that has `Install.bat` (for example ScreenPilot) → the text under *Update* names the install script and the tools that will be closed.
+2. Same for a C# repository without an install script → it says `dotnet build <solution> -c Release`.
+3. Hub panel → that repository's button reads *Update*. Click it with the tool running and nothing new on GitHub → "Already up to date", the tool stays open.
+4. Push a small change to that repository from the other PC (or commit on GitHub), click *Update* → the row shows "Closing …", "Installing…", "Starting …"; the tool closes, reinstalls and starts again; a notification says done; no console window appears.
+5. Make the install fail (rename `Install.bat` temporarily, or type a wrong *Install command* in the gear) and update again → the result says failed with the last lines of output, and the tool stays closed.
+6. Change a tracked file in the repository without committing → *Update* → "Skipped: local changes", nothing is closed.
+7. Gear > *Close the running tools…* off → Update installs without touching the running tool.
+8. A tool with auto-restart on: use *Stop* in the hub → it stays stopped (it is not started again by the monitor).
+9. *Reinstall now* → closes, installs, starts again without a pull.
+10. The DevPilot repository itself shows no *Update* (it says to close DevPilot and run `scripts\install.cmd`).
+
+
+## 2.14.0 — Repositories panel and commands
+
+Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.
+
+1. Hub → the sync button in the header → a panel opens with your repositories, a tick each; the number found and the selection are in the header line.
+2. Panel → *Pull selected* → each row shows a result as it finishes; no console window appears; a summary notification at the end.
+3. DevPilot > Repositories > gear on a repository > *Add command* → name `Hello`, command `echo hello & ping -n 3 127.0.0.1 > nul`, leave *In a window* off → the row button now reads *Run…* (pull plus a command).
+4. Panel → that row's button → a menu with two buttons (git pull, Hello). Click *Hello* → the row says "Running Hello…", then "Done" with `hello`-style output below it, and a notification.
+5. Add a command `Fail` = `echo oops & exit /b 3` → run it → the row shows "Failed (exit code 3)" in red with `oops`, a notification says failed; no window to close.
+6. Add a command `Win` = `echo shown here & dir`, tick *In a window* → run it → a console opens and stays open after it ends.
+7. On a repository: switch off *Offer git pull*, delete all commands but one → the row button shows that command's name and runs it directly without a menu.
+8. Start a long command (`ping -n 30 127.0.0.1 > nul`) → while it runs press *Pull selected* → that repository says "Skipped: command running", the others pull.
+9. Restart DevPilot → the commands are still there.
+
+
 ## 2.13.0 — Pull repositories
 
 Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.

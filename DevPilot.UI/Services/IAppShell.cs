@@ -11,5 +11,7 @@ public interface IAppShell
     void ShowHub(bool pinned = false);
     void HideHub();
     void ShowQuickMenu();
+    /// <summary>The repositories panel (tick, pull, run a repository's commands).</summary>
+    void ShowRepoPanel();
     void Exit();
 }

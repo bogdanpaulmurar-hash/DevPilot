@@ -14,6 +14,7 @@ public sealed class AppShell : IAppShell
     private readonly IServiceProvider _services;
     private HubWindow? _hub;
     private MainWindow? _main;
+    private RepoPanelWindow? _repoPanel;
     private DateTime _hubHiddenAt = DateTime.MinValue;
 
     public AppShell(IServiceProvider services) => _services = services;
@@ -78,6 +79,20 @@ public sealed class AppShell : IAppShell
         var tray = _services.GetRequiredService<TrayManager>();
         var look = _services.GetRequiredService<IConfigStore>().Current.Hub;
         ToolMenuWindow.ShowAtCursor(tray.QuickMenuItems(this), "DevPilot", null, look);
+    }
+
+    public void ShowRepoPanel()
+    {
+        if (_repoPanel is { IsVisible: true } open)
+        {
+            open.Activate();
+            return;
+        }
+        var vm = _services.GetRequiredService<ReposViewModel>();
+        var panel = new RepoPanelWindow(vm, _services.GetRequiredService<IConfigStore>().Current.Hub);
+        panel.Closed += (_, _) => { if (ReferenceEquals(_repoPanel, panel)) _repoPanel = null; };
+        _repoPanel = panel;
+        panel.ShowPanel(vm);
     }
 
     public void Exit()

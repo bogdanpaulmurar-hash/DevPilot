@@ -14,7 +14,7 @@ One tray icon for all your tools. DevPilot is a Windows hub (C# / WPF, .NET 8) t
 - **Monitor** — real process detection (also for Python scripts), health URLs, auto-restart with an hourly limit.
 - **Customisable** — theme (dark / light / Windows), one accent colour, hub width / height / corners / opacity / density / text size / position, flyout side and hover delay, group title style; per group logo, centred title, larger size, font (semibold / serif / mono), bold, italic; per tool symbol, colour marker, bold, italic.
 - **Global shortcuts** — open the hub, start a tool or run one of its options from anywhere.
-- **Pull all repositories** — pick the folder with your clones once, tick the ones you want, and pull them all from the hub, the tray menu or the *Repositories* page (optionally at start or every N minutes). Fast-forward only; repositories with uncommitted changes are skipped. See [docs/REPOS.md](docs/REPOS.md).
+- **Repositories** — pick the folder with your clones once, tick the ones you want, and pull them all from the hub's repositories panel, the tray menu or the *Repositories* page (optionally at start or every N minutes). Fast-forward only; repositories with uncommitted changes are skipped. Each repository can also have its own commands (a build, an install script) that run hidden with the result shown, or in a console window that stays open; with several actions the row button opens a menu. See [docs/REPOS.md](docs/REPOS.md).
 - **Backups** — one .zip with the whole configuration and the picked logos, manual or automatic (1–10 copies kept), restore with a preview, also on another PC (paths adapted to the new user folder).
 
 ## Install

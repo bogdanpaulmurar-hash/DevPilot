@@ -29,6 +29,45 @@ public class AppSettings
 /// <summary>When DevPilot runs <c>git pull</c> on the selected repositories by itself.</summary>
 public enum RepoAutoPull { Off, AtStartup, Interval }
 
+/// <summary>How a repository command runs: hidden with its output shown in DevPilot, or in a console window that stays open.</summary>
+public enum RepoCommandMode { Hidden, Window }
+
+/// <summary>A command the user runs in a repository folder (for example a build or an install script).</summary>
+public class RepoCommand
+{
+    public string Id { get; set; } = NewId.Short();
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Run by cmd.exe in the repository folder, so batch files, pipes and <c>&amp;&amp;</c> work.</summary>
+    public string CommandLine { get; set; } = string.Empty;
+    public RepoCommandMode Mode { get; set; } = RepoCommandMode.Hidden;
+}
+
+/// <summary>When a repository offers a plain "git pull" button.</summary>
+public enum PullButton
+{
+    /// <summary>Only when the repository has no Update (Update pulls as its first step).</summary>
+    Auto,
+    Always,
+    Never,
+}
+
+/// <summary>Per-repository settings: update, plain pull, and its own commands.</summary>
+public class RepoConfig
+{
+    public string Path { get; set; } = string.Empty;
+    public PullButton Pull { get; set; } = PullButton.Auto;
+    /// <summary>
+    /// Offer "Update" (git pull, close the tools of this repository, install, start them again) when DevPilot can
+    /// tell how to install it or manages a tool from it.
+    /// </summary>
+    public bool UpdateEnabled { get; set; } = true;
+    /// <summary>Install command for Update; empty = found automatically (an install script, else dotnet build for C#).</summary>
+    public string InstallCommand { get; set; } = string.Empty;
+    /// <summary>Update closes the running tools of this repository before installing and starts them again afterwards.</summary>
+    public bool RestartTools { get; set; } = true;
+    public List<RepoCommand> Commands { get; set; } = [];
+}
+
 /// <summary>Repositories: a root folder with clones, the ones to pull, and when to pull them.</summary>
 public class RepoSettings
 {
@@ -45,6 +84,8 @@ public class RepoSettings
     /// <summary>Automatic pulls notify only when something was updated or failed.</summary>
     public bool QuietWhenUpToDate { get; set; } = true;
     public DateTime? LastRun { get; set; }
+    /// <summary>Per-repository settings (commands). A repository without an entry has git pull only.</summary>
+    public List<RepoConfig> Items { get; set; } = [];
 }
 
 /// <summary>How the Egress Guard reacts: nothing, log and warn, or refuse/stop.</summary>

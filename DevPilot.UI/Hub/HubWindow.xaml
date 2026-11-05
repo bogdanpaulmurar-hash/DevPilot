@@ -169,7 +169,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE706;" IsChecked="{Binding KeepAwakeOn}" ToolTip="{Binding KeepAwakeStatus}"/>
-                    <Button Style="{StaticResource IconButton}" Content="&#xE895;" Command="{Binding PullReposCommand}" ToolTip="Pull repositories (git pull on the ticked clones)"/>
+                    <Button Style="{StaticResource IconButton}" Content="&#xE895;" Command="{Binding OpenReposCommand}" ToolTip="Repositories: pull and run commands"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE765;" Command="{Binding OpenTyperCommand}" ToolTip="Virtual Typer: type the clipboard into the focused field"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE8A7;" Command="{Binding OpenMainCommand}" ToolTip="Open DevPilot"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE713;" Command="{Binding OpenSettingsCommand}" ToolTip="Customize the hub"/>

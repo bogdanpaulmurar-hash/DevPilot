@@ -21,6 +21,8 @@ public enum RepoPullStatus
     GitMissing,
     TimedOut,
     Failed,
+    /// <summary>A command is running on this repository: skipped so git and the command do not collide.</summary>
+    Busy,
 }
 
 public sealed record RepoPullResult(string Path, RepoPullStatus Status, string Message, DateTime At)
@@ -29,7 +31,7 @@ public sealed record RepoPullResult(string Path, RepoPullStatus Status, string M
     public bool IsOk => Status is RepoPullStatus.Updated or RepoPullStatus.UpToDate;
 
     /// <summary>Skipped on purpose; the repository is fine but was left alone.</summary>
-    public bool IsSkipped => Status is RepoPullStatus.LocalChanges or RepoPullStatus.NoUpstream or RepoPullStatus.Diverged;
+    public bool IsSkipped => Status is RepoPullStatus.LocalChanges or RepoPullStatus.NoUpstream or RepoPullStatus.Diverged or RepoPullStatus.Busy;
 
     public string StatusText => RepoPull.Label(Status);
 }
@@ -161,6 +163,7 @@ public sealed class RepoPull(IGitRunner git)
         RepoPullStatus.AuthFailed => "Sign-in failed",
         RepoPullStatus.Offline => "Remote unreachable",
         RepoPullStatus.NotARepo => "Not a repository",
+        RepoPullStatus.Busy => "Skipped: command running",
         RepoPullStatus.GitMissing => "git not found",
         RepoPullStatus.TimedOut => "Timed out",
         _ => "Failed",
