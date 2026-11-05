@@ -68,13 +68,14 @@ public sealed class RepoRowVM : ObservableObject
     private bool _expanded;
     private string? _runningName;
 
-    public RepoRowVM(ReposViewModel owner, string path, string name, string branch, RepoPullResult? lastPull, RepoCommandResult? lastCommand, RepoUpdatePlan? plan)
+    public RepoRowVM(ReposViewModel owner, string path, string name, string branch, RepoVersionInfo version, RepoPullResult? lastPull, RepoCommandResult? lastCommand, RepoUpdatePlan? plan)
     {
         Owner = owner;
         UpdatePlan = plan;
         Path = path;
         Name = name;
         Branch = branch;
+        _version = version;
         _pull = lastPull;
         _command = lastCommand;
         var cfg = RepoConfigs.Find(owner.Settings, path);
@@ -91,6 +92,23 @@ public sealed class RepoRowVM : ObservableObject
     public string Name { get; }
     public string Branch { get; }
     public bool HasBranch => Branch.Length > 0;
+
+    private RepoVersionInfo _version;
+
+    /// <summary>Version in the clone's files (or the short commit); read again after a pull, update or command.</summary>
+    public string Version => _version.Display;
+    public string VersionTip => _version.Tip;
+    public bool HasVersion => Version.Length > 0;
+
+    private void ReadVersion()
+    {
+        var v = RepoVersion.Read(Path);
+        if (v == _version) return;
+        _version = v;
+        OnPropertyChanged(nameof(Version));
+        OnPropertyChanged(nameof(VersionTip));
+        OnPropertyChanged(nameof(HasVersion));
+    }
     public ObservableCollection<RepoCommandVM> Commands { get; } = [];
     public ICommand RunCommand { get; }
     public ICommand OpenCommand { get; }
@@ -183,8 +201,8 @@ public sealed class RepoRowVM : ObservableObject
         Busy = true;
     }
 
-    public RepoPullResult? PullResult { get => _pull; set { _pull = value; RefreshStatus(); } }
-    public RepoCommandResult? CommandResult { get => _command; set { _command = value; RefreshStatus(); } }
+    public RepoPullResult? PullResult { get => _pull; set { _pull = value; ReadVersion(); RefreshStatus(); } }
+    public RepoCommandResult? CommandResult { get => _command; set { _command = value; ReadVersion(); RefreshStatus(); } }
 
     // ── What the row's button does ───────────────────────────────────────
     public IReadOnlyList<RepoAction> Actions => RepoConfigs.Actions(Owner.Settings, Path, UpdatePlan);
@@ -499,7 +517,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
             row.Busy = false;
             if (r is null) return;
             row.PullResult = r;
-            if (r.IsOk) Notifier.Info($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Status == RepoPullStatus.Updated ? r.Message : string.Empty);
+            if (r.IsOk) Notifier.Info($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Status == RepoPullStatus.Updated ? r.Message : r.VersionChange);
             else Notifier.Error($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Message);
             return;
         }
@@ -583,13 +601,13 @@ public sealed class ReposViewModel : ObservableObject, IPage
         if (Scanning) return;
         Scanning = true;
         var root = Settings.Root;
-        List<(string Path, string Name, string Branch, RepoUpdatePlan Plan)> found;
+        List<(string Path, string Name, string Branch, RepoVersionInfo Version, RepoUpdatePlan Plan)> found;
         var tools = _config.Current.Tools.ToList();
         var configs = Settings.Items.ToList();
         try
         {
             found = await Task.Run(() => RepoScanner.Find(root)
-                .Select(p => (p, RepoScanner.DisplayName(root, p), RepoScanner.ReadBranch(p),
+                .Select(p => (p, RepoScanner.DisplayName(root, p), RepoScanner.ReadBranch(p), RepoVersion.Read(p),
                               RepoUpdatePlanner.Plan(p, configs.FirstOrDefault(c => RepoScanner.SamePath(c.Path, p)), tools))).ToList());
         }
         catch (Exception ex)
@@ -600,9 +618,9 @@ public sealed class ReposViewModel : ObservableObject, IPage
         // Keep expanded rows open across a rescan.
         var open = Items.Where(i => i.IsExpanded).Select(i => i.Path).ToList();
         Items.Clear();
-        foreach (var (path, name, branch, plan) in found)
+        foreach (var (path, name, branch, version, plan) in found)
         {
-            var row = new RepoRowVM(this, path, name, branch, _repos.LastResult(path), _repos.LastCommandResult(path), plan)
+            var row = new RepoRowVM(this, path, name, branch, version, _repos.LastResult(path), _repos.LastCommandResult(path), plan)
             {
                 IsExpanded = open.Any(o => RepoScanner.SamePath(o, path)),
             };

@@ -61,6 +61,8 @@
                                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding Branch}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}" Margin="10,0,0,0"
                                                                Visibility="{Binding HasBranch, Converter={StaticResource BoolToVis}}"/>
+                                                    <TextBlock Text="{Binding Version}" ToolTip="{Binding VersionTip}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}" Margin="10,0,0,0"
+                                                               Visibility="{Binding HasVersion, Converter={StaticResource BoolToVis}}"/>
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                     <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>

@@ -73,14 +73,7 @@ public static class RepoScanner
     {
         try
         {
-            var gitDir = Path.Combine(repo, ".git");
-            if (File.Exists(gitDir))
-            {
-                var line = File.ReadLines(gitDir).FirstOrDefault() ?? string.Empty;
-                if (!line.StartsWith("gitdir:", StringComparison.OrdinalIgnoreCase)) return string.Empty;
-                var target = line["gitdir:".Length..].Trim();
-                gitDir = Path.IsPathRooted(target) ? target : Path.GetFullPath(Path.Combine(repo, target));
-            }
+            if (GitDir(repo) is not { } gitDir) return string.Empty;
             var head = Path.Combine(gitDir, "HEAD");
             if (!File.Exists(head)) return string.Empty;
             var text = File.ReadAllText(head).Trim();
@@ -89,6 +82,18 @@ public static class RepoScanner
             return text.Length > 0 ? "detached" : string.Empty;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { return string.Empty; }
+    }
+
+    /// <summary>The git folder of a clone: <c>.git</c>, or the folder a <c>.git</c> file points to (worktree / submodule).</summary>
+    public static string? GitDir(string repo)
+    {
+        var gitDir = Path.Combine(repo, ".git");
+        if (Directory.Exists(gitDir)) return gitDir;
+        if (!File.Exists(gitDir)) return null;
+        var line = File.ReadLines(gitDir).FirstOrDefault() ?? string.Empty;
+        if (!line.StartsWith("gitdir:", StringComparison.OrdinalIgnoreCase)) return null;
+        var target = line["gitdir:".Length..].Trim();
+        return Path.IsPathRooted(target) ? target : Path.GetFullPath(Path.Combine(repo, target));
     }
 
     /// <summary>Same folder, ignoring case and a trailing separator (Windows paths).</summary>

@@ -2,6 +2,17 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.16.0 — Version of each repository
+
+Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.
+
+1. DevPilot > Repositories → each row shows the version next to the branch (DevPilot `2.16.0`, ScreenPilot its `__version__`); hover it → "Version … from <file> · commit …".
+2. Hub > sync button → the panel shows the same versions.
+3. A repository without a version file → the row shows a 7-character commit instead.
+4. Bump the version of a tool on the other PC (or on GitHub), push, then *Update* (or *Pull*) on that row → the result reads "old → new · … files changed", the version on the row changes, and the notification shows the same line.
+5. Push a change that does not touch the version, then *Pull* → "x.y.z (unchanged) · …".
+6. *Update* when nothing is new → "Already up to date (x.y.z). Nothing was closed or installed."; *Reinstall now* → the result starts with "Version: x.y.z".
+
 ## 2.15.0 — Update (pull, close, install, start again)
 
 Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.

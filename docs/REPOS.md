@@ -43,6 +43,11 @@ If the install fails, the tools stay closed and the row shows the last lines of 
 
 DevPilot's own repository is not updated this way: close DevPilot and run `scripts\install.cmd`.
 
+## Version
+Each row shows the version of the clone next to its branch (hover for where it came from). DevPilot reads it from the files, without running anything, in this order: `devpilot.tool.json` (`"version"`), `Directory.Build.props` or the csproj `<Version>` (the app project before libraries), `pyproject.toml`, Python `__version__` / `VERSION` in `version.py` or a package `__init__.py` (top folder, one folder down, or under `src\`), `package.json`, a `VERSION` / `version.txt` file. Without any of these it shows the short commit.
+
+After a pull or an Update that brought something new, the result reads "2.14.0 → 2.15.0 · 3 files changed…"; when the files kept the same version it says "2.15.0 (unchanged)". This is the version in the clone, not of the program that is running: they differ until the tool is installed again.
+
 ## What a pull does, and does not do
 - Runs `git status` first. If tracked files have uncommitted changes, the repository is **skipped** and nothing is touched.
 - Runs `git pull --ff-only`. If your branch and the remote have both moved on, nothing changes and the repository is reported as *diverged*; pull or rebase it by hand.
