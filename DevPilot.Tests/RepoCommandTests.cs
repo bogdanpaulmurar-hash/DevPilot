@@ -39,7 +39,7 @@ public sealed class RepoCommandTests : IDisposable
         Assert.True(actions[0].IsPull);
         Assert.False(actions[1].IsPull);
 
-        cfg.IncludePull = false;
+        cfg.Pull = PullButton.Never;
         Assert.Equal(["Build", "Install.bat"], RepoConfigs.Actions(s, @"G:\Dev\A").Select(a => a.Name));
     }
 
@@ -158,6 +158,15 @@ public sealed class RepoCommandTests : IDisposable
         }
     }
 
+    private sealed class FakeTools : IToolControl
+    {
+        public readonly HashSet<string> Running = [];
+        public readonly List<string> Calls = [];
+        public bool IsRunning(ToolEntry tool) => Running.Contains(tool.Id);
+        public Task StopAsync(ToolEntry tool) { Calls.Add("stop " + tool.Name); Running.Remove(tool.Id); return Task.CompletedTask; }
+        public Task<LaunchResult> StartAsync(ToolEntry tool) { Calls.Add("start " + tool.Name); Running.Add(tool.Id); return Task.FromResult(LaunchResult.Ok()); }
+    }
+
     private sealed class SlowCommands(TaskCompletionSource release) : ICommandRunner
     {
         public readonly TaskCompletionSource Started = new();
@@ -180,7 +189,7 @@ public sealed class RepoCommandTests : IDisposable
         var release = new TaskCompletionSource();
         var commands = new SlowCommands(release);
         var git = new FakeGit();
-        var svc = new RepoSyncService(new FakeConfig(settings), git, commands);
+        var svc = new RepoSyncService(new FakeConfig(settings), git, commands, new FakeTools());
 
         var running = svc.RunCommandAsync(a, Cmd("Build", "dotnet build"));
         await commands.Started.Task;
