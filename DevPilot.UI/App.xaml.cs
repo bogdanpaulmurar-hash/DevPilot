@@ -186,6 +186,7 @@ public partial class App : Application
         s.AddSingleton<IStartupManager, StartupManager>();
         s.AddSingleton<BackupService>();
         s.AddSingleton<IGitRunner, GitRunner>();
+        s.AddSingleton<ICommandRunner, ShellCommandRunner>();
         s.AddSingleton<RepoSyncService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
         s.AddSingleton<IKeyboardSender, KeyboardSender>();
