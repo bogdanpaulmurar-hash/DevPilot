@@ -8,7 +8,7 @@
         <StackPanel Margin="32,4,32,32" MaxWidth="900" HorizontalAlignment="Left">
             <TextBlock Text="Repositories" Style="{StaticResource PageTitle}"/>
             <TextBlock Style="{StaticResource PageSubtitle}"
-                       Text="Pull every ticked clone in one go, from here, the hub or the tray menu. A repository with uncommitted changes is skipped, and DevPilot only fast-forwards: it never merges, rebases or stashes."/>
+                       Text="Pull every ticked clone in one go, or run a repository's own commands (a build, an install script). The hub opens the same list. A pull skips repositories with uncommitted changes and only fast-forwards: it never merges, rebases or stashes."/>
 
             <Border Style="{StaticResource Card}" Margin="0,20,0,12">
                 <StackPanel>
@@ -48,34 +48,73 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:RepoRowVM}">
                                 <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,7">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,10,0" ToolTip="Include in Pull selected"/>
-                                        <StackPanel Grid.Column="1">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Branch}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}" Margin="10,0,0,0"
-                                                           Visibility="{Binding HasBranch, Converter={StaticResource BoolToVis}}"/>
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,10,0" ToolTip="Include in Pull selected"/>
+                                            <StackPanel Grid.Column="1">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Branch}" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}" Margin="10,0,0,0"
+                                                               Visibility="{Binding HasBranch, Converter={StaticResource BoolToVis}}"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>
+                                                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
+                                                           FontFamily="{StaticResource MonoFont}" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>
-                                                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}"/>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                                                <Button Style="{StaticResource IconButton}" Content="&#xE838;" Command="{Binding OpenCommand}" ToolTip="Open folder"/>
+                                                <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE713;" IsChecked="{Binding IsExpanded}" ToolTip="Commands of this repository"/>
+                                                <Button Content="{Binding ActionLabel}" Margin="4,0,0,0" MinWidth="64" Command="{Binding RunCommand}"
+                                                        ToolTip="{Binding ActionTip}" IsEnabled="{Binding CanRun}"/>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
-                                                       Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
-                                            <Button Style="{StaticResource IconButton}" Content="&#xE838;" Command="{Binding OpenCommand}" ToolTip="Open folder"/>
-                                            <Button Content="Pull" Margin="4,0,0,0" Command="{Binding PullCommand}"
-                                                    IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
-                                        </StackPanel>
-                                    </Grid>
+                                        </Grid>
+                                        <Border x:Name="Editor" Visibility="Collapsed" Margin="26,8,0,2" Padding="12,10" CornerRadius="6"
+                                                Background="{DynamicResource Surface2Brush}">
+                                            <StackPanel>
+                                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding IncludePull}" Content="Offer git pull for this repository"/>
+                                                <ItemsControl ItemsSource="{Binding Commands}" Margin="0,8,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type vm:RepoCommandVM}">
+                                                            <Grid Margin="0,0,0,6">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="130"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" ToolTip="Name shown on the button"/>
+                                                                <TextBox Grid.Column="1" Margin="6,0,0,0" FontFamily="{StaticResource MonoFont}"
+                                                                         Text="{Binding CommandLine, UpdateSourceTrigger=LostFocus}"
+                                                                         ToolTip="Runs in the repository folder, for example: Install.bat   or   dotnet build -c Release"/>
+                                                                <CheckBox Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center" Content="In a window"
+                                                                          IsChecked="{Binding InWindow}"
+                                                                          ToolTip="Off: runs hidden and the result is shown here. On: opens a console window that stays open, so you can read errors."/>
+                                                                <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE768;" Margin="6,0,0,0" Command="{Binding RunCommand}" ToolTip="Run now"/>
+                                                                <Button Grid.Column="4" Style="{StaticResource IconButton}" Content="&#xE74D;" Command="{Binding RemoveCommand}" ToolTip="Remove this command"/>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <Button Content="Add command" HorizontalAlignment="Left" Command="{Binding AddCommandCommand}"/>
+                                                <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                                           Text="The row button runs the only action, or opens a menu when there are several. Commands run through cmd.exe in this folder, so .bat files and &amp;&amp; work."/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
                                 </Border>
                                 <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                        <Setter TargetName="Editor" Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding Tone}" Value="ok">
                                         <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource StatusRunningBrush}"/>
                                     </DataTrigger>

@@ -153,6 +153,7 @@ public sealed class TrayManager : IDisposable
         FlyoutItem.Action("Check clipboard before pasting into AI", Glyphs.Eye, () => PreflightActions.CheckClipboard()),
         FlyoutItem.Action("Check a file before pasting into AI…", Glyphs.OpenFile, () => PreflightActions.CheckFile()),
         FlyoutItem.Action("Back up now", Glyphs.Save, async () => { await App.BackupNowAsync(); return true; }),
+        FlyoutItem.Action("Repositories…", Glyphs.Folder, () => shell.ShowRepoPanel()),
         FlyoutItem.Action("Pull repositories", Glyphs.Sync, async () => { await RepoActions.PullNowAsync(_repos, shell); return true; },
             detail: _repos.IsRunning ? "running" : string.Empty),
         FlyoutItem.Action("Tools", Glyphs.List, () => shell.ShowMainWindow("tools")),

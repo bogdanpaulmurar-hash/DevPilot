@@ -60,6 +60,31 @@ public static class SmokeRunner
                 report.AppendLine($"page {item.Key}: ok");
             }
 
+            // Repositories page with one command being edited, and the hub's repositories panel
+            var repos = App.GetService<ReposViewModel>();
+            main.Navigate("repos");
+            await Settle(900);
+            if (repos.Items.FirstOrDefault() is { } repoRow)
+            {
+                repoRow.AddCommandCommand.Execute(null);
+                var cmd = repoRow.Commands[0];
+                cmd.Name = "Build";
+                cmd.CommandLine = "dotnet build -c Release";
+                repoRow.AddCommandCommand.Execute(null);
+                repoRow.Commands[1].CommandLine = "Install.bat";
+                repoRow.Commands[1].InWindow = true;
+                await Settle(600);
+                Capture(FindMain(), Path.Combine(outDir, "page-repos-commands.png"));
+                report.AppendLine($"repos: {repos.Items.Count} found, {repoRow.Actions.Count} actions on the first, button '{repoRow.ActionLabel}'");
+            }
+            shell.ShowRepoPanel();
+            await Settle(900);
+            if (Application.Current.Windows.OfType<RepoPanelWindow>().FirstOrDefault() is { } repoPanel)
+            {
+                Capture(repoPanel, Path.Combine(outDir, "repos-panel.png"));
+                repoPanel.Close();
+            }
+
             // Tool editor with a folder tool and a group selected
             var tools = App.GetService<ToolsViewModel>();
             main.Navigate("tools");
