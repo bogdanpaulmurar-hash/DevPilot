@@ -47,9 +47,9 @@ public static class RepoConfigs
     {
         s.Items ??= [];
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (int i = s.Items.Count - 1; i >= 0; i--)
+        var kept = new List<RepoConfig>();
+        foreach (var item in s.Items)
         {
-            var item = s.Items[i];
             item.Commands ??= [];
             item.Path = RepoScanner.Normalize(item.Path ?? string.Empty);
             item.Commands.RemoveAll(c => string.IsNullOrWhiteSpace(c.CommandLine));
@@ -62,10 +62,9 @@ public static class RepoConfigs
                 if (string.IsNullOrWhiteSpace(c.Id) || !ids.Add(c.Id)) { c.Id = NewId.Short(); ids.Add(c.Id); }
             }
             bool useless = item.IncludePull && item.Commands.Count == 0;
-            if (item.Path.Length == 0 || useless || !seenPaths.Add(item.Path)) s.Items.RemoveAt(i);
+            // The first entry for a folder wins.
+            if (item.Path.Length > 0 && !useless && seenPaths.Add(item.Path)) kept.Add(item);
         }
+        s.Items = kept;
     }
-
-    /// <summary>Removes the entry again when it holds nothing but the defaults.</summary>
-    public static void Prune(RepoSettings s) => Normalize(s);
 }
