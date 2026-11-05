@@ -198,8 +198,8 @@ public sealed class RepoPull(IGitRunner git)
         if (string.IsNullOrWhiteSpace(s.Root)) return null;
         return s.Auto switch
         {
-            DevPilot.Models.RepoAutoPull.Off => null,
-            DevPilot.Models.RepoAutoPull.AtStartup => s.LastRun is { } last && last >= startedAt ? null : startedAt,
+            DevPilot.Models.RepoAutoPull.Off => (DateTime?)null,
+            DevPilot.Models.RepoAutoPull.AtStartup => s.LastRun is { } last && last >= startedAt ? (DateTime?)null : startedAt,
             _ => s.LastRun is { } l && l >= startedAt ? l.AddMinutes(Math.Clamp(s.IntervalMinutes, DevPilot.Models.RepoSettings.MinInterval, DevPilot.Models.RepoSettings.MaxInterval)) : startedAt,
         };
     }

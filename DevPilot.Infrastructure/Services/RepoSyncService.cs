@@ -51,7 +51,7 @@ public sealed class RepoSyncService : IDisposable
     /// <summary>Pulls every ticked repository. Returns null when a run is already going.</summary>
     public async Task<IReadOnlyList<RepoPullResult>?> PullSelectedAsync(CancellationToken ct = default)
     {
-        var repos = await Task.Run(SelectedRepos, ct).ConfigureAwait(false);
+        var repos = await Task.Run(() => SelectedRepos(), ct).ConfigureAwait(false);
         return await RunAsync(repos, ct).ConfigureAwait(false);
     }
 
@@ -92,9 +92,11 @@ public sealed class RepoSyncService : IDisposable
         public void Report(RepoPullResult value)
         {
             lock (owner._last) owner._last[RepoScanner.Normalize(value.Path)] = value;
-            owner.RepoFinished?.Invoke(owner, value);
+            owner.OnRepoFinished(value);
         }
     }
+
+    private void OnRepoFinished(RepoPullResult r) => RepoFinished?.Invoke(this, r);
 
     private void SetRunning(bool value)
     {

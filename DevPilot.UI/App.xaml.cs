@@ -122,6 +122,20 @@ public partial class App : Application
         }
         _ = StartAutoStartToolsAsync();
         _ = RunAutomaticBackupAsync();
+        StartRepoSchedule();
+    }
+
+    // ── Automatic git pull ───────────────────────────────────────────────
+    private void StartRepoSchedule()
+    {
+        var repos = GetService<RepoSyncService>();
+        repos.AutoRunFinished += (_, results) => Dispatcher.BeginInvoke(() =>
+        {
+            if (repos.Settings.QuietWhenUpToDate && !DevPilot.Core.Repos.RepoPull.IsNoteworthy(results)) return;
+            RepoActions.Report(results, repos.Settings.Root);
+        });
+        // Let the tools and the synced drive settle before the first automatic pull.
+        repos.Start(TimeSpan.FromSeconds(30));
     }
 
     // ── Automatic backup ─────────────────────────────────────────────────
@@ -171,6 +185,8 @@ public partial class App : Application
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();
         s.AddSingleton<BackupService>();
+        s.AddSingleton<IGitRunner, GitRunner>();
+        s.AddSingleton<RepoSyncService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();
         s.AddSingleton<IKeyboardSender, KeyboardSender>();
         s.AddSingleton<IForegroundProbe, ForegroundProbe>();
@@ -191,6 +207,7 @@ public partial class App : Application
         s.AddSingleton<StartupViewModel>();
         s.AddSingleton<MonitorViewModel>();
         s.AddSingleton<GuardViewModel>();
+        s.AddSingleton<ReposViewModel>();
         s.AddSingleton<AppearanceViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<GuideViewModel>();
