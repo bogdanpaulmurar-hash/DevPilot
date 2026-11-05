@@ -15,6 +15,7 @@ public sealed class RepoSyncService : IDisposable
     private readonly IConfigStore _config;
     private readonly RepoPull _pull;
     private readonly ICommandRunner _commands;
+    private readonly IToolControl _tools;
     private readonly HashSet<string> _busy = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, RepoCommandResult> _lastCommand = new(StringComparer.OrdinalIgnoreCase);
     private readonly ILogger<RepoSyncService> _logger;
@@ -24,10 +25,11 @@ public sealed class RepoSyncService : IDisposable
     private Timer? _timer;
     private bool _running;
 
-    public RepoSyncService(IConfigStore config, IGitRunner git, ICommandRunner commands, ILogger<RepoSyncService>? logger = null)
+    public RepoSyncService(IConfigStore config, IGitRunner git, ICommandRunner commands, IToolControl tools, ILogger<RepoSyncService>? logger = null)
     {
         _config = config;
         _commands = commands;
+        _tools = tools;
         _pull = new RepoPull(git);
         _logger = logger ?? NullLogger<RepoSyncService>.Instance;
     }
@@ -70,15 +72,7 @@ public sealed class RepoSyncService : IDisposable
     {
         var key = RepoScanner.Normalize(repo);
         var name = RepoConfigs.DisplayName(command);
-        bool pulling;
-        lock (_busy)
-        {
-            pulling = _running;
-            if (pulling || !_busy.Add(key))
-                return new RepoCommandResult(repo, name, RepoCommandStatus.Busy, -1,
-                    pulling ? "A pull of all repositories is running." : "Another command is already running on this repository.", DateTime.Now);
-        }
-        StateChanged?.Invoke(this, EventArgs.Empty);
+        if (!TryBegin(key, out var refusal)) return new RepoCommandResult(repo, name, RepoCommandStatus.Busy, -1, refusal, DateTime.Now);
         try
         {
             CommandRun run;
@@ -91,11 +85,113 @@ public sealed class RepoSyncService : IDisposable
             CommandFinished?.Invoke(this, result);
             return result;
         }
-        finally
+        finally { End(key); }
+    }
+
+    /// <summary>Marks a repository busy unless a pull of all or another action already runs on it.</summary>
+    private bool TryBegin(string key, out string refusal)
+    {
+        lock (_busy)
         {
-            lock (_busy) _busy.Remove(key);
-            StateChanged?.Invoke(this, EventArgs.Empty);
+            if (_running) { refusal = "A pull of all repositories is running."; return false; }
+            if (!_busy.Add(key)) { refusal = "Another action is already running on this repository."; return false; }
         }
+        refusal = string.Empty;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    private void End(string key)
+    {
+        lock (_busy) _busy.Remove(key);
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Update: git pull; when something new came (or on <see cref="RepoUpdateMode.ReinstallOnly"/>) close the running
+    /// tools of the repository, run its install step, and start the tools again. Nothing is closed when the
+    /// repository is already up to date, and nothing is started again after a failed install.
+    /// </summary>
+    public async Task<RepoCommandResult> UpdateAsync(string repo, RepoUpdateMode mode = RepoUpdateMode.Full,
+        Action<string>? step = null, CancellationToken ct = default)
+    {
+        var key = RepoScanner.Normalize(repo);
+        string name = mode == RepoUpdateMode.Full ? "Update" : "Reinstall";
+        if (!TryBegin(key, out var refusal)) return new RepoCommandResult(repo, name, RepoCommandStatus.Busy, -1, refusal, DateTime.Now);
+        try
+        {
+            var result = await Task.Run(() => UpdateCoreAsync(repo, name, mode, step ?? (_ => { }), ct), ct).ConfigureAwait(false);
+            lock (_busy) _lastCommand[key] = result;
+            _logger.LogInformation("{Name} of {Repo}: {Status}", name, repo, result.Status);
+            CommandFinished?.Invoke(this, result);
+            return result;
+        }
+        finally { End(key); }
+    }
+
+    private async Task<RepoCommandResult> UpdateCoreAsync(string repo, string name, RepoUpdateMode mode, Action<string> step, CancellationToken ct)
+    {
+        RepoCommandResult Done(RepoCommandStatus status, IEnumerable<string> lines, int exit = 0) =>
+            new(repo, name, status, exit, string.Join('\n', lines), DateTime.Now, ShowAllLines: true);
+
+        var cfg = RepoConfigs.Find(Settings, repo);
+        var plan = RepoUpdatePlanner.Plan(repo, cfg, _config.Current.Tools);
+        if (!plan.Available) return Done(RepoCommandStatus.Skipped, [plan.Note.Length > 0 ? plan.Note : "Nothing to update here: no install step and no tool of this repository."]);
+
+        var lines = new List<string>();
+        if (mode == RepoUpdateMode.Full)
+        {
+            step("Pulling…");
+            var pull = await _pull.PullAsync(repo, ct).ConfigureAwait(false);
+            if (!pull.IsOk)
+                return Done(pull.IsSkipped ? RepoCommandStatus.Skipped : RepoCommandStatus.Failed, [pull.StatusText + ": " + pull.Message], -1);
+            if (pull.Status == RepoPullStatus.UpToDate)
+                return Done(RepoCommandStatus.Succeeded, ["Already up to date. Nothing was closed or installed."]);
+            lines.Add("Pulled: " + (pull.Message.Length > 0 ? pull.Message : "updated"));
+        }
+
+        bool restart = cfg?.RestartTools ?? true;
+        var running = restart ? plan.Tools.Where(_tools.IsRunning).ToList() : [];
+        foreach (var tool in running)
+        {
+            step($"Closing {tool.Name}…");
+            await _tools.StopAsync(tool).ConfigureAwait(false);
+        }
+        if (running.Count > 0) lines.Add("Closed: " + string.Join(", ", running.Select(t => t.Name)));
+
+        if (plan.Install is not null)
+        {
+            step("Installing…");
+            CommandRun run;
+            try { run = await _commands.RunAsync(plan.Install, repo, RepoCommandRunner.Timeout, ct).ConfigureAwait(false); }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { run = new CommandRun(-1, string.Empty, StartError: ex.Message); }
+            var install = RepoCommandRunner.ToResult(repo, "Install", run, DateTime.Now);
+            if (!install.IsOk)
+            {
+                lines.Add($"Install failed ({plan.InstallText}): {install.StatusText}");
+                lines.Add(RepoCommandRunner.LastLines(install.OutputTail, 4));
+                if (running.Count > 0) lines.Add(string.Join(", ", running.Select(t => t.Name)) + (running.Count == 1 ? " stays closed." : " stay closed."));
+                return Done(RepoCommandStatus.Failed, lines, install.ExitCode);
+            }
+            lines.Add("Installed: " + plan.InstallText);
+        }
+        else lines.Add("No install step found.");
+
+        var failed = new List<string>();
+        foreach (var tool in running)
+        {
+            step($"Starting {tool.Name}…");
+            var started = await _tools.StartAsync(tool).ConfigureAwait(false);
+            if (!started.Success) failed.Add($"{tool.Name}: {started.Error}");
+        }
+        if (running.Count > 0) lines.Add("Started: " + string.Join(", ", running.Select(t => t.Name).Where(n => !failed.Any(f => f.StartsWith(n + ":", StringComparison.Ordinal)))));
+        if (failed.Count > 0)
+        {
+            lines.AddRange(failed.Select(f => "Did not start " + f));
+            return Done(RepoCommandStatus.Failed, lines, -1);
+        }
+        return Done(RepoCommandStatus.Succeeded, lines);
     }
 
     public IReadOnlyList<string> FindRepos() => RepoScanner.Find(Settings.Root);

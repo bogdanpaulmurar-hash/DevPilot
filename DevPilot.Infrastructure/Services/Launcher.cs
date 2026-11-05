@@ -78,6 +78,7 @@ public sealed class Launcher : ILauncher
 
     public async Task<int> StopAsync(ToolEntry tool)
     {
+        _monitor.NotifyStopped(tool.Id);
         var pids = _monitor.FindProcesses(tool);
         int killed = 0;
         await Task.Run(() =>

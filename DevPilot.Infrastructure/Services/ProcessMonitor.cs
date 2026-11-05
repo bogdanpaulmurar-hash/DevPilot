@@ -22,6 +22,7 @@ public sealed class ProcessMonitor : IProcessMonitor
     private readonly ConcurrentDictionary<string, string> _launchErrors = new();
     private readonly ConcurrentDictionary<string, List<DateTime>> _restarts = new();
     private readonly HashSet<string> _seenRunning = [];
+    private readonly ConcurrentDictionary<string, DateTime> _stoppedByUser = new();
     private readonly SemaphoreSlim _pollLock = new(1, 1);
     private List<ProcessInfo> _lastSnapshot = [];
     private CancellationTokenSource? _cts;
@@ -71,9 +72,17 @@ public sealed class ProcessMonitor : IProcessMonitor
     {
         _launchedAt[toolId] = DateTime.UtcNow;
         _launchErrors.TryRemove(toolId, out _);
+        _stoppedByUser.TryRemove(toolId, out _);
         _status[toolId] = new ToolStatus(toolId, ToolRunState.Starting, processId > 0 ? [processId] : [], "Starting…");
         StatusChanged?.Invoke(this, EventArgs.Empty);
         _ = Task.Delay(1500).ContinueWith(_ => RefreshNowAsync(), TaskScheduler.Default);
+    }
+
+    public void NotifyStopped(string toolId)
+    {
+        // A poll can still see the dying process once more, so remember the stop for a while as well.
+        _stoppedByUser[toolId] = DateTime.UtcNow;
+        lock (_seenRunning) _seenRunning.Remove(toolId);
     }
 
     public void NotifyLaunchFailed(string toolId, string error)
@@ -148,6 +157,7 @@ public sealed class ProcessMonitor : IProcessMonitor
     private void ConsiderRestart(ToolEntry tool)
     {
         if (!tool.Monitor.AutoRestart) return;
+        if (_stoppedByUser.TryGetValue(tool.Id, out var stoppedAt) && DateTime.UtcNow - stoppedAt < TimeSpan.FromMinutes(2)) return;
         bool seen;
         lock (_seenRunning) seen = _seenRunning.Contains(tool.Id);
         if (!seen) return;

@@ -42,12 +42,29 @@ public class RepoCommand
     public RepoCommandMode Mode { get; set; } = RepoCommandMode.Hidden;
 }
 
-/// <summary>Per-repository settings: whether git pull is one of its actions, and its own commands.</summary>
+/// <summary>When a repository offers a plain "git pull" button.</summary>
+public enum PullButton
+{
+    /// <summary>Only when the repository has no Update (Update pulls as its first step).</summary>
+    Auto,
+    Always,
+    Never,
+}
+
+/// <summary>Per-repository settings: update, plain pull, and its own commands.</summary>
 public class RepoConfig
 {
     public string Path { get; set; } = string.Empty;
-    /// <summary>Offer "git pull" as an action of this repository (the hub shows a chooser when there are several).</summary>
-    public bool IncludePull { get; set; } = true;
+    public PullButton Pull { get; set; } = PullButton.Auto;
+    /// <summary>
+    /// Offer "Update" (git pull, close the tools of this repository, install, start them again) when DevPilot can
+    /// tell how to install it or manages a tool from it.
+    /// </summary>
+    public bool UpdateEnabled { get; set; } = true;
+    /// <summary>Install command for Update; empty = found automatically (an install script, else dotnet build for C#).</summary>
+    public string InstallCommand { get; set; } = string.Empty;
+    /// <summary>Update closes the running tools of this repository before installing and starts them again afterwards.</summary>
+    public bool RestartTools { get; set; } = true;
     public List<RepoCommand> Commands { get; set; } = [];
 }
 

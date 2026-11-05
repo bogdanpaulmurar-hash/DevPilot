@@ -16,9 +16,11 @@ public enum RepoCommandStatus
     Started,
     /// <summary>Another action is already running on this repository.</summary>
     Busy,
+    /// <summary>Nothing was done on purpose (for example an update stopped by uncommitted changes).</summary>
+    Skipped,
 }
 
-public sealed record RepoCommandResult(string Path, string Name, RepoCommandStatus Status, int ExitCode, string OutputTail, DateTime At)
+public sealed record RepoCommandResult(string Path, string Name, RepoCommandStatus Status, int ExitCode, string OutputTail, DateTime At, bool ShowAllLines = false)
 {
     public bool IsOk => Status is RepoCommandStatus.Succeeded or RepoCommandStatus.Started;
 
@@ -29,6 +31,7 @@ public sealed record RepoCommandResult(string Path, string Name, RepoCommandStat
         RepoCommandStatus.TimedOut => "Timed out",
         RepoCommandStatus.StartFailed => "Could not start",
         RepoCommandStatus.Started => "Opened in a window",
+        RepoCommandStatus.Skipped => "Skipped",
         _ => "Busy",
     };
 

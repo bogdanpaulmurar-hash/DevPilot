@@ -20,6 +20,8 @@ public interface IProcessMonitor : IDisposable
     HealthStatus GetHealth(string targetId);
     void NotifyLaunched(string toolId, int processId);
     void NotifyLaunchFailed(string toolId, string error);
+    /// <summary>The user (or an update) stopped the tool on purpose: its stopping is not an unexpected exit, so no auto-restart.</summary>
+    void NotifyStopped(string toolId);
     Task RefreshNowAsync();
     void Start();
 }
