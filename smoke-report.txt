@@ -1,0 +1,13 @@
+page hub: ok
+page tools: ok
+page keepawake: ok
+page startup: ok
+page monitor: ok
+page guard: ok
+page repos: ok
+page appearance: ok
+page settings: ok
+page guide: ok
+repos: 1 found, 3 actions on the first, button 'Run…', update: no install step found · DevPilot updates itself: close it, then run scripts\install.cmd
+hub size: 400x663
+binding errors: 0
