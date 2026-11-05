@@ -75,7 +75,7 @@ public static class SmokeRunner
                 repoRow.Commands[1].InWindow = true;
                 await Settle(600);
                 Capture(FindMain(), Path.Combine(outDir, "page-repos-commands.png"));
-                report.AppendLine($"repos: {repos.Items.Count} found, {repoRow.Actions.Count} actions on the first, button '{repoRow.ActionLabel}'");
+                report.AppendLine($"repos: {repos.Items.Count} found, {repoRow.Actions.Count} actions on the first, button '{repoRow.ActionLabel}', update: {repoRow.UpdateSummary}");
             }
             shell.ShowRepoPanel();
             await Settle(900);

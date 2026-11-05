@@ -68,9 +68,10 @@ public sealed class RepoRowVM : ObservableObject
     private bool _expanded;
     private string? _runningName;
 
-    public RepoRowVM(ReposViewModel owner, string path, string name, string branch, RepoPullResult? lastPull, RepoCommandResult? lastCommand)
+    public RepoRowVM(ReposViewModel owner, string path, string name, string branch, RepoPullResult? lastPull, RepoCommandResult? lastCommand, RepoUpdatePlan? plan)
     {
         Owner = owner;
+        UpdatePlan = plan;
         Path = path;
         Name = name;
         Branch = branch;
@@ -82,6 +83,7 @@ public sealed class RepoRowVM : ObservableObject
         RunCommand = new RelayCommand(() => owner.RunActions(this));
         OpenCommand = new RelayCommand(() => ReposViewModel.OpenFolder(Path));
         AddCommandCommand = new RelayCommand(AddCommand);
+        ReinstallCommand = new RelayCommand(() => owner.RunInBackground(this, RepoAction.Update(), RepoUpdateMode.ReinstallOnly));
     }
 
     internal ReposViewModel Owner { get; }
@@ -93,6 +95,12 @@ public sealed class RepoRowVM : ObservableObject
     public ICommand RunCommand { get; }
     public ICommand OpenCommand { get; }
     public ICommand AddCommandCommand { get; }
+    public ICommand ReinstallCommand { get; }
+
+    /// <summary>What Update would do here (found when the folder was scanned, refreshed after an edit).</summary>
+    public RepoUpdatePlan? UpdatePlan { get; private set; }
+    public string UpdateSummary => UpdatePlan?.Summary ?? string.Empty;
+    public bool CanReinstall => UpdatePlan is { Available: true };
 
     public bool IsSelected
     {
@@ -107,13 +115,36 @@ public sealed class RepoRowVM : ObservableObject
 
     public bool IsExpanded { get => _expanded; set => Set(ref _expanded, value); }
 
-    public bool IncludePull
+    private RepoConfig Config => RepoConfigs.GetOrCreate(Owner.Settings, Path);
+    private RepoConfig? ConfigOrNull => RepoConfigs.Find(Owner.Settings, Path);
+
+    public PullButton PullChoice
     {
-        get => RepoConfigs.Find(Owner.Settings, Path)?.IncludePull ?? true;
+        get => ConfigOrNull?.Pull ?? PullButton.Auto;
+        set { if (value == PullChoice) return; Config.Pull = value; OnPropertyChanged(); Edited(); }
+    }
+
+    public bool UpdateEnabled
+    {
+        get => ConfigOrNull?.UpdateEnabled ?? true;
+        set { if (value == UpdateEnabled) return; Config.UpdateEnabled = value; OnPropertyChanged(); Edited(); }
+    }
+
+    public bool RestartTools
+    {
+        get => ConfigOrNull?.RestartTools ?? true;
+        set { if (value == RestartTools) return; Config.RestartTools = value; OnPropertyChanged(); Edited(); }
+    }
+
+    /// <summary>Empty = found automatically.</summary>
+    public string InstallCommand
+    {
+        get => ConfigOrNull?.InstallCommand ?? string.Empty;
         set
         {
-            if (value == IncludePull) return;
-            RepoConfigs.GetOrCreate(Owner.Settings, Path).IncludePull = value;
+            value = (value ?? string.Empty).Trim();
+            if (value == InstallCommand) return;
+            Config.InstallCommand = value;
             OnPropertyChanged();
             Edited();
         }
@@ -125,7 +156,7 @@ public sealed class RepoRowVM : ObservableObject
         set
         {
             if (!Set(ref _busy, value)) return;
-            if (!value) { _runningName = null; Manual = false; }
+            if (!value) { _runningName = null; _step = null; Manual = false; }
             RefreshStatus();
             OnPropertyChanged(nameof(CanRun));
         }
@@ -133,6 +164,16 @@ public sealed class RepoRowVM : ObservableObject
 
     /// <summary>True while a single action started from this row runs; the global state handler leaves such a row alone.</summary>
     internal bool Manual { get; private set; }
+
+    /// <summary>What an Update is doing now ("Closing X…"), shown instead of the generic running text.</summary>
+    public void SetStep(string text)
+    {
+        _runningName = null;
+        _step = text;
+        RefreshStatus();
+    }
+
+    private string? _step;
 
     /// <summary>Marks the row busy with one action: a command (its name) or a single pull (null).</summary>
     public void SetRunning(string? name)
@@ -146,7 +187,7 @@ public sealed class RepoRowVM : ObservableObject
     public RepoCommandResult? CommandResult { get => _command; set { _command = value; RefreshStatus(); } }
 
     // ── What the row's button does ───────────────────────────────────────
-    public IReadOnlyList<RepoAction> Actions => RepoConfigs.Actions(Owner.Settings, Path);
+    public IReadOnlyList<RepoAction> Actions => RepoConfigs.Actions(Owner.Settings, Path, UpdatePlan);
 
     public string ActionLabel
     {
@@ -156,7 +197,7 @@ public sealed class RepoRowVM : ObservableObject
             return a.Count switch
             {
                 0 => "No action",
-                1 => a[0].IsPull ? "Pull" : a[0].Name,
+                1 => a[0].IsPull ? "Pull" : a[0].Name,   // "Update" or the command's name
                 _ => "Run…",
             };
         }
@@ -170,7 +211,7 @@ public sealed class RepoRowVM : ObservableObject
             return a.Count switch
             {
                 0 => "Turn on git pull or add a command in DevPilot > Repositories.",
-                1 => a[0].IsPull ? "git pull --ff-only" : a[0].Command!.CommandLine,
+                1 => a[0].IsPull ? "git pull --ff-only" : a[0].IsUpdate ? "Update: " + UpdatePlan?.Summary : a[0].Command!.CommandLine,
                 _ => "Choose what to run: " + string.Join(", ", a.Select(x => x.Name)),
             };
         }
@@ -199,12 +240,25 @@ public sealed class RepoRowVM : ObservableObject
     internal void Edited()
     {
         Owner.TouchRepos();
+        RefreshPlan();
         OnPropertyChanged(nameof(ActionLabel));
         OnPropertyChanged(nameof(ActionTip));
         OnPropertyChanged(nameof(CanRun));
     }
 
     internal void RefreshCanRun() => OnPropertyChanged(nameof(CanRun));
+
+    /// <summary>Works out again what Update would do (after an edit or when the tools changed).</summary>
+    internal void RefreshPlan()
+    {
+        UpdatePlan = RepoUpdatePlanner.Plan(Path, ConfigOrNull, Owner.AllTools);
+        OnPropertyChanged(nameof(UpdatePlan));
+        OnPropertyChanged(nameof(UpdateSummary));
+        OnPropertyChanged(nameof(CanReinstall));
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(ActionTip));
+        OnPropertyChanged(nameof(CanRun));
+    }
 
     // ── Status line ──────────────────────────────────────────────────────
     private bool CommandIsNewer => _command is not null && (_pull is null || _command.At >= _pull.At);
@@ -213,7 +267,7 @@ public sealed class RepoRowVM : ObservableObject
     {
         get
         {
-            if (Busy) return _runningName is null ? "Pulling…" : $"Running {_runningName}…";
+            if (Busy) return _step is not null ? _step : _runningName is null ? "Pulling…" : $"Running {_runningName}…";
             if (CommandIsNewer) return $"{_command!.Name}: {_command.StatusText} · {_command.At:t}";
             return _pull is null ? string.Empty : $"{_pull.StatusText} · {_pull.At:t}";
         }
@@ -225,7 +279,8 @@ public sealed class RepoRowVM : ObservableObject
         {
             if (Busy) return string.Empty;
             if (CommandIsNewer)
-                return _command!.IsOk ? RepoCommandRunner.LastLines(_command.OutputTail, 1) : RepoCommandRunner.LastLines(_command.OutputTail, 6);
+                return _command!.ShowAllLines ? RepoCommandRunner.LastLines(_command.OutputTail, 8)
+                     : _command.IsOk ? RepoCommandRunner.LastLines(_command.OutputTail, 1) : RepoCommandRunner.LastLines(_command.OutputTail, 6);
             return _pull is { IsOk: false } or { Status: RepoPullStatus.Updated } ? _pull.Message : string.Empty;
         }
     }
@@ -242,7 +297,7 @@ public sealed class RepoRowVM : ObservableObject
                 return _command!.Status switch
                 {
                     RepoCommandStatus.Succeeded or RepoCommandStatus.Started => "ok",
-                    RepoCommandStatus.Busy => "skipped",
+                    RepoCommandStatus.Busy or RepoCommandStatus.Skipped => "skipped",
                     _ => "failed",
                 };
             return _pull switch
@@ -280,6 +335,16 @@ public sealed class ReposViewModel : ObservableObject, IPage
     public ICommand SelectAllCommand { get; }
     public ICommand SelectNoneCommand { get; }
     public ICommand OpenPageCommand { get; }
+
+    public static IReadOnlyList<Choice<PullButton>> PullChoices { get; } =
+    [
+        new(PullButton.Auto, "Automatic: only when there is no Update"),
+        new(PullButton.Always, "Always, next to Update"),
+        new(PullButton.Never, "Never"),
+    ];
+
+    /// <summary>The tools DevPilot manages (an update closes and starts those that run from the repository).</summary>
+    internal IReadOnlyList<ToolEntry> AllTools => _config.Current.Tools;
 
     public static IReadOnlyList<Choice<RepoAutoPull>> AutoModes { get; } =
     [
@@ -408,19 +473,19 @@ public sealed class ReposViewModel : ObservableObject, IPage
         }
         if (actions.Count == 1) { RunInBackground(row, actions[0]); return; }
 
-        var items = actions.Select(a => FlyoutItem.Action(a.Name, a.IsPull ? Glyphs.Sync : Glyphs.Play,
+        var items = actions.Select(a => FlyoutItem.Action(a.Name, a.IsPull ? Glyphs.Sync : a.IsUpdate ? Glyphs.Download : Glyphs.Play,
             () => { RunInBackground(row, a); return Task.FromResult(true); },
-            detail: a.Command?.Mode == RepoCommandMode.Window ? "window" : string.Empty)).ToList();
+            detail: a.IsUpdate ? "pull, install" : a.Command?.Mode == RepoCommandMode.Window ? "window" : string.Empty)).ToList();
         ToolMenuWindow.ShowAtCursor(items, row.Name, row.HasBranch ? row.Branch : null, _config.Current.Hub);
     }
 
-    internal async void RunInBackground(RepoRowVM row, RepoAction action)
+    internal async void RunInBackground(RepoRowVM row, RepoAction action, RepoUpdateMode mode = RepoUpdateMode.Full)
     {
-        try { await RunActionAsync(row, action); }
+        try { await RunActionAsync(row, action, mode); }
         catch (Exception ex) { Notifier.Error("Repositories", ex.Message); }
     }
 
-    internal async Task RunActionAsync(RepoRowVM row, RepoAction action)
+    internal async Task RunActionAsync(RepoRowVM row, RepoAction action, RepoUpdateMode mode = RepoUpdateMode.Full)
     {
         if (_repos.IsRunning || row.Busy)
         {
@@ -436,6 +501,12 @@ public sealed class ReposViewModel : ObservableObject, IPage
             row.PullResult = r;
             if (r.IsOk) Notifier.Info($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Status == RepoPullStatus.Updated ? r.Message : string.Empty);
             else Notifier.Error($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Message);
+            return;
+        }
+
+        if (action.IsUpdate)
+        {
+            await RunUpdateAsync(row, mode);
             return;
         }
 
@@ -457,6 +528,24 @@ public sealed class ReposViewModel : ObservableObject, IPage
             default:
                 Notifier.Error($"{action.Name} failed in {row.Name}", $"{result.StatusText}\n{RepoCommandRunner.LastLines(result.OutputTail, 1)}".TrimEnd());
                 break;
+        }
+    }
+
+    private async Task RunUpdateAsync(RepoRowVM row, RepoUpdateMode mode)
+    {
+        string name = mode == RepoUpdateMode.Full ? "Update" : "Reinstall";
+        row.SetRunning(name);
+        var dispatcher = Application.Current.Dispatcher;
+        var result = await _repos.UpdateAsync(row.Path, mode, text => dispatcher.BeginInvoke(() => row.SetStep($"{name}: {text}")));
+        row.Busy = false;
+        row.CommandResult = result;
+        row.RefreshPlan();
+        var body = RepoCommandRunner.LastLines(result.OutputTail, 4);
+        switch (result.Status)
+        {
+            case RepoCommandStatus.Succeeded: Notifier.Info($"{row.Name}: {name.ToLowerInvariant()} done", body); break;
+            case RepoCommandStatus.Skipped or RepoCommandStatus.Busy: Notifier.Info($"{row.Name}: {name.ToLowerInvariant()} skipped", body); break;
+            default: Notifier.Error($"{row.Name}: {name.ToLowerInvariant()} failed", body); break;
         }
     }
 
@@ -494,11 +583,14 @@ public sealed class ReposViewModel : ObservableObject, IPage
         if (Scanning) return;
         Scanning = true;
         var root = Settings.Root;
-        List<(string Path, string Name, string Branch)> found;
+        List<(string Path, string Name, string Branch, RepoUpdatePlan Plan)> found;
+        var tools = _config.Current.Tools.ToList();
+        var configs = Settings.Items.ToList();
         try
         {
             found = await Task.Run(() => RepoScanner.Find(root)
-                .Select(p => (p, RepoScanner.DisplayName(root, p), RepoScanner.ReadBranch(p))).ToList());
+                .Select(p => (p, RepoScanner.DisplayName(root, p), RepoScanner.ReadBranch(p),
+                              RepoUpdatePlanner.Plan(p, configs.FirstOrDefault(c => RepoScanner.SamePath(c.Path, p)), tools))).ToList());
         }
         catch (Exception ex)
         {
@@ -508,9 +600,9 @@ public sealed class ReposViewModel : ObservableObject, IPage
         // Keep expanded rows open across a rescan.
         var open = Items.Where(i => i.IsExpanded).Select(i => i.Path).ToList();
         Items.Clear();
-        foreach (var (path, name, branch) in found)
+        foreach (var (path, name, branch, plan) in found)
         {
-            var row = new RepoRowVM(this, path, name, branch, _repos.LastResult(path), _repos.LastCommandResult(path))
+            var row = new RepoRowVM(this, path, name, branch, _repos.LastResult(path), _repos.LastCommandResult(path), plan)
             {
                 IsExpanded = open.Any(o => RepoScanner.SamePath(o, path)),
             };

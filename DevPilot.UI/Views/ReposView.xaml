@@ -79,8 +79,31 @@
                                         <Border x:Name="Editor" Visibility="Collapsed" Margin="26,8,0,2" Padding="12,10" CornerRadius="6"
                                                 Background="{DynamicResource Surface2Brush}">
                                             <StackPanel>
-                                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding IncludePull}" Content="Offer git pull for this repository"/>
-                                                <ItemsControl ItemsSource="{Binding Commands}" Margin="0,8,0,0">
+                                                <TextBlock Text="Update" Style="{StaticResource FieldLabel}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding UpdateSummary}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,2,0,6"/>
+                                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding UpdateEnabled}"
+                                                          Content="Offer Update: git pull, close the tools of this repository, install, start them again"/>
+                                                <CheckBox Style="{StaticResource Switch}" Margin="0,6,0,0" IsChecked="{Binding RestartTools}"
+                                                          Content="Close the running tools before installing and start them again afterwards"/>
+                                                <Grid Margin="0,8,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Install command" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <TextBox Grid.Column="1" FontFamily="{StaticResource MonoFont}" Text="{Binding InstallCommand, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Empty = found automatically: an install script (Install.bat, scripts\install.cmd), else dotnet build for a C# project"/>
+                                                    <Button Grid.Column="2" Content="Reinstall now" Margin="6,0,0,0" Command="{Binding ReinstallCommand}"
+                                                            IsEnabled="{Binding CanReinstall}" ToolTip="Close the tools, install, start them again (no git pull)"/>
+                                                </Grid>
+                                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                    <TextBlock Text="Plain git pull button" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <ComboBox MinWidth="260" ItemsSource="{x:Static vm:ReposViewModel.PullChoices}"
+                                                              DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding PullChoice}"/>
+                                                </StackPanel>
+                                                <TextBlock Text="Commands" Style="{StaticResource FieldLabel}" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                                                <ItemsControl ItemsSource="{Binding Commands}" Margin="0,6,0,0">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate DataType="{x:Type vm:RepoCommandVM}">
                                                             <Grid Margin="0,0,0,6">

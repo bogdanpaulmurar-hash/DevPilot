@@ -2,6 +2,22 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.15.0 — Update (pull, close, install, start again)
+
+Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.
+
+1. DevPilot > Repositories > open the gear of a Python repository that has `Install.bat` (for example ScreenPilot) → the text under *Update* names the install script and the tools that will be closed.
+2. Same for a C# repository without an install script → it says `dotnet build <solution> -c Release`.
+3. Hub panel → that repository's button reads *Update*. Click it with the tool running and nothing new on GitHub → "Already up to date", the tool stays open.
+4. Push a small change to that repository from the other PC (or commit on GitHub), click *Update* → the row shows "Closing …", "Installing…", "Starting …"; the tool closes, reinstalls and starts again; a notification says done; no console window appears.
+5. Make the install fail (rename `Install.bat` temporarily, or type a wrong *Install command* in the gear) and update again → the result says failed with the last lines of output, and the tool stays closed.
+6. Change a tracked file in the repository without committing → *Update* → "Skipped: local changes", nothing is closed.
+7. Gear > *Close the running tools…* off → Update installs without touching the running tool.
+8. A tool with auto-restart on: use *Stop* in the hub → it stays stopped (it is not started again by the monitor).
+9. *Reinstall now* → closes, installs, starts again without a pull.
+10. The DevPilot repository itself shows no *Update* (it says to close DevPilot and run `scripts\install.cmd`).
+
+
 ## 2.14.0 — Repositories panel and commands
 
 Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.
