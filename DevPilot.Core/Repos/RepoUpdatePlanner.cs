@@ -93,9 +93,8 @@ public static class RepoUpdatePlanner
     {
         foreach (var rel in InstallScripts)
         {
-            var full = Path.Combine(repo, rel);
-            if (!File.Exists(full)) continue;
-            text = rel.Replace('\\', '/').Contains('/') ? rel : Path.GetFileName(full);
+            if (ExistingFile(repo, rel) is not { } full) continue;
+            text = Path.GetRelativePath(repo, full);
             var line = full.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase)
                 ? $"powershell -NoProfile -ExecutionPolicy Bypass -File {CommandLineText.Quote(full)}"
                 : CommandLineText.Quote(full);
@@ -131,6 +130,19 @@ public static class RepoUpdatePlanner
         }
         text = string.Empty;
         return null;
+    }
+
+    /// <summary>The file with the name as stored on disk (the list above is lower case), or null.</summary>
+    private static string? ExistingFile(string repo, string relative)
+    {
+        try
+        {
+            var full = Path.Combine(repo, relative);
+            var dir = Path.GetDirectoryName(full);
+            if (dir is null || !Directory.Exists(dir)) return null;
+            return Directory.EnumerateFiles(dir, Path.GetFileName(full)).FirstOrDefault();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }
 
     /// <summary>The solution in the root, else the shallowest project file.</summary>
