@@ -1,6 +1,6 @@
-# Pull repositories
+# Repositories: pull and run commands
 
-Update all your git clones with one click instead of opening a terminal in each folder.
+Update all your git clones with one click instead of opening a terminal in each folder, and run a repository's own commands (a build, an install script) from the same place.
 
 ## Set up
 1. DevPilot > **Repositories** > *Browse…* and pick the folder that holds your clones (for example your `Dev` folder).
@@ -8,13 +8,28 @@ Update all your git clones with one click instead of opening a terminal in each 
 3. Untick the repositories you do not want pulled. New clones are ticked automatically.
 
 ## Pull
-- **Hub**: the sync button in the header.
-- **Tray**: right-click the DevPilot icon > *Pull repositories*.
-- **Repositories page**: *Pull selected*, or *Pull* next to a single repository.
+- **Hub**: the sync button in the header opens the repositories panel: tick the repositories, then *Pull selected*. The panel stays open (X or Esc closes it) and shows each result as it arrives.
+- **Tray**: right-click the DevPilot icon > *Pull repositories* (pulls the ticked ones at once) or *Repositories…* (opens the panel).
+- **Repositories page**: *Pull selected*, or the button on a single row.
 
 A notification gives the summary (updated / up to date / skipped / failed) and names the repositories that need attention. The page shows the result of each one.
 
-## What DevPilot does, and does not do
+## Commands per repository
+On the Repositories page, click the gear on a row:
+- **Add command**: a name and a command line, for example `dotnet build -c Release` or `Install.bat`. It runs through `cmd.exe` in the repository folder, so `.bat` files, `&&` and pipes work.
+- **In a window** off (default): the command runs hidden. The end of its output appears on the row and a notification says *done* or *failed* with the exit code and the last line. It is stopped after 10 minutes, and it cannot wait for keyboard input.
+- **In a window** on: a console window opens and stays open when the command ends, so you can read an error. DevPilot does not wait for it.
+- **Offer git pull for this repository**: switch it off if the repository only has commands.
+
+The button on a row depends on what the repository has:
+- one action: it runs at once, and the label says which (*Pull* or the command's name);
+- several actions (pull plus commands, or several commands): the button reads *Run…* and opens a menu with one button per action.
+
+A command and a pull never run on the same repository at the same time: *Pull selected* skips a repository whose command is still running, and a command is refused while a pull of all runs.
+
+Commands are the ones you type; DevPilot runs nothing else. Do not put passwords in a command line (the config file is plain text).
+
+## What a pull does, and does not do
 - Runs `git status` first. If tracked files have uncommitted changes, the repository is **skipped** and nothing is touched.
 - Runs `git pull --ff-only`. If your branch and the remote have both moved on, nothing changes and the repository is reported as *diverged*; pull or rebase it by hand.
 - Never merges, rebases, stashes, resets or deletes anything.
