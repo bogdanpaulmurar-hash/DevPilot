@@ -139,6 +139,7 @@ public sealed class RepoSyncService : IDisposable
         if (!plan.Available) return Done(RepoCommandStatus.Skipped, [plan.Note.Length > 0 ? plan.Note : "Nothing to update here: no install step and no tool of this repository."]);
 
         var lines = new List<string>();
+        if (mode == RepoUpdateMode.ReinstallOnly && RepoVersion.Read(repo).Display is { Length: > 0 } current) lines.Add("Version: " + current);
         if (mode == RepoUpdateMode.Full)
         {
             step("Pulling…");
@@ -146,7 +147,7 @@ public sealed class RepoSyncService : IDisposable
             if (!pull.IsOk)
                 return Done(pull.IsSkipped ? RepoCommandStatus.Skipped : RepoCommandStatus.Failed, [pull.StatusText + ": " + pull.Message], -1);
             if (pull.Status == RepoPullStatus.UpToDate)
-                return Done(RepoCommandStatus.Succeeded, ["Already up to date. Nothing was closed or installed."]);
+                return Done(RepoCommandStatus.Succeeded, [UpToDateLine(pull.After)]);
             lines.Add("Pulled: " + (pull.Message.Length > 0 ? pull.Message : "updated"));
         }
 
@@ -193,6 +194,9 @@ public sealed class RepoSyncService : IDisposable
         }
         return Done(RepoCommandStatus.Succeeded, lines);
     }
+
+    private static string UpToDateLine(RepoVersionInfo version) =>
+        "Already up to date" + (version.Display is { Length: > 0 } v ? $" ({v})" : string.Empty) + ". Nothing was closed or installed.";
 
     public IReadOnlyList<string> FindRepos() => RepoScanner.Find(Settings.Root);
 

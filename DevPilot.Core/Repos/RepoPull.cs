@@ -34,6 +34,15 @@ public sealed record RepoPullResult(string Path, RepoPullStatus Status, string M
     public bool IsSkipped => Status is RepoPullStatus.LocalChanges or RepoPullStatus.NoUpstream or RepoPullStatus.Diverged or RepoPullStatus.Busy;
 
     public string StatusText => RepoPull.Label(Status);
+
+    /// <summary>Version of the clone before the pull (empty when the pull did not get that far).</summary>
+    public RepoVersionInfo Before { get; init; } = RepoVersionInfo.None;
+
+    /// <summary>Version of the clone after the pull (same as <see cref="Before"/> when nothing came).</summary>
+    public RepoVersionInfo After { get; init; } = RepoVersionInfo.None;
+
+    /// <summary>"2.14.0 → 2.15.0" or "2.15.0 (unchanged)"; empty when no version is known.</summary>
+    public string VersionChange => IsOk ? RepoVersion.Change(Before, After) : string.Empty;
 }
 
 /// <summary>
@@ -57,10 +66,15 @@ public sealed class RepoPull(IGitRunner git)
         if (changed > 0)
             return Result(repo, RepoPullStatus.LocalChanges, $"{changed} changed file(s) not committed. Skipped; commit or stash them first.");
 
+        var before = RepoVersion.Read(repo);
         var pull = await git.RunAsync(repo, ["pull", "--ff-only"], PullTimeout, ct).ConfigureAwait(false);
-        if (Problem(repo, pull) is { } failed) return failed;
+        if (Problem(repo, pull) is { } failed) return failed with { Before = before, After = before };
         var outcome = Classify(pull.ExitCode, pull.StdOut, pull.StdErr);
-        return Result(repo, outcome, Describe(outcome, pull.StdOut, pull.StdErr));
+        var after = outcome == RepoPullStatus.Updated ? RepoVersion.Read(repo) : before;
+        var message = Describe(outcome, pull.StdOut, pull.StdErr);
+        if (outcome == RepoPullStatus.Updated && RepoVersion.Change(before, after) is { Length: > 0 } change)
+            message = change + " · " + message;
+        return Result(repo, outcome, message) with { Before = before, After = after };
     }
 
     /// <summary>Pulls one repository after another (gentle on synced drives), reporting each as it finishes.</summary>
