@@ -2,6 +2,16 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.17.2 — Output window, sign-in hint, and the 2.17.1 fixes
+
+Update before testing: DevPilot > Repositories > *Update* on the DevPilot row (the installed 2.17.0 does the pull; then run `scripts\install.cmd` once if it did not install by itself), or exit from the tray → `git pull` → `scripts\install.cmd`. Running version: Settings page, bottom-left under *Guide*.
+
+1. Hub panel → a row with a message shows a *Full output* button; click it (or the message) → a window opens on top of the panel with the whole text, *Copy all* works.
+2. A hidden `git pull` command on a repository that needs a sign-in → fails within seconds; the output ends with the hint to run it *In a window*.
+3. The same command with *In a window* → the console opens; when the pull brings a new version the row's version changes within a few seconds.
+4. *Pull* or *Pull selected* on the DevPilot repository with a new version on GitHub → DevPilot closes, the install window runs, the new version starts. Nothing new → nothing happens.
+5. Automatic pull (schedule) on DevPilot's repository → only pulls; DevPilot is not restarted.
+
 ## 2.17.0 — Full output, linked tools, DevPilot updates itself
 
 Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` → start DevPilot. (After this version the Update button on the DevPilot row does these steps itself.)

@@ -68,11 +68,20 @@ public static class RepoCommandRunner
     public static RepoCommandResult ToResult(string repo, string name, CommandRun run, DateTime at)
     {
         var tail = Tail(run.Output);
+        if (run.ExitCode != 0 && NeedsSignIn(run.Output))
+            tail += "\n→ This command needs a sign-in that cannot be asked in a hidden run. Run it once with \"In a window\" (or sign in to git for this remote).";
         if (run.StartError is not null) return new(repo, name, RepoCommandStatus.StartFailed, -1, run.StartError, at);
         if (run.Started) return new(repo, name, RepoCommandStatus.Started, 0, string.Empty, at);
         if (run.TimedOut) return new(repo, name, RepoCommandStatus.TimedOut, -1, tail, at);
         return new(repo, name, run.ExitCode == 0 ? RepoCommandStatus.Succeeded : RepoCommandStatus.Failed, run.ExitCode, tail, at);
     }
+
+    /// <summary>git gave up because it needed a password or sign-in and prompts are off.</summary>
+    public static bool NeedsSignIn(string? output) =>
+        !string.IsNullOrEmpty(output)
+        && (output.Contains("terminal prompts disabled", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("Cannot prompt because user interactivity has been disabled", StringComparison.OrdinalIgnoreCase)
+            || output.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Keeps the end of the output (where errors are), cut at a line start when possible.</summary>
     public static string Tail(string? output, int max = MaxOutputChars)

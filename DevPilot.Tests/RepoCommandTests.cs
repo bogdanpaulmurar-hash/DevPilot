@@ -20,6 +20,16 @@ public sealed class RepoCommandTests : IDisposable
     // ── Actions per repository ──────────────────────────────────────────
 
     [Fact]
+    public void A_failed_hidden_command_that_needed_a_sign_in_says_so()
+    {
+        var r = RepoCommandRunner.ToResult(@"G:\Dev\A", "Git Pull", new CommandRun(1, "fatal: could not read Password for 'https://x@github.com': terminal prompts disabled\n"), DateTime.Now);
+        Assert.Equal(RepoCommandStatus.Failed, r.Status);
+        Assert.Contains("In a window", r.OutputTail);
+        var ok = RepoCommandRunner.ToResult(@"G:\Dev\A", "Build", new CommandRun(1, "error CS1002\n"), DateTime.Now);
+        Assert.DoesNotContain("In a window", ok.OutputTail);
+    }
+
+    [Fact]
     public void Repo_without_settings_has_only_git_pull()
     {
         var actions = RepoConfigs.Actions(new RepoSettings(), @"G:\Dev\A");

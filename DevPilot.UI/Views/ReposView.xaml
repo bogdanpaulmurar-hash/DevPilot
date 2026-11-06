@@ -67,6 +67,7 @@
                                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                     <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>
                                                     <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}"/>
+<Button Content="Full output" Margin="10,0,0,0" Padding="6,0" FontSize="11" Command="{Binding ShowOutputCommand}" ToolTip="Open everything the last action printed" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Message}" Cursor="Hand" ToolTip="Click for the full output" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
                                                            FontFamily="{StaticResource MonoFont}" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
