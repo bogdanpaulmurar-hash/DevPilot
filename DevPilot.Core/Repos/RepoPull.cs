@@ -73,7 +73,7 @@ public sealed class RepoPull(IGitRunner git)
         int changed = CountChanges(status.StdOut);
         if (changed > 0)
             return Result(repo, RepoPullStatus.LocalChanges,
-                    $"{changed} changed file(s) not committed: {ChangedFiles(status.StdOut, 3)}. Skipped; commit or stash them first.")
+                    $"{changed} changed file(s) not committed: {ChangedFiles(status.StdOut, 3)}. Skipped; commit them, or use Fix… to choose.")
                 with { Output = RepoOutput.Step("git status --porcelain --untracked-files=no", status.StdOut, status.StdErr) };
 
         var before = RepoVersion.Read(repo);
@@ -86,6 +86,48 @@ public sealed class RepoPull(IGitRunner git)
             message = change + " · " + message;
         return Result(repo, outcome, message) with { Before = before, After = after, Output = RepoOutput.Step("git pull --ff-only", pull.StdOut, pull.StdErr) };
     }
+
+    /// <summary>
+    /// The fix for a pull skipped because of local changes, run only after the user chose it: the changed tracked files
+    /// are set aside with <c>git stash</c>, the pull runs (fast-forward only), and the changes are put back when
+    /// <paramref name="restore"/> is true. Nothing is ever deleted: when something goes wrong the changes stay in the stash.
+    /// </summary>
+    public async Task<RepoPullResult> StashPullAsync(string repo, bool restore, CancellationToken ct = default)
+    {
+        var steps = new List<string>();
+        var stash = await git.RunAsync(repo, ["stash", "push", "--message", "DevPilot: before pull"], PullTimeout, ct).ConfigureAwait(false);
+        if (Problem(repo, stash) is { } early) return early;
+        steps.Add(RepoOutput.Step("git stash push", stash.StdOut, stash.StdErr));
+        if (stash.ExitCode != 0)
+            return Result(repo, RepoPullStatus.Failed, "git could not set the changes aside: " + LastLine(stash.StdErr, stash.StdOut))
+                with { Output = string.Join("\n\n", steps) };
+        bool stashed = !stash.StdOut.Contains("No local changes to save", StringComparison.OrdinalIgnoreCase);
+
+        var pull = await PullAsync(repo, ct).ConfigureAwait(false);
+        if (pull.Output.Length > 0) steps.Add(pull.Output);
+        if (!stashed) return pull with { Output = string.Join("\n\n", steps) };
+
+        if (pull.IsOk && !restore)
+            return pull with
+            {
+                Message = pull.Message + " · your changes are kept in the stash (git stash list); restore them with git stash pop",
+                Output = string.Join("\n\n", steps),
+            };
+
+        // Put the changes back (also after a pull that did not work, so the folder is as it was).
+        var pop = await git.RunAsync(repo, ["stash", "pop"], PullTimeout, ct).ConfigureAwait(false);
+        steps.Add(RepoOutput.Step("git stash pop", pop.StdOut, pop.StdErr));
+        var output = string.Join("\n\n", steps);
+        if (pop.ExitCode != 0)
+            return Result(repo, RepoPullStatus.Failed,
+                    (pull.IsOk ? "Pulled, but " : "") + "your changes could not be put back (they conflict with the new files). They are safe in the stash: git stash list")
+                with { Before = pull.Before, After = pull.After, Output = output };
+        return pull with { Output = output };
+    }
+
+    /// <summary>True when a message (or the line of an Update) says the pull was skipped because of local changes.</summary>
+    public static bool IsLocalChangesText(string? text) =>
+        !string.IsNullOrEmpty(text) && text.Contains(Label(RepoPullStatus.LocalChanges), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Pulls one repository after another (gentle on synced drives), reporting each as it finishes.</summary>
     public async Task<IReadOnlyList<RepoPullResult>> PullAllAsync(IEnumerable<string> repos, IProgress<RepoPullResult>? progress = null, CancellationToken ct = default)

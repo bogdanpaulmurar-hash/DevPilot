@@ -169,12 +169,20 @@ public sealed class RepoRowVM : ObservableObject
     /// <summary>The command the row ran last (null after a pull or update); the sign-in fix runs it again.</summary>
     internal RepoCommand? LastCommand { get; set; }
 
-    /// <summary>The last action failed because git needed a sign-in: offer the fix.</summary>
-    public bool CanFix => !Busy && (CommandIsNewer
-        ? _command is { Status: RepoCommandStatus.Failed } && RepoCommandRunner.NeedsSignIn(_command.OutputTail)
-        : _pull is { Status: RepoPullStatus.AuthFailed });
+    /// <summary>The last action was skipped because tracked files have local changes.</summary>
+    public bool LocalChangesProblem => CommandIsNewer
+        ? _command is { Status: RepoCommandStatus.Skipped } && RepoPull.IsLocalChangesText(_command.OutputTail)
+        : _pull is { Status: RepoPullStatus.LocalChanges };
 
-    public ICommand FixCommand => _fix ??= new RelayCommand(() => Owner.FixSignIn(this));
+    /// <summary>The last action was an Update (so it has to install after the fix pulled).</summary>
+    internal bool LastWasUpdate => CommandIsNewer && _command!.Name == "Update";
+
+    /// <summary>The last action failed because git needed a sign-in, or was skipped for local changes: offer the fix.</summary>
+    public bool CanFix => !Busy && (CommandIsNewer
+        ? _command is { Status: RepoCommandStatus.Failed } && RepoCommandRunner.NeedsSignIn(_command.OutputTail) || LocalChangesProblem
+        : _pull is { Status: RepoPullStatus.AuthFailed } || LocalChangesProblem);
+
+    public ICommand FixCommand => _fix ??= new RelayCommand(() => { if (LocalChangesProblem) Owner.FixLocalChanges(this); else Owner.FixSignIn(this); });
     private ICommand? _fix;
 
     public ICommand ShowOutputCommand => _showOutput ??= new RelayCommand(ShowOutput);
@@ -623,6 +631,43 @@ public sealed class ReposViewModel : ObservableObject, IPage
             await RunActionAsync(row, new RepoAction(name, new RepoCommand { Name = name, CommandLine = line, Mode = RepoCommandMode.Window }));
         }
         catch (Exception ex) { Notifier.Error("Fix sign-in", ex.Message); }
+    }
+
+    /// <summary>
+    /// The last action was skipped because tracked files have local changes. Lists them and asks what to do: set them
+    /// aside, pull and put them back; set them aside and pull (they stay in the stash); or nothing. Never deletes anything.
+    /// </summary>
+    internal async void FixLocalChanges(RepoRowVM row)
+    {
+        try
+        {
+            var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+            var files = RepoPull.ChangedFiles(await _repos.GetChangesAsync(row.Path), 8);
+            if (files.Length == 0)
+            {
+                Notifier.Info("Fix…", $"{row.Name}: no changed files any more. Run the action again.");
+                return;
+            }
+            var text = $"{row.Name}: these tracked files have changes that are not committed, so DevPilot does not pull:\n\n{files}\n\n" +
+                       "Yes: set them aside, pull, then put them back (best for files the tool rewrites itself, like a config).\n" +
+                       "No: set them aside and pull, but keep them aside (git stash pop brings them back).\n" +
+                       "Cancel: do nothing.\n\n" +
+                       "Nothing is deleted. If a file keeps changing, stop tracking it in that repository (.gitignore).";
+            var answer = owner is null ? MessageBox.Show(text, "Fix local changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question)
+                                       : MessageBox.Show(owner, text, "Fix local changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Cancel) return;
+            bool wasUpdate = row.LastWasUpdate;
+            row.SetRunning("Fix…");
+            var r = await _repos.StashPullAsync(row.Path, answer == MessageBoxResult.Yes);
+            row.Busy = false;
+            if (r is null) { Notifier.Info("Repositories", "Something is already running on this repository."); return; }
+            row.PullResult = r;
+            if (!r.IsOk) { Notifier.Error($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Message); return; }
+            Notifier.Info($"{row.Name}: {r.StatusText.ToLowerInvariant()}", r.Status == RepoPullStatus.Updated ? r.Message : r.VersionChange);
+            // The pull is done; an Update that was skipped still has to install what came.
+            if (wasUpdate && r.Status == RepoPullStatus.Updated) await RunActionAsync(row, RepoAction.Update(), RepoUpdateMode.ReinstallOnly);
+        }
+        catch (Exception ex) { Notifier.Error("Fix local changes", ex.Message); }
     }
 
     internal async void RunInBackground(RepoRowVM row, RepoAction action, RepoUpdateMode mode = RepoUpdateMode.Full)

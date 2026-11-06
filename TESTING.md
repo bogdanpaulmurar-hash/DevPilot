@@ -2,6 +2,13 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.19.0 — Fix… for local changes
+
+1. A repository with a modified tracked file (for example the config a tool rewrites) → *Update* or *Pull* → skipped, and the row shows *Fix…* next to *Full output*.
+2. *Fix…* lists the file(s). *Yes* → the pull runs, the file is back with your edits; *Full output* shows stash, pull, pop. For an Update, the tools close, install and start again.
+3. Repeat with *No* → pull runs, `git stash list` in that folder shows the set-aside changes.
+4. *Cancel* → nothing changes.
+
 ## 2.18.1 — Which file blocks a pull
 
 1. A repository with a modified tracked file → *Pull* → "Skipped: local changes" and the message lists the file name(s); *Full output* shows the `git status` lines.

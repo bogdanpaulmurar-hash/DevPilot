@@ -119,6 +119,33 @@ public sealed class RepoSyncService : IDisposable
         finally { End(key); }
     }
 
+    /// <summary>The <c>git status --porcelain</c> lines of the tracked files, or empty when they cannot be read.</summary>
+    public async Task<string> GetChangesAsync(string repo, CancellationToken ct = default)
+    {
+        var run = await Task.Run(() => _git.RunAsync(repo, ["status", "--porcelain", "--untracked-files=no"], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+        return run.ExitCode == 0 ? run.StdOut : string.Empty;
+    }
+
+    /// <summary>
+    /// The fix for local changes, after the user chose it: set the changes aside, pull, optionally put them back
+    /// (see <see cref="RepoPull.StashPullAsync"/>). Null when something else runs on the repository.
+    /// </summary>
+    public async Task<RepoPullResult?> StashPullAsync(string repo, bool restore, CancellationToken ct = default)
+    {
+        var key = RepoScanner.Normalize(repo);
+        if (!TryBegin(key, out _)) return null;
+        try
+        {
+            var r = await Task.Run(() => _pull.StashPullAsync(repo, restore, ct), ct).ConfigureAwait(false);
+            r = HandOverSelfUpdate([r])[0];
+            lock (_last) _last[key] = r;
+            _logger.LogInformation("Stash and pull of {Repo} (restore {Restore}): {Status}", repo, restore, r.Status);
+            OnRepoFinished(r);
+            return r;
+        }
+        finally { End(key); }
+    }
+
     /// <summary>Marks a repository busy unless a pull of all or another action already runs on it.</summary>
     private bool TryBegin(string key, out string refusal)
     {

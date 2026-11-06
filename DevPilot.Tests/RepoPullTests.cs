@@ -199,6 +199,61 @@ public sealed class RepoPullTests : IDisposable
     }
 
     [Fact]
+    public async Task Stash_pull_restore_runs_stash_pull_pop_in_order()
+    {
+        var repo = FakeRepo("fixme");
+        bool stashed = false;
+        var git = new FakeGit(a =>
+        {
+            if (a[0] == "stash" && a[1] == "push") { stashed = true; return new GitRun(0, "Saved working directory", ""); }
+            if (a[0] == "status") return new GitRun(0, stashed ? "" : " M cfg.json\n", "");
+            if (a[0] == "pull") return new GitRun(0, "Updating a..b\nFast-forward\n", "");
+            return new GitRun(0, "", "");
+        });
+        var r = await new RepoPull(git).StashPullAsync(repo, restore: true);
+        Assert.Equal(RepoPullStatus.Updated, r.Status);
+        Assert.Equal(new[] { "stash push --message DevPilot: before pull", "status --porcelain --untracked-files=no", "pull --ff-only", "stash pop" }, git.Calls);
+    }
+
+    [Fact]
+    public async Task Stash_pull_without_restore_keeps_the_changes_in_the_stash()
+    {
+        var repo = FakeRepo("keep");
+        var git = new FakeGit(a => a[0] == "stash" ? new GitRun(0, "Saved working directory", "") : a[0] == "status" ? new GitRun(0, "", "") : new GitRun(0, "Fast-forward\n", ""));
+        var r = await new RepoPull(git).StashPullAsync(repo, restore: false);
+        Assert.True(r.IsOk);
+        Assert.Contains("git stash pop", r.Message);
+        Assert.DoesNotContain("stash pop", string.Join('|', git.Calls));
+    }
+
+    [Fact]
+    public async Task Stash_pull_puts_the_changes_back_when_the_pull_fails_and_reports_a_conflicting_restore()
+    {
+        var repo = FakeRepo("diverged");
+        var git = new FakeGit(a => a[0] == "stash" && a[1] == "push" ? new GitRun(0, "Saved working directory", "")
+            : a[0] == "status" ? new GitRun(0, "", "")
+            : a[0] == "pull" ? new GitRun(1, "", "fatal: Not possible to fast-forward, aborting.")
+            : new GitRun(0, "", ""));
+        var r = await new RepoPull(git).StashPullAsync(repo, restore: false);
+        Assert.Equal(RepoPullStatus.Diverged, r.Status);
+        Assert.Equal("stash pop", git.Calls[^1]);
+
+        var conflict = new FakeGit(a => a[0] == "stash" && a[1] == "pop" ? new GitRun(1, "", "CONFLICT") : a[0] == "stash" ? new GitRun(0, "Saved working directory", "")
+            : a[0] == "status" ? new GitRun(0, "", "") : new GitRun(0, "Fast-forward\n", ""));
+        var c = await new RepoPull(conflict).StashPullAsync(repo, restore: true);
+        Assert.Equal(RepoPullStatus.Failed, c.Status);
+        Assert.Contains("safe in the stash", c.Message);
+    }
+
+    [Fact]
+    public void Local_changes_text_is_recognised_in_an_update_line()
+    {
+        Assert.True(RepoPull.IsLocalChangesText("Skipped: local changes: 1 changed file(s) not committed: a.json."));
+        Assert.False(RepoPull.IsLocalChangesText("Failed: sign-in"));
+        Assert.False(RepoPull.IsLocalChangesText(null));
+    }
+
+    [Fact]
     public async Task Dirty_repo_is_skipped_without_pulling()
     {
         var repo = FakeRepo("dirty");
