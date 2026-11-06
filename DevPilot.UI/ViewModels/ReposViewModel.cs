@@ -134,14 +134,29 @@ public sealed class RepoRowVM : ObservableObject
     public string VersionTip => _version.Tip;
     public bool HasVersion => Version.Length > 0;
 
-    private void ReadVersion()
+    /// <summary>Reads the version from the files again; true when it changed.</summary>
+    internal bool ReadVersion()
     {
         var v = RepoVersion.Read(Path);
-        if (v == _version) return;
+        if (v == _version) return false;
         _version = v;
         OnPropertyChanged(nameof(Version));
         OnPropertyChanged(nameof(VersionTip));
         OnPropertyChanged(nameof(HasVersion));
+        return true;
+    }
+
+    /// <summary>
+    /// A command in its own window is not waited for, so the version is read again every few seconds until it
+    /// changes (the window did a pull), for at most ten minutes.
+    /// </summary>
+    internal async Task WatchVersionAsync()
+    {
+        for (int i = 0; i < 150; i++)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(4));
+            if (ReadVersion()) return;
+        }
     }
     public ObservableCollection<RepoCommandVM> Commands { get; } = [];
 
@@ -593,6 +608,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
                 break;
             case RepoCommandStatus.Started:
                 Notifier.Info($"{action.Name} opened", $"{row.Name}: running in its own window.");
+                _ = row.WatchVersionAsync();
                 break;
             case RepoCommandStatus.Busy:
                 Notifier.Info("Repositories", result.OutputTail);

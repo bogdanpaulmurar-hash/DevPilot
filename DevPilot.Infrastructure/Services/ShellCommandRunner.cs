@@ -34,6 +34,14 @@ public sealed class ShellCommandRunner : ICommandRunner
         psi.Environment.Remove("DEVPILOT_SUPPRESS");
         if (!window)
         {
+            // Nobody can answer a prompt in a hidden command: a sign-in, a passphrase or a merge-message editor would
+            // wait until the timeout. Fail at once instead (use "In a window" for a command that needs input).
+            psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
+            psi.Environment["GCM_INTERACTIVE"] = "never";
+            psi.Environment["GIT_MERGE_AUTOEDIT"] = "no";
+            psi.Environment["GIT_EDITOR"] = "true";
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GIT_SSH_COMMAND")))
+                psi.Environment["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes";
             psi.RedirectStandardOutput = true;
             psi.RedirectStandardError = true;
             psi.RedirectStandardInput = true;

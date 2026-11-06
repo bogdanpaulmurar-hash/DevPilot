@@ -226,17 +226,48 @@ public sealed class RepoSyncService : IDisposable
     public IReadOnlyList<string> SelectedRepos() => RepoPull.Selected(FindRepos(), Settings.Excluded);
 
     /// <summary>Pulls every ticked repository. Returns null when a run is already going.</summary>
-    public async Task<IReadOnlyList<RepoPullResult>?> PullSelectedAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<RepoPullResult>?> PullSelectedAsync(CancellationToken ct = default) =>
+        await PullSelectedAsync(installDevPilot: true, ct).ConfigureAwait(false);
+
+    /// <summary>
+    /// <paramref name="installDevPilot"/>: when DevPilot's own repository got new commits, install them over the running
+    /// program (DevPilot closes and starts again). The automatic schedule passes false so it never restarts DevPilot unasked.
+    /// </summary>
+    public async Task<IReadOnlyList<RepoPullResult>?> PullSelectedAsync(bool installDevPilot, CancellationToken ct = default)
     {
         var repos = await Task.Run(() => SelectedRepos(), ct).ConfigureAwait(false);
-        return await RunAsync(repos, ct).ConfigureAwait(false);
+        var results = await RunAsync(repos, ct).ConfigureAwait(false);
+        return results is not null && installDevPilot ? HandOverSelfUpdate(results) : results;
     }
 
     /// <summary>Pulls one repository, ticked or not. Returns null when a run is already going.</summary>
     public async Task<RepoPullResult?> PullOneAsync(string repo, CancellationToken ct = default)
     {
         var r = await RunAsync([repo], ct, recordRun: false).ConfigureAwait(false);
+        if (r is null) return null;
+        r = HandOverSelfUpdate(r);
         return r is { Count: > 0 } ? r[0] : null;
+    }
+
+    /// <summary>
+    /// A plain pull of DevPilot's own repository that brought new commits also installs them: the new version is
+    /// useless until it replaces the running one. Skipped when Update is switched off for the repository.
+    /// </summary>
+    private IReadOnlyList<RepoPullResult> HandOverSelfUpdate(IReadOnlyList<RepoPullResult> results)
+    {
+        var list = results.ToList();
+        RepoCommand? install = null;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var r = list[i];
+            if (r.Status != RepoPullStatus.Updated || !RepoUpdatePlanner.IsDevPilotRepo(r.Path)) continue;
+            if (RepoConfigs.Find(Settings, r.Path) is { UpdateEnabled: false }) continue;
+            if (RepoUpdatePlanner.SelfUpdateCommand(r.Path, AutostartProbe?.Invoke() ?? false) is not { } cmd) continue;
+            install = cmd;
+            list[i] = r with { Message = r.Message + " · installing it now: DevPilot closes and starts again" };
+        }
+        if (install is not null) SelfUpdateRequested?.Invoke(this, install);
+        return list;
     }
 
     private async Task<IReadOnlyList<RepoPullResult>?> RunAsync(IReadOnlyList<string> repos, CancellationToken ct, bool recordRun = true)
@@ -307,7 +338,7 @@ public sealed class RepoSyncService : IDisposable
         try
         {
             if (_running || RepoPull.NextDue(Settings, _startedAt) is not { } due || due > DateTime.Now) return;
-            var results = await PullSelectedAsync().ConfigureAwait(false);
+            var results = await PullSelectedAsync(installDevPilot: false).ConfigureAwait(false);
             if (results is not null) AutoRunFinished?.Invoke(this, results);
         }
         catch (Exception ex)
