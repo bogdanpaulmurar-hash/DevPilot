@@ -11,8 +11,8 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBox x:Name="Body" IsReadOnly="True" TextWrapping="NoWrap" AcceptsReturn="True"
-                 HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+        <TextBox x:Name="Body" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                 HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
                  FontFamily="{StaticResource MonoFont}" FontSize="12.5" Padding="10"
                  Background="{DynamicResource Surface2Brush}" Foreground="{DynamicResource TextBrush}"
                  BorderBrush="{DynamicResource BorderBrush}"/>

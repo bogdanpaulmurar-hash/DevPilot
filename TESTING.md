@@ -2,6 +2,15 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.18.0 — Fix… for sign-in errors
+
+Update before testing: DevPilot > Repositories > *Update* on the DevPilot row (DevPilot closes, installs and starts again); check v2.18.0 bottom-left under *Guide*.
+
+1. A repository whose remote address has a user in it (`https://user@github.com/…`) with the hidden `git pull` command → it fails fast; the row shows *Full output* and *Fix…*.
+2. *Fix…* → a dialog shows the address now and the new one without the user. *Yes* → the address changes and the action runs again; check with `git remote -v`. *Cancel* changes nothing.
+3. *Fix…* → *No* (or on a repository without a user in the address) → a window opens and runs the command; sign in there; the next hidden run works.
+4. *Full output* → long lines wrap, no horizontal scrolling.
+
 ## 2.17.2 — Output window, sign-in hint, and the 2.17.1 fixes
 
 Update before testing: DevPilot > Repositories > *Update* on the DevPilot row (the installed 2.17.0 does the pull; then run `scripts\install.cmd` once if it did not install by itself), or exit from the tray → `git pull` → `scripts\install.cmd`. Running version: Settings page, bottom-left under *Guide*.

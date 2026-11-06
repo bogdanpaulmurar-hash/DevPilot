@@ -14,6 +14,7 @@ public sealed class RepoSyncService : IDisposable
 {
     private readonly IConfigStore _config;
     private readonly RepoPull _pull;
+    private readonly IGitRunner _git;
     private readonly ICommandRunner _commands;
     private readonly IToolControl _tools;
     private readonly HashSet<string> _busy = new(StringComparer.OrdinalIgnoreCase);
@@ -30,6 +31,7 @@ public sealed class RepoSyncService : IDisposable
         _config = config;
         _commands = commands;
         _tools = tools;
+        _git = git;
         _pull = new RepoPull(git);
         _logger = logger ?? NullLogger<RepoSyncService>.Instance;
     }
@@ -91,6 +93,28 @@ public sealed class RepoSyncService : IDisposable
             _logger.LogInformation("Repository command {Name} in {Repo}: {Status} (exit {Exit})", name, repo, result.Status, result.ExitCode);
             CommandFinished?.Invoke(this, result);
             return result;
+        }
+        finally { End(key); }
+    }
+
+    /// <summary>The address of the <c>origin</c> remote, or null when it cannot be read.</summary>
+    public async Task<string?> GetRemoteUrlAsync(string repo, CancellationToken ct = default)
+    {
+        var run = await Task.Run(() => _git.RunAsync(repo, ["remote", "get-url", "origin"], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+        var text = run.StdOut.Trim();
+        return run.ExitCode == 0 && text.Length > 0 ? text.Split('\n')[0].Trim() : null;
+    }
+
+    /// <summary>Points <c>origin</c> at a new address. False when git refused or something else runs on the repository.</summary>
+    public async Task<bool> SetRemoteUrlAsync(string repo, string url, CancellationToken ct = default)
+    {
+        var key = RepoScanner.Normalize(repo);
+        if (!TryBegin(key, out _)) return false;
+        try
+        {
+            var run = await Task.Run(() => _git.RunAsync(repo, ["remote", "set-url", "origin", url], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+            _logger.LogInformation("Remote of {Repo} changed to a user-less address: exit {Exit}", repo, run.ExitCode);
+            return run.ExitCode == 0;
         }
         finally { End(key); }
     }
