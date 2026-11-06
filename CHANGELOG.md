@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.18.0
+- **Fix… button**: when the last action of a repository failed because git needed a sign-in (hidden command or pull), the row shows *Fix…* next to *Full output*. If the remote address names a user (`https://user@host/…`) it shows old → new, and on *Yes* sets the address without the user (git then uses the sign-in saved for the site) and runs the action again; the message tells how to undo it. *No*, or an address without a user, opens the action once in a window to sign in.
+- The full-output window wraps long lines.
+- Core: `RepoRemote.StripUser`; `RepoSyncService.GetRemoteUrlAsync / SetRemoteUrlAsync`. Tests: `RepoRemoteTests`.
+
 ## 2.17.2
 - Fix: the full-output window opened behind the hub panel (the panel stays on top), so a click seemed to do nothing. The window is now on top, and a visible *Full output* button sits next to the status of every row that has a message (page and hub panel); clicking the message still works.
 - A hidden command that fails because git needs a sign-in now says so at the end of its output and suggests *In a window* once (or signing in to git for that remote).

@@ -166,6 +166,17 @@ public sealed class RepoRowVM : ObservableObject
             .Select(t => new RepoToolChoiceVM(this, t, RepoUpdatePlanner.IsAutoMatch(Path, t)))
             .OrderByDescending(c => !c.CanEdit).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
+    /// <summary>The command the row ran last (null after a pull or update); the sign-in fix runs it again.</summary>
+    internal RepoCommand? LastCommand { get; set; }
+
+    /// <summary>The last action failed because git needed a sign-in: offer the fix.</summary>
+    public bool CanFix => !Busy && (CommandIsNewer
+        ? _command is { Status: RepoCommandStatus.Failed } && RepoCommandRunner.NeedsSignIn(_command.OutputTail)
+        : _pull is { Status: RepoPullStatus.AuthFailed });
+
+    public ICommand FixCommand => _fix ??= new RelayCommand(() => Owner.FixSignIn(this));
+    private ICommand? _fix;
+
     public ICommand ShowOutputCommand => _showOutput ??= new RelayCommand(ShowOutput);
     private ICommand? _showOutput;
 
@@ -403,6 +414,7 @@ public sealed class RepoRowVM : ObservableObject
         OnPropertyChanged(nameof(Message));
         OnPropertyChanged(nameof(HasMessage));
         OnPropertyChanged(nameof(Transcript));
+        OnPropertyChanged(nameof(CanFix));
         OnPropertyChanged(nameof(Tone));
     }
 }
@@ -566,6 +578,53 @@ public sealed class ReposViewModel : ObservableObject, IPage
         ToolMenuWindow.ShowAtCursor(items, row.Name, row.HasBranch ? row.Branch : null, _config.Current.Hub);
     }
 
+    /// <summary>
+    /// The last action stopped at a sign-in git cannot ask for in a hidden run. Offers to take the user name out of the
+    /// remote address (git then uses the sign-in saved for the site), or to run the command once in a window.
+    /// </summary>
+    internal async void FixSignIn(RepoRowVM row)
+    {
+        try
+        {
+            var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+            string? url = await _repos.GetRemoteUrlAsync(row.Path);
+            string? plain = RepoRemote.StripUser(url);
+            if (plain is not null)
+            {
+                var text = $"{row.Name}: the remote address names a user, so git asks for that account's password.\n\n" +
+                           $"Now:  {url}\nNew:  {plain}\n\n" +
+                           "Yes: use the new address (git then uses the sign-in saved for the site) and run the action again. " +
+                           $"To undo: git remote set-url origin {url}\n" +
+                           "No: sign in once in a window instead.\nCancel: do nothing.";
+                var answer = owner is null ? MessageBox.Show(text, "Fix sign-in", MessageBoxButton.YesNoCancel, MessageBoxImage.Question)
+                                           : MessageBox.Show(owner, text, "Fix sign-in", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (answer == MessageBoxResult.Cancel) return;
+                if (answer == MessageBoxResult.Yes)
+                {
+                    if (!await _repos.SetRemoteUrlAsync(row.Path, plain))
+                    {
+                        Notifier.Error("Fix sign-in", "git did not accept the new address, or something else is running on this repository.");
+                        return;
+                    }
+                    var again = row.LastCommand is { } c ? new RepoAction(RepoConfigs.DisplayName(c), c) : RepoAction.Pull();
+                    await RunActionAsync(row, again);
+                    return;
+                }
+            }
+            else
+            {
+                var text = $"{row.Name}: git needs a sign-in. DevPilot opens a window and runs the action once; sign in there and git remembers it.\n\nOpen the window?";
+                var answer = owner is null ? MessageBox.Show(text, "Fix sign-in", MessageBoxButton.OKCancel, MessageBoxImage.Question)
+                                           : MessageBox.Show(owner, text, "Fix sign-in", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+                if (answer != MessageBoxResult.OK) return;
+            }
+            var line = row.LastCommand?.CommandLine ?? "git pull --ff-only";
+            var name = row.LastCommand is { } last ? RepoConfigs.DisplayName(last) : "git pull";
+            await RunActionAsync(row, new RepoAction(name, new RepoCommand { Name = name, CommandLine = line, Mode = RepoCommandMode.Window }));
+        }
+        catch (Exception ex) { Notifier.Error("Fix sign-in", ex.Message); }
+    }
+
     internal async void RunInBackground(RepoRowVM row, RepoAction action, RepoUpdateMode mode = RepoUpdateMode.Full)
     {
         try { await RunActionAsync(row, action, mode); }
@@ -598,6 +657,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
         }
 
         row.SetRunning(action.Name);
+        row.LastCommand = action.Command;
         var result = await _repos.RunCommandAsync(row.Path, action.Command!);
         row.Busy = false;
         row.CommandResult = result;
