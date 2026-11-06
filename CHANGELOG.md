@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.19.1
+- Fix: a hidden git pull on a repository whose sign-in had expired made Git Credential Manager open a browser page nobody could answer, and the pull ended as "Timed out" after three minutes. git now runs with `GCM_INTERACTIVE=never`, so the pull fails at once as "Sign-in failed" and *Fix…* offers to sign in once in a window.
+
 ## 2.19.0
 - **Fix… for local changes**: when a pull or Update is skipped because tracked files have uncommitted changes, the row now shows *Fix…*. It lists the files and asks: *Yes* sets them aside (`git stash`), pulls and puts them back; *No* sets them aside and pulls, keeping them in the stash; *Cancel* does nothing. Nothing is deleted; if the pull fails or the restore conflicts, the changes stay in the stash and the message says so. After a skipped Update, *Yes*/*No* also run the install step once the pull brought new commits. Never automatic: the pull itself still never stashes.
 

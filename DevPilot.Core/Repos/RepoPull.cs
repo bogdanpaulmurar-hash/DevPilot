@@ -183,7 +183,7 @@ public sealed class RepoPull(IGitRunner git)
         if (Has("no tracking information") || Has("not currently on a branch") || Has("no such ref was fetched")) return RepoPullStatus.NoUpstream;
         if (Has("would be overwritten") || Has("commit your changes or stash them") || Has("unstaged changes")) return RepoPullStatus.LocalChanges;
         if (Has("Not possible to fast-forward") || Has("diverging branches") || Has("have diverged") || Has("non-fast-forward")) return RepoPullStatus.Diverged;
-        if (Has("Authentication failed") || Has("could not read Username") || Has("could not read Password") || Has("terminal prompts disabled")
+        if (Has("Authentication failed") || Has("could not read Username") || Has("could not read Password") || Has("terminal prompts disabled") || Has("interactivity has been disabled")
             || Has("Permission denied (publickey") || Has("Repository not found") || Has("returned error: 403") || Has("returned error: 401"))
             return RepoPullStatus.AuthFailed;
         if (Has("Could not resolve host") || Has("Failed to connect") || Has("Connection timed out") || Has("Connection refused")

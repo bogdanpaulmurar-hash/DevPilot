@@ -105,6 +105,7 @@ public sealed class RepoPullTests : IDisposable
     [InlineData(1, "Updating 1a..2b\n", "error: Your local changes to the following files would be overwritten by merge:\n\ta.txt\nPlease commit your changes or stash them before you merge.\nAborting", RepoPullStatus.LocalChanges)]
     [InlineData(128, "", "fatal: detected dubious ownership in repository at 'G:/My Drive/Dev/x'\nTo add an exception for this directory, call:\n\n\tgit config --global --add safe.directory 'G:/My Drive/Dev/x'", RepoPullStatus.UnsafeOwnership)]
     [InlineData(128, "", "fatal: could not read Username for 'https://github.com': terminal prompts disabled", RepoPullStatus.AuthFailed)]
+    [InlineData(128, "", "fatal: Cannot prompt because user interactivity has been disabled.", RepoPullStatus.AuthFailed)]
     [InlineData(128, "", "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.", RepoPullStatus.AuthFailed)]
     [InlineData(128, "", "fatal: unable to access 'https://github.com/x/y.git/': Could not resolve host: github.com", RepoPullStatus.Offline)]
     [InlineData(128, "", "fatal: not a git repository (or any of the parent directories): .git", RepoPullStatus.NotARepo)]
