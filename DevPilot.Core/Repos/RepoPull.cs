@@ -72,7 +72,9 @@ public sealed class RepoPull(IGitRunner git)
                 with { Output = RepoOutput.Step("git status --porcelain", status.StdOut, status.StdErr) };
         int changed = CountChanges(status.StdOut);
         if (changed > 0)
-            return Result(repo, RepoPullStatus.LocalChanges, $"{changed} changed file(s) not committed. Skipped; commit or stash them first.");
+            return Result(repo, RepoPullStatus.LocalChanges,
+                    $"{changed} changed file(s) not committed: {ChangedFiles(status.StdOut, 3)}. Skipped; commit or stash them first.")
+                with { Output = RepoOutput.Step("git status --porcelain --untracked-files=no", status.StdOut, status.StdErr) };
 
         var before = RepoVersion.Read(repo);
         var pull = await git.RunAsync(repo, ["pull", "--ff-only"], PullTimeout, ct).ConfigureAwait(false);
@@ -113,6 +115,16 @@ public sealed class RepoPull(IGitRunner git)
     private static RepoPullResult Result(string repo, RepoPullStatus status, string message) => new(repo, status, message, DateTime.Now);
 
     /// <summary>Number of tracked files with changes in <c>git status --porcelain</c> output.</summary>
+    /// <summary>The paths of the changed tracked files (first <paramref name="max"/>, then "+N more").</summary>
+    public static string ChangedFiles(string porcelain, int max)
+    {
+        var files = porcelain.Split('\n').Select(l => l.TrimEnd('\r'))
+            .Where(l => l.Length > 3 && !l.StartsWith("??", StringComparison.Ordinal) && !l.StartsWith("!!", StringComparison.Ordinal))
+            .Select(l => l[3..].Trim().Trim('"')).ToList();
+        var shown = string.Join(", ", files.Take(max));
+        return files.Count > max ? $"{shown} +{files.Count - max} more" : shown;
+    }
+
     public static int CountChanges(string porcelain) =>
         porcelain.Split('\n').Count(l => l.TrimEnd('\r').Length > 0 && !l.StartsWith("??", StringComparison.Ordinal) && !l.StartsWith("!!", StringComparison.Ordinal));
 

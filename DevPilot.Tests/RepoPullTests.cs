@@ -180,6 +180,14 @@ public sealed class RepoPullTests : IDisposable
         Assert.Contains("From origin", r.Transcript);
     }
 
+    [Fact]
+    public void Changed_files_are_named_for_the_skipped_message()
+    {
+        Assert.Equal("a.txt, src/b.cs", RepoPull.ChangedFiles(" M a.txt\nA  src/b.cs\n?? c.txt\n", 3));
+        Assert.Equal("a, b +1 more", RepoPull.ChangedFiles(" M a\n M b\n M c\n", 2));
+        Assert.Equal("", RepoPull.ChangedFiles("?? new.txt\n", 3));
+    }
+
     private sealed class FakeGit(Func<IReadOnlyList<string>, GitRun> answer) : IGitRunner
     {
         public readonly List<string> Calls = [];
