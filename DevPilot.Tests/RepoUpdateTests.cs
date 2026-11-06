@@ -337,6 +337,53 @@ public sealed class RepoUpdateTests : IDisposable
     }
 
     [Fact]
+    public async Task A_plain_pull_of_DevPilot_that_brings_commits_installs_them()
+    {
+        var repo = Repo("DevPilot5", "DevPilot.sln", @"scripts\install.cmd");
+        var log = new Log();
+        var svc = new RepoSyncService(new FakeConfig(new AppSettings()), new FakeGit(log, "", Pulled), new FakeCommands(log), new FakeTools(log));
+        RepoCommand? asked = null;
+        svc.SelfUpdateRequested += (_, c) => asked = c;
+        var r = await svc.PullOneAsync(repo);
+        Assert.Equal(RepoPullStatus.Updated, r!.Status);
+        Assert.Contains("DevPilot closes", r.Message);
+        Assert.NotNull(asked);
+    }
+
+    [Fact]
+    public async Task A_pull_that_brings_nothing_or_the_automatic_pull_never_restarts_DevPilot()
+    {
+        var repo = Repo("DevPilot6", "DevPilot.sln", @"scripts\install.cmd");
+        bool asked = false;
+        var log = new Log();
+        var upToDate = new RepoSyncService(new FakeConfig(new AppSettings()), new FakeGit(log, "", "Already up to date.\n"), new FakeCommands(log), new FakeTools(log));
+        upToDate.SelfUpdateRequested += (_, _) => asked = true;
+        await upToDate.PullOneAsync(repo);
+        Assert.False(asked);
+
+        var settings = new AppSettings();
+        settings.Repos.Root = _root;
+        var svc = new RepoSyncService(new FakeConfig(settings), new FakeGit(log, "", Pulled), new FakeCommands(log), new FakeTools(log));
+        svc.SelfUpdateRequested += (_, _) => asked = true;
+        await svc.PullSelectedAsync(installDevPilot: false);
+        Assert.False(asked);
+    }
+
+    [Fact]
+    public async Task A_pull_of_DevPilot_with_Update_switched_off_does_not_install()
+    {
+        var repo = Repo("DevPilot7", "DevPilot.sln", @"scripts\install.cmd");
+        var settings = new AppSettings();
+        settings.Repos.Items.Add(new RepoConfig { Path = repo, UpdateEnabled = false });
+        var log = new Log();
+        var svc = new RepoSyncService(new FakeConfig(settings), new FakeGit(log, "", Pulled), new FakeCommands(log), new FakeTools(log));
+        bool asked = false;
+        svc.SelfUpdateRequested += (_, _) => asked = true;
+        await svc.PullOneAsync(repo);
+        Assert.False(asked);
+    }
+
+    [Fact]
     public async Task Updating_DevPilot_with_nothing_new_does_not_restart_it()
     {
         var repo = Repo("DevPilot4", "DevPilot.sln", @"scripts\install.cmd");

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.17.2
+- Fix: the full-output window opened behind the hub panel (the panel stays on top), so a click seemed to do nothing. The window is now on top, and a visible *Full output* button sits next to the status of every row that has a message (page and hub panel); clicking the message still works.
+- A hidden command that fails because git needs a sign-in now says so at the end of its output and suggests *In a window* once (or signing in to git for that remote).
+- Includes 2.17.1 (the 2.17.1 code was merged without its version bump, so the installed build still said 2.17.0): hidden commands run with git prompts off, so they fail at once with git's message instead of waiting for the 10-minute timeout (use *In a window* for a command that needs input); after a command in its own window the row's version is read again every few seconds until it changes; a plain *Pull* / *Pull selected* of DevPilot's own repository that brings new commits now installs them like *Update* (the automatic scheduled pull still only pulls and never restarts DevPilot).
+
 ## 2.17.0
 - **Full output on click**: click the message under a repository (Repositories page or hub panel) and a window opens with everything the last action printed, as in a console: `git pull`, each step of Update (`$ command` and its output), install output, a command's output. *Copy all* copies it. Works for successful results too. (Notifications are not clickable; the row keeps the text until the next action.)
 - **Update closes the tool when the plain `git pull` was all you had**: Update only offered itself when DevPilot found a tool by path or an install step, so a tool started through a shortcut or launcher was never closed. The gear now lists every tool of the hub: tick the ones to close and start again (tools found by path are shown ticked and locked), and tools whose arguments name the repository are found too. The row summary says "no tool linked" when none is.

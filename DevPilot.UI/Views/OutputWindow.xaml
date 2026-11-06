@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Output" Icon="/Assets/icon.ico"
         Width="820" Height="520" MinWidth="420" MinHeight="260"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterScreen" Topmost="True"
         Background="{DynamicResource WindowBgBrush}" Foreground="{DynamicResource TextBrush}"
         FontFamily="{StaticResource UiFont}" FontSize="13">
     <Grid Margin="14">
