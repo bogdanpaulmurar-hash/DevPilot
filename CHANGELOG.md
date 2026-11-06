@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.18.1
+- A pull skipped because of uncommitted changes now names the changed files (up to three, then "+N more") and *Full output* shows `git status`, so you can see which file blocks it.
+
 ## 2.18.0
 - **Fix… button**: when the last action of a repository failed because git needed a sign-in (hidden command or pull), the row shows *Fix…* next to *Full output*. If the remote address names a user (`https://user@host/…`) it shows old → new, and on *Yes* sets the address without the user (git then uses the sign-in saved for the site) and runs the action again; the message tells how to undo it. *No*, or an address without a user, opens the action once in a window to sign in.
 - The full-output window wraps long lines.

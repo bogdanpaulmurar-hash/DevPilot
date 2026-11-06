@@ -2,6 +2,10 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.18.1 — Which file blocks a pull
+
+1. A repository with a modified tracked file → *Pull* → "Skipped: local changes" and the message lists the file name(s); *Full output* shows the `git status` lines.
+
 ## 2.18.0 — Fix… for sign-in errors
 
 Update before testing: DevPilot > Repositories > *Update* on the DevPilot row (DevPilot closes, installs and starts again); check v2.18.0 bottom-left under *Guide*.
