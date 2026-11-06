@@ -50,6 +50,8 @@ public sealed class GitRunner : IGitRunner
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
         psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
+        // Git Credential Manager would otherwise open a browser sign-in nobody sees and wait for it until the timeout.
+        psi.Environment["GCM_INTERACTIVE"] = "never";
         psi.Environment["LC_ALL"] = "C";
         psi.Environment["LANG"] = "C";
         // DevPilot's own markers must not leak into git hooks or credential helpers.

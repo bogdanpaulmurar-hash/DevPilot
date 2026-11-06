@@ -2,6 +2,11 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.19.1 — No more hidden sign-in timeouts
+
+1. *Update* on AutoPilot_DCR (sign-in expired) → within seconds "Sign-in failed" (not "Timed out" after minutes), and no browser page opens by itself.
+2. *Fix…* → OK opens a window; sign in there (the browser page may open now) → *Update* works.
+
 ## 2.19.0 — Fix… for local changes
 
 1. A repository with a modified tracked file (for example the config a tool rewrites) → *Update* or *Pull* → skipped, and the row shows *Fix…* next to *Full output*.
