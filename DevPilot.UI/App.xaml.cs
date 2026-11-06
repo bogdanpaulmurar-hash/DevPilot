@@ -129,6 +129,9 @@ public partial class App : Application
     private void StartRepoSchedule()
     {
         var repos = GetService<RepoSyncService>();
+        var startup = GetService<IStartupManager>();
+        repos.AutostartProbe = () => startup.IsDevPilotRegistered;
+        repos.SelfUpdateRequested += (_, command) => Dispatcher.BeginInvoke(() => InstallNewVersion(command));
         repos.AutoRunFinished += (_, results) => Dispatcher.BeginInvoke(() =>
         {
             if (repos.Settings.QuietWhenUpToDate && !DevPilot.Core.Repos.RepoPull.IsNoteworthy(results)) return;
@@ -136,6 +139,29 @@ public partial class App : Application
         });
         // Let the tools and the synced drive settle before the first automatic pull.
         repos.Start(TimeSpan.FromSeconds(30));
+    }
+
+    /// <summary>
+    /// DevPilot's own repository was pulled: the install runs in a window of its own (it waits for this process to
+    /// end, builds, installs and starts the new DevPilot), then this instance closes.
+    /// </summary>
+    private void InstallNewVersion(DevPilot.Models.RepoCommand command)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("cmd.exe", DevPilot.Core.Repos.RepoCommandRunner.Arguments(command))
+            {
+                UseShellExecute = true,
+                WorkingDirectory = System.IO.Path.GetTempPath(),
+            });
+        }
+        catch (Exception ex)
+        {
+            _log?.LogError(ex, "Could not start the DevPilot install");
+            Notifier.Error("DevPilot update", "Could not start the installer: " + ex.Message);
+            return;
+        }
+        GetService<IAppShell>().Exit();
     }
 
     // ── Automatic backup ─────────────────────────────────────────────────

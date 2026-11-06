@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.17.0
+- **Full output on click**: click the message under a repository (Repositories page or hub panel) and a window opens with everything the last action printed, as in a console: `git pull`, each step of Update (`$ command` and its output), install output, a command's output. *Copy all* copies it. Works for successful results too. (Notifications are not clickable; the row keeps the text until the next action.)
+- **Update closes the tool when the plain `git pull` was all you had**: Update only offered itself when DevPilot found a tool by path or an install step, so a tool started through a shortcut or launcher was never closed. The gear now lists every tool of the hub: tick the ones to close and start again (tools found by path are shown ticked and locked), and tools whose arguments name the repository are found too. The row summary says "no tool linked" when none is.
+- **DevPilot updates itself**: Update on the DevPilot repository pulls, then closes DevPilot, runs `scripts\install.cmd` in a window of its own (kept open on failure), and the new version starts by itself; start-with-Windows is kept as it was. Nothing happens when already up to date.
+- Core: `RepoPullResult.Output / Transcript`, `RepoCommandResult.FullOutput / Transcript`, `RepoOutput`; `RepoConfig.ToolIds`; `RepoUpdatePlan.SelfUpdate`, `RepoUpdatePlanner.SelfUpdateCommand / IsAutoMatch`; `RepoSyncService.SelfUpdateRequested / AutostartProbe`. Tests: `RepoUpdateTests` (self update, linked tools, arguments match, full output).
+
 ## 2.16.0
 - **Version of each repository**: the Repositories page and the hub panel show the version of every clone next to its branch (hover: which file it came from and the commit). Read from the files only, nothing is run: `devpilot.tool.json`, `Directory.Build.props` / csproj `<Version>` (app project first), `pyproject.toml`, Python `__version__` / `VERSION` (`version.py` or a package `__init__.py`, also under `src\`), `package.json`, `VERSION` / `version.txt`; otherwise the short commit.
 - **Old → new after Pull and Update**: the result line and the notification read "2.14.0 → 2.15.0 · 3 files changed…", or "2.15.0 (unchanged)" when the pull did not change the version; *Already up to date* and *Reinstall now* name the current version. It is the version in the clone, not of the running program.

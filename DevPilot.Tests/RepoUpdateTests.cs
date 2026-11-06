@@ -143,12 +143,57 @@ public sealed class RepoUpdateTests : IDisposable
     }
 
     [Fact]
-    public void DevPilot_itself_is_never_updated_from_inside()
+    public void DevPilot_itself_updates_through_its_install_script_in_a_window_of_its_own()
     {
         var repo = Repo("DevPilot", "DevPilot.sln", @"scripts\install.cmd");
         var plan = RepoUpdatePlanner.Plan(repo, null, []);
+        Assert.True(plan.Available);
+        Assert.True(plan.SelfUpdate);
+        Assert.Empty(plan.Tools);
+        Assert.Contains("closes DevPilot", plan.Summary);
+        var cmd = RepoUpdatePlanner.SelfUpdateCommand(repo, autostart: true)!;
+        Assert.Contains("install.cmd", cmd.CommandLine);
+        Assert.EndsWith("/autostart || pause", cmd.CommandLine);
+        Assert.DoesNotContain("/autostart", RepoUpdatePlanner.SelfUpdateCommand(repo, autostart: false)!.CommandLine);
+    }
+
+    [Fact]
+    public void DevPilot_without_its_script_cannot_update_itself()
+    {
+        var repo = Repo("DevPilot2", "DevPilot.sln");
+        var plan = RepoUpdatePlanner.Plan(repo, null, []);
         Assert.False(plan.Available);
-        Assert.Contains("DevPilot updates itself", plan.Note);
+        Assert.Contains("install.cmd was not found", plan.Note);
+    }
+
+    [Fact]
+    public void A_tool_started_from_elsewhere_is_found_once_it_is_linked_by_id()
+    {
+        var repo = Repo("launched", "tool.py", "Install.bat");
+        var shortcutTool = Tool("7", "Launch", Path.Combine(_root, "shortcuts", "Launch.lnk"));
+        Assert.Empty(RepoUpdatePlanner.ToolsInRepo(repo, [shortcutTool]));
+        var linked = RepoUpdatePlanner.ToolsInRepo(repo, [shortcutTool], ["7"]);
+        Assert.Equal("Launch", Assert.Single(linked).Name);
+        var cfg = new RepoConfig { ToolIds = ["7"] };
+        Assert.Single(RepoUpdatePlanner.Plan(repo, cfg, [shortcutTool]).Tools);
+    }
+
+    [Fact]
+    public void A_tool_whose_arguments_name_the_repository_is_found_by_path()
+    {
+        var repo = Repo("argrepo", "tool.py");
+        var t = Tool("8", "ByArgs", Path.Combine(_root, "bin", "python.exe"));
+        t.Arguments = "\"" + Path.Combine(repo, "tool.py") + "\"";
+        Assert.Single(RepoUpdatePlanner.ToolsInRepo(repo, [t]));
+    }
+
+    [Fact]
+    public void Linked_tools_are_kept_and_cleaned_in_the_settings()
+    {
+        var s = new RepoSettings();
+        s.Items.Add(new RepoConfig { Path = Path.Combine(_root, "a"), ToolIds = ["1", "", "1", "2"] });
+        RepoConfigs.Normalize(s);
+        Assert.Equal(["1", "2"], Assert.Single(s.Items).ToolIds);
     }
 
     // ── Actions with a plan ─────────────────────────────────────────────
@@ -263,6 +308,45 @@ public sealed class RepoUpdateTests : IDisposable
         var tools = new FakeTools(log, running ?? ["1"]);
         var svc = new RepoSyncService(new FakeConfig(settings), new FakeGit(log, status, pullOut), new FakeCommands(log, installExit, installExit == 0 ? "built ok\n" : "error: missing module\n"), tools);
         return (svc, log, repo, tools);
+    }
+
+    [Fact]
+    public async Task Update_keeps_the_full_output_of_every_step()
+    {
+        var (svc, _, repo, _) = Setup();
+        var r = await svc.UpdateAsync(repo);
+        Assert.Contains("$ git pull --ff-only", r.FullOutput);
+        Assert.Contains("built ok", r.FullOutput);
+        Assert.Contains("Install.bat", r.Transcript);
+    }
+
+    [Fact]
+    public async Task Updating_DevPilot_pulls_then_hands_the_install_over_and_closes_nothing_else()
+    {
+        var repo = Repo("DevPilot3", "DevPilot.sln", @"scripts\install.cmd");
+        var log = new Log();
+        var svc = new RepoSyncService(new FakeConfig(new AppSettings()), new FakeGit(log, "", Pulled), new FakeCommands(log), new FakeTools(log));
+        svc.AutostartProbe = () => true;
+        RepoCommand? asked = null;
+        svc.SelfUpdateRequested += (_, c) => asked = c;
+        var r = await svc.UpdateAsync(repo);
+        Assert.Equal(RepoCommandStatus.Succeeded, r.Status);
+        Assert.Equal("git status | git pull", log.Joined);   // the install is not run here
+        Assert.NotNull(asked);
+        Assert.EndsWith("/autostart || pause", asked!.CommandLine);
+    }
+
+    [Fact]
+    public async Task Updating_DevPilot_with_nothing_new_does_not_restart_it()
+    {
+        var repo = Repo("DevPilot4", "DevPilot.sln", @"scripts\install.cmd");
+        var log = new Log();
+        var svc = new RepoSyncService(new FakeConfig(new AppSettings()), new FakeGit(log, "", "Already up to date.\n"), new FakeCommands(log), new FakeTools(log));
+        bool asked = false;
+        svc.SelfUpdateRequested += (_, _) => asked = true;
+        var r = await svc.UpdateAsync(repo);
+        Assert.Equal(RepoCommandStatus.Succeeded, r.Status);
+        Assert.False(asked);
     }
 
     [Fact]

@@ -15,7 +15,8 @@ public sealed record RepoUpdatePlan(
     string InstallText,
     IReadOnlyList<ToolEntry> Tools,
     bool Available,
-    string Note)
+    string Note,
+    bool SelfUpdate = false)
 {
     public static RepoUpdatePlan None(string note = "") => new(RepoProjectKind.Unknown, null, string.Empty, [], false, note);
 
@@ -27,7 +28,9 @@ public sealed record RepoUpdatePlan(
             var parts = new List<string>();
             if (Kind != RepoProjectKind.Unknown) parts.Add(Kind == RepoProjectKind.CSharp ? "C# project" : "Python project");
             parts.Add(Install is null ? "no install step found" : "install: " + InstallText);
-            if (Tools.Count > 0) parts.Add("closes and restarts: " + string.Join(", ", Tools.Select(t => t.Name)));
+            if (SelfUpdate) parts.Add("closes DevPilot, installs the new version and starts it again");
+            else if (Tools.Count > 0) parts.Add("closes and restarts: " + string.Join(", ", Tools.Select(t => t.Name)));
+            else parts.Add("no tool linked: tick the tools to close and restart in the list below");
             if (Note.Length > 0) parts.Add(Note);
             return string.Join(" · ", parts);
         }
@@ -56,12 +59,17 @@ public static class RepoUpdatePlanner
     public static RepoUpdatePlan Plan(string repo, RepoConfig? cfg, IEnumerable<ToolEntry> allTools)
     {
         if (string.IsNullOrWhiteSpace(repo) || !Directory.Exists(repo)) return RepoUpdatePlan.None();
-        if (IsDevPilotRepo(repo))
-            return RepoUpdatePlan.None("DevPilot updates itself: close it, then run scripts\\install.cmd");
         if (cfg is { UpdateEnabled: false }) return RepoUpdatePlan.None("Update is switched off");
+        if (IsDevPilotRepo(repo))
+        {
+            var self = SelfUpdateCommand(repo, autostart: false);
+            return self is null
+                ? RepoUpdatePlan.None("DevPilot cannot update itself here: scripts\\install.cmd was not found")
+                : new RepoUpdatePlan(RepoProjectKind.CSharp, self, @"scripts\install.cmd", [], true, string.Empty, SelfUpdate: true);
+        }
 
         var kind = Detect(repo);
-        var tools = ToolsInRepo(repo, allTools);
+        var tools = ToolsInRepo(repo, allTools, cfg?.ToolIds);
         RepoCommand? install;
         string text;
         if (!string.IsNullOrWhiteSpace(cfg?.InstallCommand))
@@ -72,6 +80,19 @@ public static class RepoUpdatePlanner
         else install = DetectInstall(repo, kind, out text);
 
         return new RepoUpdatePlan(kind, install, text, tools, install is not null || tools.Count > 0, string.Empty);
+    }
+
+    /// <summary>
+    /// The command that installs this checkout of DevPilot over the running one: waits a moment for DevPilot to
+    /// exit, runs <c>scripts\install.cmd</c> (works when PowerShell scripts are blocked) and keeps the window open
+    /// when it fails so the error can be read. Null when the script is missing.
+    /// </summary>
+    public static RepoCommand? SelfUpdateCommand(string repo, bool autostart)
+    {
+        var script = ExistingFile(repo, @"scripts\install.cmd");
+        if (script is null) return null;
+        var line = $"timeout /t 2 /nobreak >nul & call {CommandLineText.Quote(script)}{(autostart ? " /autostart" : string.Empty)} || pause";
+        return new RepoCommand { Name = "Install", CommandLine = line, Mode = RepoCommandMode.Hidden };
     }
 
     /// <summary>This checkout is DevPilot itself: updating it from inside would replace the running program.</summary>
@@ -159,9 +180,17 @@ public static class RepoUpdatePlanner
     }
 
     /// <summary>Tools DevPilot manages that start a program from inside the repository.</summary>
-    public static IReadOnlyList<ToolEntry> ToolsInRepo(string repo, IEnumerable<ToolEntry> tools) =>
-        tools.Where(t => t.IsProcessLike && (IsUnder(repo, PathTokens.Expand(t.WorkingDirectory, t))
-                                             || IsUnder(repo, PathTokens.Expand(t.Path, t)))).ToList();
+    public static IReadOnlyList<ToolEntry> ToolsInRepo(string repo, IEnumerable<ToolEntry> tools, IReadOnlyCollection<string>? linkedIds = null) =>
+        tools.Where(t => t.IsProcessLike && (IsLinked(t, linkedIds) || IsAutoMatch(repo, t))).ToList();
+
+    private static bool IsLinked(ToolEntry t, IReadOnlyCollection<string>? ids) =>
+        ids is { Count: > 0 } && ids.Contains(t.Id, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Found by path: the working folder, the program, or the repository path inside the arguments.</summary>
+    public static bool IsAutoMatch(string repo, ToolEntry t) =>
+        IsUnder(repo, PathTokens.Expand(t.WorkingDirectory, t)) || IsUnder(repo, PathTokens.Expand(t.Path, t))
+        || (!string.IsNullOrWhiteSpace(t.Arguments)
+            && t.Arguments.Replace('/', '\\').Contains(RepoScanner.Normalize(repo).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
 
     public static bool IsUnder(string folder, string path)
     {

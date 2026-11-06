@@ -68,8 +68,10 @@
                                                     <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>
                                                     <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}"/>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
-                                                           FontFamily="{StaticResource MonoFont}" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
+                                                <TextBlock Text="{Binding Message}" Cursor="Hand" ToolTip="Click for the full output" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
+                                                           FontFamily="{StaticResource MonoFont}" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
+<TextBlock.InputBindings><MouseBinding MouseAction="LeftClick" Command="{Binding ShowOutputCommand}"/></TextBlock.InputBindings>
+</TextBlock>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
                                                 <Button Style="{StaticResource IconButton}" Content="&#xE838;" Command="{Binding OpenCommand}" ToolTip="Open folder"/>
@@ -87,6 +89,19 @@
                                                           Content="Offer Update: git pull, close the tools of this repository, install, start them again"/>
                                                 <CheckBox Style="{StaticResource Switch}" Margin="0,6,0,0" IsChecked="{Binding RestartTools}"
                                                           Content="Close the running tools before installing and start them again afterwards"/>
+                                                <TextBlock Text="Tools to close and start again" Margin="0,8,0,0"
+                                                           ToolTip="Tools found by their path are always listed. Tick a tool that starts from elsewhere, for example through a shortcut."/>
+                                                <ItemsControl ItemsSource="{Binding ToolChoices}" Margin="0,4,0,0">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type vm:RepoToolChoiceVM}">
+                                                            <CheckBox Margin="0,0,16,4" Content="{Binding Name}" ToolTip="{Binding Tip}"
+                                                                      IsChecked="{Binding IsLinked}" IsEnabled="{Binding CanEdit}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                                 <Grid Margin="0,8,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>

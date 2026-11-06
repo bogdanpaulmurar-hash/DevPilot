@@ -2,6 +2,16 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.17.0 — Full output, linked tools, DevPilot updates itself
+
+Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` → start DevPilot. (After this version the Update button on the DevPilot row does these steps itself.)
+
+1. Run *git pull* or *Update* on a row → click the grey message under it → a window opens with the full text (`$ git pull --ff-only` and what git printed; for Update also the install output). *Copy all* works.
+2. A repository whose tool starts through a shortcut (so only *git pull* was offered): open its gear → under *Tools to close and start again* tick the tool → the button becomes *Update*. With the tool running and something new on GitHub → the tool closes, installs, starts again.
+3. Gear > the same list shows tools found by path ticked and greyed.
+4. DevPilot repository: the row now offers *Update*. Push a new version, click it → DevPilot closes, a console window builds and installs, DevPilot starts again with the new version (check the version on the Repositories page and, if start with Windows was on, that it still is).
+5. *Update* on DevPilot with nothing new → "Already up to date", DevPilot stays open.
+
 ## 2.16.0 — Version of each repository
 
 Update before testing: exit DevPilot from the tray → `git checkout main` + `git pull` in the DevPilot folder → `scripts\install.cmd` (or `scripts\install.ps1`) to rebuild → start DevPilot.
@@ -26,7 +36,7 @@ Update before testing: exit DevPilot from the tray → `git checkout main` + `gi
 7. Gear > *Close the running tools…* off → Update installs without touching the running tool.
 8. A tool with auto-restart on: use *Stop* in the hub → it stays stopped (it is not started again by the monitor).
 9. *Reinstall now* → closes, installs, starts again without a pull.
-10. The DevPilot repository itself shows no *Update* (it says to close DevPilot and run `scripts\install.cmd`).
+10. (Changed in 2.17.0: DevPilot's own repository now updates itself.)
 
 
 ## 2.14.0 — Repositories panel and commands

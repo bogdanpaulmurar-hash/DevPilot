@@ -73,10 +73,11 @@ public static class RepoConfigs
                 if (!Enum.IsDefined(c.Mode)) c.Mode = RepoCommandMode.Hidden;
                 if (string.IsNullOrWhiteSpace(c.Id) || !ids.Add(c.Id)) { c.Id = NewId.Short(); ids.Add(c.Id); }
             }
+            item.ToolIds = (item.ToolIds ?? []).Where(i => !string.IsNullOrWhiteSpace(i)).Distinct().ToList();
             item.InstallCommand = item.InstallCommand?.Trim() ?? string.Empty;
             if (!Enum.IsDefined(item.Pull)) item.Pull = PullButton.Auto;
             bool useless = item.Pull == PullButton.Auto && item.UpdateEnabled && item.RestartTools
-                           && item.InstallCommand.Length == 0 && item.Commands.Count == 0;
+                           && item.InstallCommand.Length == 0 && item.Commands.Count == 0 && item.ToolIds.Count == 0;
             // The first entry for a folder wins.
             if (item.Path.Length > 0 && !useless && seenPaths.Add(item.Path)) kept.Add(item);
         }

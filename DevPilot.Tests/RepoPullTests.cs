@@ -170,6 +170,16 @@ public sealed class RepoPullTests : IDisposable
 
     // ── Fake git: the safety rules ──────────────────────────────────────
 
+    [Fact]
+    public async Task The_result_keeps_what_git_printed()
+    {
+        var git = new FakeGit(a => a[0] == "status" ? new GitRun(0, "", "") : new GitRun(0, "Updating a..b\nFast-forward\n", "From origin\n"));
+        var r = await new RepoPull(git).PullAsync(FakeRepo("out"));
+        Assert.Contains("$ git pull --ff-only", r.Output);
+        Assert.Contains("Fast-forward", r.Transcript);
+        Assert.Contains("From origin", r.Transcript);
+    }
+
     private sealed class FakeGit(Func<IReadOnlyList<string>, GitRun> answer) : IGitRunner
     {
         public readonly List<string> Calls = [];

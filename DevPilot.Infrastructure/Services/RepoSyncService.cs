@@ -43,6 +43,13 @@ public sealed class RepoSyncService : IDisposable
     public event EventHandler<RepoPullResult>? RepoFinished;
     /// <summary>A repository command finished (raised on a worker thread).</summary>
     public event EventHandler<RepoCommandResult>? CommandFinished;
+    /// <summary>
+    /// DevPilot's own repository was updated: the new version has to be installed over the running one. The handler
+    /// starts the returned command in its own window and closes DevPilot (raised on a worker thread).
+    /// </summary>
+    public event EventHandler<RepoCommand>? SelfUpdateRequested;
+    /// <summary>Tells whether DevPilot starts with Windows now, so the update keeps that setting.</summary>
+    public Func<bool>? AutostartProbe { get; set; }
     /// <summary>An automatic run finished; the UI decides whether to notify.</summary>
     public event EventHandler<IReadOnlyList<RepoPullResult>>? AutoRunFinished;
 
@@ -131,8 +138,9 @@ public sealed class RepoSyncService : IDisposable
 
     private async Task<RepoCommandResult> UpdateCoreAsync(string repo, string name, RepoUpdateMode mode, Action<string> step, CancellationToken ct)
     {
+        var transcript = new List<string>();
         RepoCommandResult Done(RepoCommandStatus status, IEnumerable<string> lines, int exit = 0) =>
-            new(repo, name, status, exit, string.Join('\n', lines), DateTime.Now, ShowAllLines: true);
+            new(repo, name, status, exit, string.Join('\n', lines), DateTime.Now, ShowAllLines: true) { FullOutput = string.Join("\n\n", transcript) };
 
         var cfg = RepoConfigs.Find(Settings, repo);
         var plan = RepoUpdatePlanner.Plan(repo, cfg, _config.Current.Tools);
@@ -144,11 +152,25 @@ public sealed class RepoSyncService : IDisposable
         {
             step("Pulling…");
             var pull = await _pull.PullAsync(repo, ct).ConfigureAwait(false);
+            if (pull.Output.Length > 0) transcript.Add(pull.Output);
             if (!pull.IsOk)
                 return Done(pull.IsSkipped ? RepoCommandStatus.Skipped : RepoCommandStatus.Failed, [pull.StatusText + ": " + pull.Message], -1);
             if (pull.Status == RepoPullStatus.UpToDate)
                 return Done(RepoCommandStatus.Succeeded, [UpToDateLine(pull.After)]);
             lines.Add("Pulled: " + (pull.Message.Length > 0 ? pull.Message : "updated"));
+        }
+
+        if (plan.SelfUpdate)
+        {
+            // The install replaces the running program: hand it over to a window that outlives DevPilot.
+            var self = RepoUpdatePlanner.SelfUpdateCommand(repo, AutostartProbe?.Invoke() ?? false);
+            if (self is null) return Done(RepoCommandStatus.Failed, [.. lines, "scripts\\install.cmd was not found."], -1);
+            lines.Add("DevPilot closes now, installs the new version and starts again.");
+            transcript.Add("$ " + self.CommandLine);
+            var done = Done(RepoCommandStatus.Succeeded, lines);
+            lock (_busy) _lastCommand[RepoScanner.Normalize(repo)] = done;
+            SelfUpdateRequested?.Invoke(this, self);
+            return done;
         }
 
         bool restart = cfg?.RestartTools ?? true;
@@ -168,6 +190,7 @@ public sealed class RepoSyncService : IDisposable
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { run = new CommandRun(-1, string.Empty, StartError: ex.Message); }
             var install = RepoCommandRunner.ToResult(repo, "Install", run, DateTime.Now);
+            transcript.Add(RepoOutput.Step(plan.Install.CommandLine, run.Output, string.Empty));
             if (!install.IsOk)
             {
                 lines.Add($"Install failed ({plan.InstallText}): {install.StatusText}");

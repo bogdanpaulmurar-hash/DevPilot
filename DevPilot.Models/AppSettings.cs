@@ -65,6 +65,11 @@ public class RepoConfig
     public string InstallCommand { get; set; } = string.Empty;
     /// <summary>Update closes the running tools of this repository before installing and starts them again afterwards.</summary>
     public bool RestartTools { get; set; } = true;
+    /// <summary>
+    /// Ids of tools Update closes and starts again for this repository, on top of those DevPilot finds by path
+    /// (a tool launched through a shortcut or a launcher script lives elsewhere, so it has to be named).
+    /// </summary>
+    public List<string> ToolIds { get; set; } = [];
     public List<RepoCommand> Commands { get; set; } = [];
 }
 

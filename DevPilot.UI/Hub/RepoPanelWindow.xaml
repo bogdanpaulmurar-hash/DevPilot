@@ -81,8 +81,10 @@
                                                 <Ellipse x:Name="Mark" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center" Fill="Transparent"/>
                                                 <TextBlock Text="{Binding StatusText}" Style="{StaticResource Hint}"/>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding Message}" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
-                                                       FontFamily="{StaticResource MonoFont}" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
+                                            <TextBlock Text="{Binding Message}" Cursor="Hand" ToolTip="Click for the full output" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="13,1,0,0"
+                                                       FontFamily="{StaticResource MonoFont}" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
+<TextBlock.InputBindings><MouseBinding MouseAction="LeftClick" Command="{Binding ShowOutputCommand}"/></TextBlock.InputBindings>
+</TextBlock>
                                         </StackPanel>
                                         <Button Grid.Column="2" Content="{Binding ActionLabel}" VerticalAlignment="Top" MinWidth="64" Margin="8,0,0,0"
                                                 Command="{Binding RunCommand}" ToolTip="{Binding ActionTip}" IsEnabled="{Binding CanRun}"/>
