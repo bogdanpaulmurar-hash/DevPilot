@@ -24,6 +24,12 @@ public sealed record RepoCommandResult(string Path, string Name, RepoCommandStat
 {
     public bool IsOk => Status is RepoCommandStatus.Succeeded or RepoCommandStatus.Started;
 
+    /// <summary>Everything the action printed, step by step as in a console (empty = use <see cref="OutputTail"/>).</summary>
+    public string FullOutput { get; init; } = string.Empty;
+
+    /// <summary>The text for the "full output" window: a heading with the outcome, then the console text.</summary>
+    public string Transcript => RepoOutput.Compose($"{Name} · {StatusText} · {At:g}", FullOutput.Length > 0 ? FullOutput : OutputTail);
+
     public string StatusText => Status switch
     {
         RepoCommandStatus.Succeeded => "Done",
@@ -96,5 +102,28 @@ public static class RepoCommandRunner
         if (ok > 0) parts.Add($"{ok} done");
         if (bad > 0) parts.Add($"{bad} failed");
         return parts.Count == 0 ? "Nothing to run." : string.Join(" · ", parts);
+    }
+}
+
+/// <summary>Text for the full-output window.</summary>
+public static class RepoOutput
+{
+    public const int MaxChars = 40000;
+
+    /// <summary>"heading", a blank line, then the body (the end is kept when it is too long). Never empty.</summary>
+    public static string Compose(string heading, string body)
+    {
+        body = (body ?? string.Empty).Replace("\r\n", "\n").TrimEnd();
+        if (body.Length > MaxChars) body = "…\n" + body[^MaxChars..];
+        return body.Length == 0 ? heading + "\n\n(no output)" : heading + "\n\n" + body;
+    }
+
+    /// <summary>One step of a transcript: "$ command" and what it printed.</summary>
+    public static string Step(string command, string stdOut, string stdErr)
+    {
+        var parts = new List<string> { "$ " + command };
+        if (!string.IsNullOrWhiteSpace(stdOut)) parts.Add(stdOut.Replace("\r\n", "\n").TrimEnd());
+        if (!string.IsNullOrWhiteSpace(stdErr)) parts.Add(stdErr.Replace("\r\n", "\n").TrimEnd());
+        return string.Join('\n', parts);
     }
 }

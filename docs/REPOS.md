@@ -54,6 +54,15 @@ After a pull or an Update that brought something new, the result reads "2.14.0 â
 - Never merges, rebases, stashes, resets or deletes anything.
 - Pulls one repository at a time.
 
+## Full output
+Click the message under a repository to open everything the last action printed (git, install, a command), with *Copy all*.
+
+## Update: which tools are closed
+Tools found by path (working folder, program or arguments inside the repository) are closed and started again. A tool that starts from elsewhere (a shortcut, a launcher) is added by ticking it in the gear of the repository.
+
+## DevPilot's own repository
+*Update* pulls, closes DevPilot, runs `scripts\install.cmd` in a window of its own and the new version starts by itself.
+
 ## Automatic pull
 *Automatic pull* on the page: off (default), once when DevPilot starts, or at start and then every N minutes. Automatic runs can stay quiet when everything was already up to date.
 

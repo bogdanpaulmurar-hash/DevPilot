@@ -59,6 +59,40 @@ public sealed class RepoCommandVM : ObservableObject
     }
 }
 
+/// <summary>One tool of DevPilot that Update may close and start again for a repository.</summary>
+public sealed class RepoToolChoiceVM : ObservableObject
+{
+    private readonly RepoRowVM _row;
+    private readonly ToolEntry _tool;
+    private readonly bool _auto;
+
+    public RepoToolChoiceVM(RepoRowVM row, ToolEntry tool, bool auto)
+    {
+        _row = row;
+        _tool = tool;
+        _auto = auto;
+    }
+
+    public string Name => string.IsNullOrWhiteSpace(_tool.Name) ? _tool.Id : _tool.Name;
+    public string Tip => _auto ? "Found by its path in this repository" : "Close and start again on Update";
+
+    /// <summary>Ticked = Update closes it and starts it again. Tools found by path are always on.</summary>
+    public bool IsLinked
+    {
+        get => _auto || (_row.ConfigOrNull?.ToolIds.Contains(_tool.Id, StringComparer.OrdinalIgnoreCase) ?? false);
+        set
+        {
+            if (_auto || value == IsLinked) return;
+            var ids = _row.Config.ToolIds;
+            if (value) ids.Add(_tool.Id); else ids.RemoveAll(i => string.Equals(i, _tool.Id, StringComparison.OrdinalIgnoreCase));
+            OnPropertyChanged();
+            _row.Edited();
+        }
+    }
+
+    public bool CanEdit => !_auto;
+}
+
 /// <summary>One clone under the root: tick it for "Pull selected", run its action, edit its commands.</summary>
 public sealed class RepoRowVM : ObservableObject
 {
@@ -110,6 +144,24 @@ public sealed class RepoRowVM : ObservableObject
         OnPropertyChanged(nameof(HasVersion));
     }
     public ObservableCollection<RepoCommandVM> Commands { get; } = [];
+
+    /// <summary>Every tool Update could close for this repository, with the ones found by path ticked and locked.</summary>
+    public IReadOnlyList<RepoToolChoiceVM> ToolChoices =>
+        Owner.AllTools.Where(t => t.IsProcessLike)
+            .Select(t => new RepoToolChoiceVM(this, t, RepoUpdatePlanner.IsAutoMatch(Path, t)))
+            .OrderByDescending(c => !c.CanEdit).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+    public ICommand ShowOutputCommand => _showOutput ??= new RelayCommand(ShowOutput);
+    private ICommand? _showOutput;
+
+    /// <summary>The full text of the last action, as a console would have shown it.</summary>
+    public string Transcript => CommandIsNewer ? _command!.Transcript : _pull?.Transcript ?? string.Empty;
+
+    private void ShowOutput()
+    {
+        if (Transcript.Length > 0) Views.OutputWindow.ShowText($"{Name} — output", Transcript);
+    }
+
     public ICommand RunCommand { get; }
     public ICommand OpenCommand { get; }
     public ICommand AddCommandCommand { get; }
@@ -133,8 +185,8 @@ public sealed class RepoRowVM : ObservableObject
 
     public bool IsExpanded { get => _expanded; set => Set(ref _expanded, value); }
 
-    private RepoConfig Config => RepoConfigs.GetOrCreate(Owner.Settings, Path);
-    private RepoConfig? ConfigOrNull => RepoConfigs.Find(Owner.Settings, Path);
+    internal RepoConfig Config => RepoConfigs.GetOrCreate(Owner.Settings, Path);
+    internal RepoConfig? ConfigOrNull => RepoConfigs.Find(Owner.Settings, Path);
 
     public PullButton PullChoice
     {
@@ -272,6 +324,7 @@ public sealed class RepoRowVM : ObservableObject
         UpdatePlan = RepoUpdatePlanner.Plan(Path, ConfigOrNull, Owner.AllTools);
         OnPropertyChanged(nameof(UpdatePlan));
         OnPropertyChanged(nameof(UpdateSummary));
+        OnPropertyChanged(nameof(ToolChoices));
         OnPropertyChanged(nameof(CanReinstall));
         OnPropertyChanged(nameof(ActionLabel));
         OnPropertyChanged(nameof(ActionTip));
@@ -334,6 +387,7 @@ public sealed class RepoRowVM : ObservableObject
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(Message));
         OnPropertyChanged(nameof(HasMessage));
+        OnPropertyChanged(nameof(Transcript));
         OnPropertyChanged(nameof(Tone));
     }
 }
