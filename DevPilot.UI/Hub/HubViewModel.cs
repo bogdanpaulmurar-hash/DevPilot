@@ -42,9 +42,12 @@ public sealed class HubViewModel : ObservableObject
     public ICommand ExitCommand { get; }
     public ICommand ClearSearchCommand { get; }
 
+    public ActivityViewModel Activity { get; }
+
     public HubViewModel(IConfigStore config, ILauncher launcher, IProcessMonitor monitor, IKeepAwakeService keepAwake,
-        IAppShell shell, FlyoutBuilder flyouts, DevPilot.UI.Typer.TyperHudController typer)
+        IAppShell shell, FlyoutBuilder flyouts, DevPilot.UI.Typer.TyperHudController typer, ActivityViewModel activity)
     {
+        Activity = activity;
         _config = config;
         _launcher = launcher;
         _monitor = monitor;

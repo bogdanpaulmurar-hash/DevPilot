@@ -176,6 +176,10 @@
                     <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE718;" IsChecked="{Binding IsPinned}" ToolTip="Keep the hub open"/>
                 </StackPanel>
             </Grid>
+            <ProgressBar Grid.Row="0" Height="2" Margin="14,0" VerticalAlignment="Bottom" BorderThickness="0" Minimum="0" Maximum="1"
+                         Foreground="{DynamicResource AccentBrush}" Background="Transparent"
+                         IsIndeterminate="{Binding Activity.IsIndeterminate}" Value="{Binding Activity.Value, Mode=OneWay}"
+                         ToolTip="{Binding Activity.Label}" Visibility="{Binding Activity.IsActive, Converter={StaticResource BoolToVis}}"/>
 
             <!-- Search -->
             <Grid Grid.Row="1" Margin="12,2,12,8" Visibility="{Binding ShowSearch, Converter={StaticResource BoolToVis}}">

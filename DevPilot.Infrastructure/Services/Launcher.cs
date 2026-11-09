@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using DevPilot.Core.Activity;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Launch;
 using DevPilot.Models;
@@ -13,17 +14,25 @@ public sealed class Launcher : ILauncher
     private readonly ILogger<Launcher> _logger;
     private readonly IProcessMonitor _monitor;
     private readonly IGuardGate? _gate;
+    private readonly ActivityTracker? _activity;
 
     public event EventHandler<ToolEntry>? ToolStarted;
 
-    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor, IGuardGate? gate = null)
+    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor, IGuardGate? gate = null, ActivityTracker? activity = null)
     {
+        _activity = activity;
         _logger = logger;
         _monitor = monitor;
         _gate = gate;
     }
 
     public async Task<LaunchResult> StartAsync(ToolEntry tool, LaunchReason reason = LaunchReason.Manual)
+    {
+        using var scope = _activity?.Begin("Starting " + tool.Name);
+        return await StartCoreAsync(tool, reason).ConfigureAwait(false);
+    }
+
+    private async Task<LaunchResult> StartCoreAsync(ToolEntry tool, LaunchReason reason)
     {
         if (_gate is not null)
         {

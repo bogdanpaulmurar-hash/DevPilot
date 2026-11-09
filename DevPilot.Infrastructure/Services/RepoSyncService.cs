@@ -1,3 +1,4 @@
+using DevPilot.Core.Activity;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Repos;
 using DevPilot.Models;
@@ -26,8 +27,9 @@ public sealed class RepoSyncService : IDisposable
     private Timer? _timer;
     private bool _running;
 
-    public RepoSyncService(IConfigStore config, IGitRunner git, ICommandRunner commands, IToolControl tools, ILogger<RepoSyncService>? logger = null)
+    public RepoSyncService(IConfigStore config, IGitRunner git, ICommandRunner commands, IToolControl tools, ILogger<RepoSyncService>? logger = null, ActivityTracker? activity = null)
     {
+        _activity = activity;
         _config = config;
         _commands = commands;
         _tools = tools;
@@ -35,6 +37,8 @@ public sealed class RepoSyncService : IDisposable
         _pull = new RepoPull(git);
         _logger = logger ?? NullLogger<RepoSyncService>.Instance;
     }
+
+    private readonly ActivityTracker? _activity;
 
     public RepoSettings Settings => _config.Current.Repos;
     public bool IsRunning => _running;
@@ -84,6 +88,7 @@ public sealed class RepoSyncService : IDisposable
         if (!TryBegin(key, out var refusal)) return new RepoCommandResult(repo, name, RepoCommandStatus.Busy, -1, refusal, DateTime.Now);
         try
         {
+            using var scope = _activity?.Begin($"{name} · {Path.GetFileName(repo.TrimEnd('\\', '/'))}");
             CommandRun run;
             try { run = await Task.Run(() => _commands.RunAsync(command, repo, RepoCommandRunner.Timeout, ct), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { throw; }
@@ -178,6 +183,7 @@ public sealed class RepoSyncService : IDisposable
         if (!TryBegin(key, out var refusal)) return new RepoCommandResult(repo, name, RepoCommandStatus.Busy, -1, refusal, DateTime.Now);
         try
         {
+            using var scope = _activity?.Begin($"{name} · {Path.GetFileName(repo.TrimEnd('\\', '/'))}");
             var result = await Task.Run(() => UpdateCoreAsync(repo, name, mode, step ?? (_ => { }), ct), ct).ConfigureAwait(false);
             lock (_busy) _lastCommand[key] = result;
             _logger.LogInformation("{Name} of {Repo}: {Status}", name, repo, result.Status);
@@ -327,7 +333,8 @@ public sealed class RepoSyncService : IDisposable
         try
         {
             SetRunning(true);
-            var progress = new Progress(this);
+            using var scope = _activity?.Begin("Pulling repositories");
+            var progress = new Progress(this, scope, repos.Count);
             var free = new List<string>();
             var skipped = new List<RepoPullResult>();
             foreach (var r in repos)
@@ -359,10 +366,17 @@ public sealed class RepoSyncService : IDisposable
         }
     }
 
-    private sealed class Progress(RepoSyncService owner) : IProgress<RepoPullResult>
+    private sealed class Progress(RepoSyncService owner, IActivityScope? scope = null, int total = 0) : IProgress<RepoPullResult>
     {
+        private int _done;
+
         public void Report(RepoPullResult value)
         {
+            if (scope is not null && total > 0)
+            {
+                var done = Interlocked.Increment(ref _done);
+                scope.Report((double)done / total, $"{done} of {total}");
+            }
             lock (owner._last) owner._last[RepoScanner.Normalize(value.Path)] = value;
             owner.OnRepoFinished(value);
         }

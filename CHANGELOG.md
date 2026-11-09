@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.20.0
+- **Progress bar**: a thin accent line with the action's name appears while DevPilot is busy: making or restoring a backup, starting a tool, pulling repositories (with "3 of 7") and repository commands or Update. It shows at the top of the main window and under the hub header, and disappears when nothing runs. It only displays work that already runs in the background, so it does not slow anything down.
+- Core: `ActivityTracker` (several actions at once show the latest plus "(+N)"). Tests: `ActivityTrackerTests`. Not run locally (no .NET on the build box); CI on Windows decides.
+
 ## 2.19.1
 - Fix: a hidden git pull on a repository whose sign-in had expired made Git Credential Manager open a browser page nobody could answer, and the pull ended as "Timed out" after three minutes. git now runs with `GCM_INTERACTIVE=never`, so the pull fails at once as "Sign-in failed" and *Fix…* offers to sign in once in a window.
 
