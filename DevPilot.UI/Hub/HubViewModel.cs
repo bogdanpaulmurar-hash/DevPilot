@@ -10,6 +10,7 @@ using DevPilot.Core.Interfaces;
 using DevPilot.Core.Launch;
 using DevPilot.Core.Presets;
 using DevPilot.Models;
+using DevPilot.UI.ViewModels;
 using DevPilot.UI.Mvvm;
 using DevPilot.UI.Services;
 
