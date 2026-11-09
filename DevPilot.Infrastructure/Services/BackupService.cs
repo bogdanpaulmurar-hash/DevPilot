@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using DevPilot.Core.Activity;
 using DevPilot.Core.Backup;
 using DevPilot.Core.Config;
 using DevPilot.Core.Interfaces;
@@ -27,12 +28,14 @@ public sealed class BackupService
     private readonly IConfigStore _config;
     private readonly ILogger<BackupService> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly ActivityTracker? _activity;
 
     /// <summary>Overridable for tests; the Windows user folder used to adapt paths.</summary>
     public string UserFolder { get; init; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    public BackupService(IConfigStore config, ILogger<BackupService>? logger = null)
+    public BackupService(IConfigStore config, ILogger<BackupService>? logger = null, ActivityTracker? activity = null)
     {
+        _activity = activity;
         _config = config;
         _logger = logger ?? NullLogger<BackupService>.Instance;
     }
@@ -89,6 +92,7 @@ public sealed class BackupService
         var dataFolder = _config.DataFolder;
         var userFolder = UserFolder;
 
+        using var scope = beforeRestore ? null : _activity?.Begin(automatic ? "Automatic backup" : "Making backup");
         await _gate.WaitAsync().ConfigureAwait(true);
         BackupResult result;
         try
@@ -235,6 +239,7 @@ public sealed class BackupService
     /// <summary>Makes a safety backup, restores the logos into the data folder and replaces the configuration.</summary>
     public async Task<RestoreResult> RestoreAsync(string zipPath)
     {
+        using var scope = _activity?.Begin("Restoring backup");
         AppSettings fromBackup;
         BackupManifest manifest;
         try

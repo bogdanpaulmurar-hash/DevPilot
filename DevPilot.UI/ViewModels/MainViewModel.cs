@@ -18,14 +18,16 @@ public sealed class MainViewModel : ObservableObject
     private readonly IConfigStore _config;
     private NavItem _selected;
 
+    public ActivityViewModel Activity { get; }
     public ObservableCollection<NavItem> Pages { get; }
     public ObservableCollection<NavItem> FooterPages { get; }
     public string Version => "v" + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0");
 
     public MainViewModel(IConfigStore config, OverviewViewModel overview, ToolsViewModel tools, KeepAwakeViewModel keepAwake,
-        StartupViewModel startup, MonitorViewModel monitor, GuardViewModel guard, ReposViewModel repos, AppearanceViewModel appearance, SettingsViewModel settings, GuideViewModel guide)
+        StartupViewModel startup, MonitorViewModel monitor, GuardViewModel guard, ReposViewModel repos, AppearanceViewModel appearance, SettingsViewModel settings, GuideViewModel guide, ActivityViewModel activity)
     {
         _config = config;
+        Activity = activity;
         Pages =
         [
             new NavItem { Key = "hub", Title = "Overview", Glyph = Glyphs.Home, Page = overview },

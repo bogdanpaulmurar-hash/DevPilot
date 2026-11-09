@@ -2,6 +2,15 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.20.0 — Progress bar
+
+1. Settings > *Back up now* → a thin line with "Making backup" shows at the top of the main window, then disappears when the backup is done.
+2. Start a tool from the hub → the hub header shows a short line (hover for "Starting <tool>"); it disappears once the tool is started.
+3. Repositories > *Pull* on several ticked repositories → the line fills step by step and the label reads "Pulling repositories · 3 of 7".
+4. A repository command or *Update* → "<name> · <repo>" shows until it ends.
+5. Two things at once (backup + pull) → the label shows the latest with "(+1)" and the line is animated, not a percentage.
+6. Idle → no line anywhere.
+
 ## 2.19.1 — No more hidden sign-in timeouts
 
 1. *Update* on AutoPilot_DCR (sign-in expired) → within seconds "Sign-in failed" (not "Timed out" after minutes), and no browser page opens by itself.

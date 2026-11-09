@@ -132,6 +132,14 @@
                     <Button Style="{StaticResource CaptionButton}" x:Name="MaxButton" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximize"/>
                     <Button Style="{StaticResource CaptionButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Close"/>
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0"
+                            Visibility="{Binding Activity.IsActive, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding Activity.Label}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ProgressBar Grid.Row="0" Height="2" VerticalAlignment="Bottom" BorderThickness="0" Minimum="0" Maximum="1"
+                             Foreground="{DynamicResource AccentBrush}" Background="Transparent"
+                             IsIndeterminate="{Binding Activity.IsIndeterminate}" Value="{Binding Activity.Value, Mode=OneWay}"
+                             Visibility="{Binding Activity.IsActive, Converter={StaticResource BoolToVis}}"/>
                 <ContentControl Grid.Row="1" Content="{Binding Selected.Page}" Focusable="False"/>
             </Grid>
         </Grid>

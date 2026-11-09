@@ -201,6 +201,8 @@ public partial class App : Application
             ? new ConfigStore(sp.GetRequiredService<ILogger<ConfigStore>>())
             : new ConfigStore(dataDir, sp.GetRequiredService<ILogger<ConfigStore>>()));
         s.AddSingleton<IConfigStore>(sp => sp.GetRequiredService<ConfigStore>());
+        s.AddSingleton<DevPilot.Core.Activity.ActivityTracker>();
+        s.AddSingleton<ActivityViewModel>();
         s.AddSingleton<IProcessMonitor, ProcessMonitor>();
         s.AddSingleton<IGuardGate, GuardGate>();
         s.AddSingleton<DevPilot.Core.Guard.GuardEventLog>();
