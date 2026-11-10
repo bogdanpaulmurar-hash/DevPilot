@@ -139,18 +139,23 @@ public sealed class RepoRowVM : ObservableObject
 
     // ── Cloud and local copy ─────────────────────────────────────────────
 
-    /// <summary>The cloud copy as typed; empty = this clone.</summary>
+    /// <summary>
+    /// The cloud copy: the folder set for it, else this clone (shown, so the field is never empty). Typing or picking
+    /// the clone itself, or clearing the field, stores nothing and shows the clone again.
+    /// </summary>
     public string CloudPathSetting
     {
-        get => ConfigOrNull?.CloudPath ?? string.Empty;
+        get => CloudCopyPath;
         set
         {
             value = RepoConfigs.CleanPath(value);
-            if (RepoScanner.SamePath(value, Path)) value = string.Empty;
-            if (value == CloudPathSetting) return;
-            Config.CloudPath = value;
-            OnPropertyChanged();
-            CopiesChanged();
+            var stored = value.Length == 0 || RepoScanner.SamePath(value, Path) ? string.Empty : value;
+            if (stored != (ConfigOrNull?.CloudPath ?? string.Empty))
+            {
+                Config.CloudPath = stored;
+                CopiesChanged();
+            }
+            OnPropertyChanged();   // also when nothing was stored: the field shows the effective folder again
         }
     }
 
@@ -195,6 +200,8 @@ public sealed class RepoRowVM : ObservableObject
     private void CopiesChanged()
     {
         _localVersion = HasLocal ? RepoVersion.Read(LocalCopyPath!) : RepoVersionInfo.None;
+        OnPropertyChanged(nameof(CloudPathSetting));
+        OnPropertyChanged(nameof(CloudCopyPath));
         OnPropertyChanged(nameof(HasLocal));
         OnPropertyChanged(nameof(LocalVersion));
         OnPropertyChanged(nameof(LocalVersionTip));
