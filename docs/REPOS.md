@@ -43,6 +43,22 @@ If the install fails, the tools stay closed and the row shows the last lines of 
 
 DevPilot's own repository is not updated this way: close DevPilot and run `scripts\install.cmd`.
 
+## Cloud and local copy
+A repository can live in two places: the **cloud copy** on the synced drive (Google Drive, OneDrive), and a **local copy** on the PC that the application runs from. Set them in the gear of the row:
+- **Cloud path**: empty = the clone found in the folder above (usually the one on the drive). Type another folder only when the cloud copy is elsewhere.
+- **Local path**: empty = no local copy. Point it at the folder the application should run from, for example `C:\Apps\ScreenPilot`.
+
+With a local path:
+- **Pull** pulls the cloud copy, then the local copy (*Pull selected* and the automatic pull do the same).
+- **Update** pulls both; the install step runs in the local copy and only the tools that run from the local copy are closed and started again. A problem on the cloud copy is reported but does not stop the install of the local copy.
+- **Reinstall** installs the local copy again, without pulling.
+- A local path that does not exist yet, or an empty folder, is **cloned** from the cloud copy's `origin` and current branch on the next Pull or Update. A folder with files that is not a repository is never written to.
+- A fresh clone has only the files in git: a `.venv`, a local config or a `.env` that are not committed have to be created there once (for example by running the install script).
+- Point the DevPilot tool at the local copy so Update finds it by path.
+
+## More actions (⋯)
+The ⋯ button of a row lists everything the repository can do: pull both copies, pull only the cloud or only the local copy (or clone it), Update, Reinstall, its commands, open the cloud or local folder, open a terminal in the copy that runs, and its settings.
+
 ## Version
 Each row shows the version of the clone next to its branch (hover for where it came from). DevPilot reads it from the files, without running anything, in this order: `devpilot.tool.json` (`"version"`), `Directory.Build.props` or the csproj `<Version>` (the app project before libraries), `pyproject.toml`, Python `__version__` / `VERSION` in `version.py` or a package `__init__.py` (top folder, one folder down, or under `src\`), `package.json`, a `VERSION` / `version.txt` file. Without any of these it shows the short commit.
 
