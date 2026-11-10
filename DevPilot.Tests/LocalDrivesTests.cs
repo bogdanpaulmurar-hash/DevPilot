@@ -12,7 +12,7 @@ public sealed class LocalDrivesTests
     {
         if (!OperatingSystem.IsWindows()) return;   // drive letters only exist on Windows
         var choices = LocalDrives.Choices("ScreenPilot", @"G:\My Drive\Dev\ScreenPilot",
-            [Drive(@"G:\"), Drive(@"E:\"), Drive(@"D:\"), Drive(@"C:\")]);
+            [Drive(@"G:\"), Drive(@"E:\"), Drive(@"D:\"), Drive(@"C:\")], _ => true);
         Assert.Equal(new[] { @"C:\", @"D:\", @"E:\" }, choices.Select(c => c.Root));
         Assert.Equal(@"C:\Dev\ScreenPilot", choices[0].Path);
         Assert.Equal("C:", choices[0].Letter);
@@ -23,10 +23,18 @@ public sealed class LocalDrivesTests
     public void Another_laptop_with_only_one_drive_gets_that_drive()
     {
         if (!OperatingSystem.IsWindows()) return;
-        var choices = LocalDrives.Choices("NexusX", @"C:\Users\x\Drive\NexusX", [Drive(@"C:\")]);
+        var choices = LocalDrives.Choices("NexusX", @"C:\Users\x\Drive\NexusX", [Drive(@"C:\")], _ => true);
         Assert.Empty(choices);   // the only drive holds the cloud copy: nothing else to offer
-        var two = LocalDrives.Choices("NexusX", @"C:\Users\x\Drive\NexusX", [Drive(@"C:\"), Drive(@"F:\")]);
+        var two = LocalDrives.Choices("NexusX", @"C:\Users\x\Drive\NexusX", [Drive(@"C:\"), Drive(@"F:\")], _ => true);
         Assert.Equal(new[] { @"F:\Dev\NexusX" }, two.Select(c => c.Path));
+    }
+
+    [Fact]
+    public void A_drive_where_the_clone_folder_is_taken_is_not_offered()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var choices = LocalDrives.Choices("App", @"G:\Dev\App", [Drive(@"C:\"), Drive(@"D:\")], p => !p.StartsWith("C:"));
+        Assert.Equal(new[] { @"D:\Dev\App" }, choices.Select(c => c.Path));
     }
 
     [Fact]

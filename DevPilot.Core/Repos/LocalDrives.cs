@@ -43,10 +43,12 @@ public static class LocalDrives
 
     /// <summary>
     /// The drives to offer for <paramref name="repoName"/>: not the drive of the cloud copy, C then D then the others by
-    /// letter, and only where the clone folder is free (missing or empty).
+    /// letter, and only where the clone folder is free (missing or empty; <paramref name="isFree"/> replaces that check in tests).
     /// </summary>
-    public static IReadOnlyList<DriveChoice> Choices(string repoName, string cloudPath, IEnumerable<DriveCandidate> drives)
+    public static IReadOnlyList<DriveChoice> Choices(string repoName, string cloudPath, IEnumerable<DriveCandidate> drives,
+        Func<string, bool>? isFree = null)
     {
+        isFree ??= RepoCopies.CanClone;
         var name = string.IsNullOrWhiteSpace(repoName) ? "repository" : repoName.Trim();
         var cloudRoot = SafeRoot(cloudPath);
         return drives
@@ -54,7 +56,7 @@ public static class LocalDrives
             .Where(d => !string.Equals(SafeRoot(d.Root), cloudRoot, StringComparison.OrdinalIgnoreCase))
             .OrderBy(d => Rank(d.Root)).ThenBy(d => d.Root, StringComparer.OrdinalIgnoreCase)
             .Select(d => new DriveChoice(d.Root, d.FreeBytes, Path.Combine(d.Root, ParentFolder, name)))
-            .Where(c => RepoCopies.CanClone(c.Path))
+            .Where(c => isFree(c.Path))
             .ToList();
     }
 
