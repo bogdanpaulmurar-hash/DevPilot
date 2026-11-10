@@ -127,7 +127,16 @@ public sealed class RepoSyncService : IDisposable
     /// <summary>The <c>git status --porcelain</c> lines of the tracked files, or empty when they cannot be read.</summary>
     public async Task<string> GetChangesAsync(string repo, CancellationToken ct = default)
     {
-        var run = await Task.Run(() => _git.RunAsync(repo, ["status", "--porcelain", "--untracked-files=no"], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+        var text = new List<string>();
+        foreach (var copy in RepoCopies.All(repo, RepoConfigs.Find(Settings, repo)))
+            if (await ChangesOfAsync(copy.Path, ct).ConfigureAwait(false) is { Length: > 0 } changes) text.Add(changes.TrimEnd());
+        return string.Join("\n", text);
+    }
+
+    private async Task<string> ChangesOfAsync(string path, CancellationToken ct)
+    {
+        if (!RepoScanner.IsRepo(path)) return string.Empty;
+        var run = await Task.Run(() => _git.RunAsync(path, ["status", "--porcelain", "--untracked-files=no"], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
         return run.ExitCode == 0 ? run.StdOut : string.Empty;
     }
 
@@ -141,7 +150,7 @@ public sealed class RepoSyncService : IDisposable
         if (!TryBegin(key, out _)) return null;
         try
         {
-            var r = await Task.Run(() => _pull.StashPullAsync(repo, restore, ct), ct).ConfigureAwait(false);
+            var r = await Task.Run(() => StashPullCopiesAsync(repo, restore, ct), ct).ConfigureAwait(false);
             r = HandOverSelfUpdate([r])[0];
             lock (_last) _last[key] = r;
             _logger.LogInformation("Stash and pull of {Repo} (restore {Restore}): {Status}", repo, restore, r.Status);
@@ -150,6 +159,53 @@ public sealed class RepoSyncService : IDisposable
         }
         finally { End(key); }
     }
+
+    /// <summary>The fix on every copy: the copies with local changes are stashed and pulled, the others only pulled.</summary>
+    private async Task<RepoPullResult> StashPullCopiesAsync(string repo, bool restore, CancellationToken ct)
+    {
+        var cfg = RepoConfigs.Find(Settings, repo);
+        var parts = new List<(RepoCopy, RepoPullResult)>();
+        foreach (var copy in RepoCopies.All(repo, cfg))
+        {
+            bool dirty = (await ChangesOfAsync(copy.Path, ct).ConfigureAwait(false)).Length > 0;
+            var r = dirty ? await _pull.StashPullAsync(copy.Path, restore, ct).ConfigureAwait(false)
+                          : await PullCopyAsync(repo, cfg, copy, ct).ConfigureAwait(false);
+            parts.Add((copy, r));
+        }
+        return RepoCopies.Merge(repo, parts);
+    }
+
+    /// <summary>
+    /// Pulls the copies of a repository one after another (<paramref name="only"/>: just one of them). A local copy
+    /// that is not cloned yet (missing or empty folder) is cloned from the cloud copy's remote.
+    /// </summary>
+    private async Task<RepoPullResult> PullCopiesAsync(string repo, RepoCopyKind? only, CancellationToken ct)
+    {
+        var cfg = RepoConfigs.Find(Settings, repo);
+        var all = RepoCopies.All(repo, cfg);
+        var copies = all.Where(c => only is null || c.Kind == only).ToList();
+        if (copies.Count == 0)
+            return new RepoPullResult(repo, RepoPullStatus.NotARepo, "No local copy is set for this repository: add its path in the gear.", DateTime.Now);
+        var parts = new List<(RepoCopy, RepoPullResult)>();
+        foreach (var copy in copies)
+        {
+            RepoPullResult r;
+            try { r = await PullCopyAsync(repo, cfg, copy, ct).ConfigureAwait(false); }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { r = new RepoPullResult(copy.Path, RepoPullStatus.Failed, ex.Message, DateTime.Now); }
+            parts.Add((copy, r));
+            if (r.Status == RepoPullStatus.GitMissing) break;
+        }
+        var merged = RepoCopies.Merge(repo, parts);
+        // One copy of a repository that has two: say which one.
+        return parts.Count == 1 && all.Count > 1 ? merged with { Message = $"{parts[0].Item1.Label}: {merged.Message}" } : merged;
+    }
+
+    /// <summary>git pull on one copy; a local copy that does not exist yet is cloned instead.</summary>
+    private Task<RepoPullResult> PullCopyAsync(string repo, RepoConfig? cfg, RepoCopy copy, CancellationToken ct) =>
+        copy.Kind == RepoCopyKind.Local && RepoCopies.NeedsClone(copy.Path)
+            ? RepoCopies.CloneAsync(_git, RepoCopies.CloudPath(repo, cfg), copy.Path, ct)
+            : _pull.PullAsync(copy.Path, ct);
 
     /// <summary>Marks a repository busy unless a pull of all or another action already runs on it.</summary>
     private bool TryBegin(string key, out string refusal)
@@ -200,27 +256,63 @@ public sealed class RepoSyncService : IDisposable
             new(repo, name, status, exit, string.Join('\n', lines), DateTime.Now, ShowAllLines: true) { FullOutput = string.Join("\n\n", transcript) };
 
         var cfg = RepoConfigs.Find(Settings, repo);
-        var plan = RepoUpdatePlanner.Plan(repo, cfg, _config.Current.Tools);
-        if (!plan.Available) return Done(RepoCommandStatus.Skipped, [plan.Note.Length > 0 ? plan.Note : "Nothing to update here: no install step and no tool of this repository."]);
+        var copies = RepoCopies.All(repo, cfg);
+        var target = copies[^1];
+        bool clone = target.Kind == RepoCopyKind.Local && RepoCopies.NeedsClone(target.Path);
+        var plan = RepoUpdatePlanner.Plan(target.Path, cfg, _config.Current.Tools);
+        if (!plan.Available && !clone) return Done(RepoCommandStatus.Skipped, [plan.Note.Length > 0 ? plan.Note : "Nothing to update here: no install step and no tool of this repository."]);
+        if (clone && mode == RepoUpdateMode.ReinstallOnly)
+            return Done(RepoCommandStatus.Skipped, ["The local copy is not cloned yet: run Update or Pull first. " + target.Path]);
 
         var lines = new List<string>();
-        if (mode == RepoUpdateMode.ReinstallOnly && RepoVersion.Read(repo).Display is { Length: > 0 } current) lines.Add("Version: " + current);
+        // Problems of the copies that only get pulled: reported, they do not stop the install of the local copy.
+        var problems = new List<RepoPullResult>();
+        RepoCommandResult Finish(RepoCommandStatus status, List<string> text, int exit = 0)
+        {
+            if (status == RepoCommandStatus.Succeeded && problems.Count > 0)
+                status = problems.Any(p => !p.IsSkipped) ? RepoCommandStatus.Failed : RepoCommandStatus.Skipped;
+            return Done(status, text, exit);
+        }
+
+        if (mode == RepoUpdateMode.ReinstallOnly && RepoVersion.Read(target.Path).Display is { Length: > 0 } current) lines.Add("Version: " + current);
         if (mode == RepoUpdateMode.Full)
         {
-            step("Pulling…");
-            var pull = await _pull.PullAsync(repo, ct).ConfigureAwait(false);
-            if (pull.Output.Length > 0) transcript.Add(pull.Output);
+            foreach (var copy in copies.Where(c => !c.Installs))
+            {
+                step($"Pulling the {copy.Label} copy…");
+                var other = await PullCopyAsync(repo, cfg, copy, ct).ConfigureAwait(false);
+                if (other.Output.Length > 0) transcript.Add($"== {copy.Label} copy: {copy.Path} ==\n" + other.Output);
+                if (other.IsOk) lines.Add($"Pulled the {copy.Label} copy: " + (other.Status == RepoPullStatus.UpToDate ? "up to date" : other.Message));
+                else
+                {
+                    lines.Add($"The {copy.Label} copy was not pulled: {other.StatusText}: {other.Message}");
+                    problems.Add(other);
+                }
+            }
+
+            string where = copies.Count > 1 ? $" the {target.Label} copy" : string.Empty;
+            step(clone ? "Cloning the local copy…" : copies.Count > 1 ? $"Pulling the {target.Label} copy…" : "Pulling…");
+            var pull = await PullCopyAsync(repo, cfg, target, ct).ConfigureAwait(false);
+            if (pull.Output.Length > 0) transcript.Add(copies.Count > 1 ? $"== {target.Label} copy: {target.Path} ==\n" + pull.Output : pull.Output);
             if (!pull.IsOk)
-                return Done(pull.IsSkipped ? RepoCommandStatus.Skipped : RepoCommandStatus.Failed, [pull.StatusText + ": " + pull.Message], -1);
+            {
+                problems.Clear();
+                return Done(pull.IsSkipped ? RepoCommandStatus.Skipped : RepoCommandStatus.Failed, [.. lines, $"{(where.Length > 0 ? "Local copy: " : string.Empty)}{pull.StatusText}: {pull.Message}"], -1);
+            }
             if (pull.Status == RepoPullStatus.UpToDate)
-                return Done(RepoCommandStatus.Succeeded, [UpToDateLine(pull.After)]);
-            lines.Add("Pulled: " + (pull.Message.Length > 0 ? pull.Message : "updated"));
+                return Finish(RepoCommandStatus.Succeeded, [.. lines, UpToDateLine(pull.After)]);
+            lines.Add((clone ? "Cloned" : "Pulled") + where + ": " + (pull.Message.Length > 0 ? pull.Message : "updated"));
+            if (clone)
+            {
+                plan = RepoUpdatePlanner.Plan(target.Path, cfg, _config.Current.Tools);
+                if (!plan.Available) return Finish(RepoCommandStatus.Succeeded, [.. lines, "No install step found and no tool runs from it."]);
+            }
         }
 
         if (plan.SelfUpdate)
         {
             // The install replaces the running program: hand it over to a window that outlives DevPilot.
-            var self = RepoUpdatePlanner.SelfUpdateCommand(repo, AutostartProbe?.Invoke() ?? false);
+            var self = RepoUpdatePlanner.SelfUpdateCommand(target.Path, AutostartProbe?.Invoke() ?? false);
             if (self is null) return Done(RepoCommandStatus.Failed, [.. lines, "scripts\\install.cmd was not found."], -1);
             lines.Add("DevPilot closes now, installs the new version and starts again.");
             transcript.Add("$ " + self.CommandLine);
@@ -243,10 +335,10 @@ public sealed class RepoSyncService : IDisposable
         {
             step("Installing…");
             CommandRun run;
-            try { run = await _commands.RunAsync(plan.Install, repo, RepoCommandRunner.Timeout, ct).ConfigureAwait(false); }
+            try { run = await _commands.RunAsync(plan.Install, target.Path, RepoCommandRunner.Timeout, ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { run = new CommandRun(-1, string.Empty, StartError: ex.Message); }
-            var install = RepoCommandRunner.ToResult(repo, "Install", run, DateTime.Now);
+            var install = RepoCommandRunner.ToResult(target.Path, "Install", run, DateTime.Now);
             transcript.Add(RepoOutput.Step(plan.Install.CommandLine, run.Output, string.Empty));
             if (!install.IsOk)
             {
@@ -270,9 +362,9 @@ public sealed class RepoSyncService : IDisposable
         if (failed.Count > 0)
         {
             lines.AddRange(failed.Select(f => "Did not start " + f));
-            return Done(RepoCommandStatus.Failed, lines, -1);
+            return Finish(RepoCommandStatus.Failed, lines, -1);
         }
-        return Done(RepoCommandStatus.Succeeded, lines);
+        return Finish(RepoCommandStatus.Succeeded, lines);
     }
 
     private static string UpToDateLine(RepoVersionInfo version) =>
@@ -297,10 +389,16 @@ public sealed class RepoSyncService : IDisposable
         return results is not null && installDevPilot ? HandOverSelfUpdate(results) : results;
     }
 
-    /// <summary>Pulls one repository, ticked or not. Returns null when a run is already going.</summary>
-    public async Task<RepoPullResult?> PullOneAsync(string repo, CancellationToken ct = default)
+    /// <summary>
+    /// Pulls one repository, ticked or not: every copy, or only the cloud or the local copy. Returns null when a run is
+    /// already going.
+    /// </summary>
+    public async Task<RepoPullResult?> PullOneAsync(string repo, CancellationToken ct = default) =>
+        await PullOneAsync(repo, null, ct).ConfigureAwait(false);
+
+    public async Task<RepoPullResult?> PullOneAsync(string repo, RepoCopyKind? only, CancellationToken ct = default)
     {
-        var r = await RunAsync([repo], ct, recordRun: false).ConfigureAwait(false);
+        var r = await RunAsync([repo], ct, recordRun: false, only).ConfigureAwait(false);
         if (r is null) return null;
         r = HandOverSelfUpdate(r);
         return r is { Count: > 0 } ? r[0] : null;
@@ -317,9 +415,11 @@ public sealed class RepoSyncService : IDisposable
         for (int i = 0; i < list.Count; i++)
         {
             var r = list[i];
-            if (r.Status != RepoPullStatus.Updated || !RepoUpdatePlanner.IsDevPilotRepo(r.Path)) continue;
-            if (RepoConfigs.Find(Settings, r.Path) is { UpdateEnabled: false }) continue;
-            if (RepoUpdatePlanner.SelfUpdateCommand(r.Path, AutostartProbe?.Invoke() ?? false) is not { } cmd) continue;
+            var cfg = RepoConfigs.Find(Settings, r.Path);
+            var path = RepoCopies.InstallPath(r.Path, cfg);
+            if (r.Status != RepoPullStatus.Updated || !RepoUpdatePlanner.IsDevPilotRepo(path)) continue;
+            if (cfg is { UpdateEnabled: false }) continue;
+            if (RepoUpdatePlanner.SelfUpdateCommand(path, AutostartProbe?.Invoke() ?? false) is not { } cmd) continue;
             install = cmd;
             list[i] = r with { Message = r.Message + " · installing it now: DevPilot closes and starts again" };
         }
@@ -327,7 +427,7 @@ public sealed class RepoSyncService : IDisposable
         return list;
     }
 
-    private async Task<IReadOnlyList<RepoPullResult>?> RunAsync(IReadOnlyList<string> repos, CancellationToken ct, bool recordRun = true)
+    private async Task<IReadOnlyList<RepoPullResult>?> RunAsync(IReadOnlyList<string> repos, CancellationToken ct, bool recordRun = true, RepoCopyKind? only = null)
     {
         if (!await _gate.WaitAsync(0, ct).ConfigureAwait(false)) return null;
         try
@@ -347,7 +447,19 @@ public sealed class RepoSyncService : IDisposable
                 }
                 else free.Add(r);
             }
-            var pulled = await Task.Run(() => _pull.PullAllAsync(free, progress, ct), ct).ConfigureAwait(false);
+            var pulled = await Task.Run(async () =>
+            {
+                var list = new List<RepoPullResult>();
+                foreach (var repo in free)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var r = await PullCopiesAsync(repo, only, ct).ConfigureAwait(false);
+                    list.Add(r);
+                    progress.Report(r);
+                    if (r.Status == RepoPullStatus.GitMissing) break;
+                }
+                return list;
+            }, ct).ConfigureAwait(false);
             var results = pulled.Concat(skipped).ToList();
             if (recordRun)
             {

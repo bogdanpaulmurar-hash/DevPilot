@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.21.0
+- **Cloud and local copy per repository**: the gear of a repository has *Cloud path* (empty = the clone found in the folder, usually the one on the synced drive) and *Local path* (where the application runs from). With a local path, *Pull* and *Update* run on both copies: the cloud copy is only pulled; the local copy is pulled, installed, and the tools that run from it are closed and started again. A local path that does not exist yet (or an empty folder) is cloned from the cloud copy's remote and branch on the next Pull or Update; a folder with files that is not a repository is never touched. Without a local path nothing changes.
+- **More actions (⋯)** on every row: pull both copies, pull only the cloud or only the local copy (or clone it), Update, Reinstall, the repository's commands, open the cloud or local folder, open a terminal in the copy that runs, and its settings.
+- The row shows the local copy's version next to the cloud one ("local 2.3.0" or "local not cloned").
+- A problem on the cloud copy (for example local changes) is reported but does not stop the install of the local copy; the result is then marked skipped/failed so it is not missed. *Fix…* stashes only the copy that has changes.
+- Core: `RepoCopies` (copies, clone, merged result), `RepoConfig.CloudPath / LocalPath`, `RepoAction.Only`. Tests: `RepoCopiesTests`. Not run locally (no .NET on the build box); CI on Windows decides.
+
 ## 2.20.0
 - **Progress bar**: a thin accent line with the action's name appears while DevPilot is busy: making or restoring a backup, starting a tool, pulling repositories (with "3 of 7") and repository commands or Update. It shows at the top of the main window and under the hub header, and disappears when nothing runs. It only displays work that already runs in the background, so it does not slow anything down.
 - Core: `ActivityTracker` (several actions at once show the latest plus "(+N)"). Tests: `ActivityTrackerTests`. Not run locally (no .NET on the build box); CI on Windows decides.

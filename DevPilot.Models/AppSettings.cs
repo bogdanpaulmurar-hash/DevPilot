@@ -71,6 +71,16 @@ public class RepoConfig
     /// </summary>
     public List<string> ToolIds { get; set; } = [];
     public List<RepoCommand> Commands { get; set; } = [];
+    /// <summary>
+    /// The copy on the synced drive (gets git pull only when a local copy is set). Empty = the clone found under the
+    /// root folder.
+    /// </summary>
+    public string CloudPath { get; set; } = string.Empty;
+    /// <summary>
+    /// A second clone the application runs from: pull and Update also run here, and the install step and the
+    /// tools to close and start again belong to this copy. Empty = no local copy.
+    /// </summary>
+    public string LocalPath { get; set; } = string.Empty;
 }
 
 /// <summary>Repositories: a root folder with clones, the ones to pull, and when to pull them.</summary>

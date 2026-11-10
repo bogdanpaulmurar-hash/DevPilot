@@ -2,6 +2,17 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.21.0 — Cloud and local copy
+
+1. Repositories > gear on a Python tool (for example ScreenPilot) > *Local path* = an empty or new folder (e.g. `C:\Apps\ScreenPilot`) → the hint says the local copy is not cloned yet; the row shows "local not cloned".
+2. ⋯ > *Clone the local copy* → the folder gets a clone on the same branch; the row shows "local <version>". Untracked files (a `.venv`, a local config) are not copied: create them there once (or run Install.bat in the local copy).
+3. Point the DevPilot tool at the local copy (Tools & groups) → the gear's *Tools to close and start again* lists it as found by path.
+4. *Update* → *Full output* shows the cloud copy pulled first, then the local copy; only the tool from the local copy is closed, installed and started again.
+5. Make a tracked change in the cloud copy → *Update* → "The cloud copy was not pulled: skipped: local changes", the local copy is still installed, the row is marked skipped; *Fix…* sets aside only the cloud copy's change.
+6. ⋯ > *Pull the cloud copy* / *Pull the local copy* → only that folder is pulled (the message starts with "cloud:" or "local:").
+7. ⋯ > *Open a terminal here* → cmd opens in the local copy. *Local path* emptied → everything works on the single clone as before.
+8. *Local path* = a folder with files that is not a repository → Pull reports "Not a repository" for the local copy and nothing is written there.
+
 ## 2.20.0 — Progress bar
 
 1. Settings > *Back up now* → a thin line with "Making backup" shows at the top of the main window, then disappears when the backup is done.

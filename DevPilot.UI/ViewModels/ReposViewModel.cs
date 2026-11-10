@@ -119,6 +119,81 @@ public sealed class RepoRowVM : ObservableObject
         OpenCommand = new RelayCommand(() => ReposViewModel.OpenFolder(Path));
         AddCommandCommand = new RelayCommand(AddCommand);
         ReinstallCommand = new RelayCommand(() => owner.RunInBackground(this, RepoAction.Update(), RepoUpdateMode.ReinstallOnly));
+        MoreCommand = new RelayCommand(() => owner.ShowMoreActions(this));
+        BrowseLocalCommand = new RelayCommand(() => { if (ReposViewModel.PickFolder("Local copy: the folder the application runs from", LocalPath) is { } f) LocalPath = f; });
+        BrowseCloudCommand = new RelayCommand(() => { if (ReposViewModel.PickFolder("Cloud copy: the clone on the synced drive", CloudPathSetting) is { } f) CloudPathSetting = f; });
+        _localVersion = HasLocal ? RepoVersion.Read(LocalCopyPath!) : RepoVersionInfo.None;
+    }
+
+    public ICommand MoreCommand { get; }
+    public ICommand BrowseLocalCommand { get; }
+    public ICommand BrowseCloudCommand { get; }
+
+    // ── Cloud and local copy ─────────────────────────────────────────────
+
+    /// <summary>The cloud copy as typed; empty = this clone.</summary>
+    public string CloudPathSetting
+    {
+        get => ConfigOrNull?.CloudPath ?? string.Empty;
+        set
+        {
+            value = RepoConfigs.CleanPath(value);
+            if (RepoScanner.SamePath(value, Path)) value = string.Empty;
+            if (value == CloudPathSetting) return;
+            Config.CloudPath = value;
+            OnPropertyChanged();
+            CopiesChanged();
+        }
+    }
+
+    /// <summary>The local copy as typed; empty = none.</summary>
+    public string LocalPath
+    {
+        get => ConfigOrNull?.LocalPath ?? string.Empty;
+        set
+        {
+            value = RepoConfigs.CleanPath(value);
+            if (value == LocalPath) return;
+            Config.LocalPath = value;
+            OnPropertyChanged();
+            CopiesChanged();
+        }
+    }
+
+    public string CloudCopyPath => RepoCopies.CloudPath(Path, ConfigOrNull);
+    public string? LocalCopyPath => RepoCopies.LocalPath(Path, ConfigOrNull);
+    public bool HasLocal => LocalCopyPath is not null;
+    /// <summary>Where Update installs and which tools it closes.</summary>
+    public string InstallPath => RepoCopies.InstallPath(Path, ConfigOrNull);
+
+    private RepoVersionInfo _localVersion;
+    public string LocalVersion => HasLocal ? "local " + (_localVersion.Display.Length > 0 ? _localVersion.Display : NeedsClone ? "not cloned" : "?") : string.Empty;
+    public string LocalVersionTip => HasLocal ? $"Local copy: {LocalCopyPath}" + (_localVersion.Tip.Length > 0 ? "\n" + _localVersion.Tip : string.Empty) : string.Empty;
+    public bool NeedsClone => LocalCopyPath is { } l && RepoCopies.NeedsClone(l);
+
+    /// <summary>"Pull and Update run on both copies…" under the path fields.</summary>
+    public string CopiesSummary
+    {
+        get
+        {
+            if (!HasLocal) return "One copy: pull and Update run on this clone.";
+            var text = "Pull and Update run on both copies: the cloud copy is only pulled; the local copy is pulled, installed, and its tools are closed and started again.";
+            if (NeedsClone) text += " The local copy is not cloned yet: the next Pull or Update clones it there.";
+            else if (LocalCopyPath is { } l && !RepoScanner.IsRepo(l)) text += " The local folder has files but is not a git repository: pick an empty folder.";
+            return text;
+        }
+    }
+
+    private void CopiesChanged()
+    {
+        _localVersion = HasLocal ? RepoVersion.Read(LocalCopyPath!) : RepoVersionInfo.None;
+        OnPropertyChanged(nameof(HasLocal));
+        OnPropertyChanged(nameof(LocalVersion));
+        OnPropertyChanged(nameof(LocalVersionTip));
+        OnPropertyChanged(nameof(NeedsClone));
+        OnPropertyChanged(nameof(CopiesSummary));
+        OnPropertyChanged(nameof(InstallPath));
+        Edited();
     }
 
     internal ReposViewModel Owner { get; }
@@ -137,7 +212,19 @@ public sealed class RepoRowVM : ObservableObject
     /// <summary>Reads the version from the files again; true when it changed.</summary>
     internal bool ReadVersion()
     {
-        var v = RepoVersion.Read(Path);
+        if (HasLocal)
+        {
+            var lv = RepoVersion.Read(LocalCopyPath!);
+            if (lv != _localVersion)
+            {
+                _localVersion = lv;
+                OnPropertyChanged(nameof(LocalVersion));
+                OnPropertyChanged(nameof(LocalVersionTip));
+                OnPropertyChanged(nameof(NeedsClone));
+                OnPropertyChanged(nameof(CopiesSummary));
+            }
+        }
+        var v = RepoVersion.Read(CloudCopyPath);
         if (v == _version) return false;
         _version = v;
         OnPropertyChanged(nameof(Version));
@@ -163,7 +250,7 @@ public sealed class RepoRowVM : ObservableObject
     /// <summary>Every tool Update could close for this repository, with the ones found by path ticked and locked.</summary>
     public IReadOnlyList<RepoToolChoiceVM> ToolChoices =>
         Owner.AllTools.Where(t => t.IsProcessLike)
-            .Select(t => new RepoToolChoiceVM(this, t, RepoUpdatePlanner.IsAutoMatch(Path, t)))
+            .Select(t => new RepoToolChoiceVM(this, t, RepoUpdatePlanner.IsAutoMatch(InstallPath, t)))
             .OrderByDescending(c => !c.CanEdit).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
     /// <summary>The command the row ran last (null after a pull or update); the sign-in fix runs it again.</summary>
@@ -315,13 +402,15 @@ public sealed class RepoRowVM : ObservableObject
             return a.Count switch
             {
                 0 => "Turn on git pull or add a command in DevPilot > Repositories.",
-                1 => a[0].IsPull ? "git pull --ff-only" : a[0].IsUpdate ? "Update: " + UpdatePlan?.Summary : a[0].Command!.CommandLine,
+                1 => a[0].IsPull ? (HasLocal ? "git pull --ff-only on the cloud and the local copy" : "git pull --ff-only") : a[0].IsUpdate ? "Update: " + UpdatePlan?.Summary : a[0].Command!.CommandLine,
                 _ => "Choose what to run: " + string.Join(", ", a.Select(x => x.Name)),
             };
         }
     }
 
     public bool CanRun => !Busy && Owner.IsIdle && Actions.Count > 0;
+    /// <summary>Nothing runs on this repository now (the ⋯ menu offers its actions).</summary>
+    public bool CanRunAny => !Busy && Owner.IsIdle;
 
     public void Remove(RepoCommandVM vm)
     {
@@ -355,7 +444,7 @@ public sealed class RepoRowVM : ObservableObject
     /// <summary>Works out again what Update would do (after an edit or when the tools changed).</summary>
     internal void RefreshPlan()
     {
-        UpdatePlan = RepoUpdatePlanner.Plan(Path, ConfigOrNull, Owner.AllTools);
+        UpdatePlan = RepoUpdatePlanner.Plan(InstallPath, ConfigOrNull, Owner.AllTools);
         OnPropertyChanged(nameof(UpdatePlan));
         OnPropertyChanged(nameof(UpdateSummary));
         OnPropertyChanged(nameof(ToolChoices));
@@ -686,7 +775,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
         if (action.IsPull)
         {
             row.SetRunning(null);
-            var r = await _repos.PullOneAsync(row.Path);
+            var r = await _repos.PullOneAsync(row.Path, action.Only);
             row.Busy = false;
             if (r is null) return;
             row.PullResult = r;
@@ -742,6 +831,63 @@ public sealed class ReposViewModel : ObservableObject, IPage
         }
     }
 
+    private static RepoUpdatePlan PlanFor(string repo, RepoConfig? cfg, IEnumerable<ToolEntry> tools) =>
+        RepoUpdatePlanner.Plan(RepoCopies.InstallPath(repo, cfg), cfg, tools);
+
+    /// <summary>A folder picker; null when cancelled. Starts in <paramref name="current"/> or its parent.</summary>
+    internal static string? PickFolder(string title, string current)
+    {
+        var dlg = new OpenFolderDialog { Title = title };
+        var start = Directory.Exists(current) ? current : System.IO.Path.GetDirectoryName(current);
+        if (!string.IsNullOrEmpty(start) && Directory.Exists(start)) dlg.InitialDirectory = start;
+        return dlg.ShowDialog() == true ? dlg.FolderName : null;
+    }
+
+    /// <summary>
+    /// The ⋯ button of a row: every action of the repository in one menu: pull all copies or one of them (or clone the
+    /// local copy), Update, Reinstall, its commands, and opening its folders or a terminal there.
+    /// </summary>
+    internal void ShowMoreActions(RepoRowVM row)
+    {
+        var items = new List<FlyoutItem>();
+        void Run(RepoAction a, RepoUpdateMode mode = RepoUpdateMode.Full) => RunInBackground(row, a, mode);
+        bool can = row.CanRunAny;
+        if (can)
+        {
+            items.Add(FlyoutItem.Action(row.HasLocal ? "Pull both copies" : "git pull", Glyphs.Sync, () => Run(RepoAction.Pull()),
+                detail: row.HasLocal && row.NeedsClone ? "clones local" : string.Empty));
+            if (row.HasLocal)
+            {
+                items.Add(FlyoutItem.Action("Pull the cloud copy", Glyphs.Sync, () => Run(RepoAction.Pull(RepoCopyKind.Cloud))));
+                items.Add(FlyoutItem.Action(row.NeedsClone ? "Clone the local copy" : "Pull the local copy", row.NeedsClone ? Glyphs.Download : Glyphs.Sync,
+                    () => Run(RepoAction.Pull(RepoCopyKind.Local))));
+            }
+            if (row.CanReinstall || row.NeedsClone)
+                items.Add(FlyoutItem.Action("Update", Glyphs.Download, () => Run(RepoAction.Update()), detail: "pull, install, restart"));
+            if (row.CanReinstall && !row.NeedsClone)
+                items.Add(FlyoutItem.Action("Reinstall", Glyphs.Refresh, () => Run(RepoAction.Update(), RepoUpdateMode.ReinstallOnly), detail: "no pull"));
+            foreach (var c in row.Commands.Select(c => c.Model).Where(c => !string.IsNullOrWhiteSpace(c.CommandLine)))
+                items.Add(FlyoutItem.Action(RepoConfigs.DisplayName(c), Glyphs.Play, () => Run(new RepoAction(RepoConfigs.DisplayName(c), c)),
+                    detail: c.Mode == RepoCommandMode.Window ? "window" : string.Empty));
+            items.Add(FlyoutItem.Separator());
+        }
+        else items.Add(FlyoutItem.Info("Something is running on this repository."));
+        items.Add(FlyoutItem.Action(row.HasLocal ? "Open the cloud folder" : "Open folder", Glyphs.FolderOpen, () => OpenFolder(row.CloudCopyPath)));
+        if (row.LocalCopyPath is { } local && Directory.Exists(local))
+            items.Add(FlyoutItem.Action("Open the local folder", Glyphs.FolderOpen, () => OpenFolder(local)));
+        if (Directory.Exists(row.InstallPath))
+            items.Add(FlyoutItem.Action("Open a terminal here", Glyphs.Terminal, () => OpenTerminal(row.InstallPath),
+                detail: row.HasLocal ? "local copy" : string.Empty));
+        items.Add(FlyoutItem.Action("Settings of this repository", Glyphs.Settings, () => row.IsExpanded = true));
+        ToolMenuWindow.ShowAtCursor(items, row.Name, row.HasBranch ? row.Branch : null, _config.Current.Hub);
+    }
+
+    internal static void OpenTerminal(string path)
+    {
+        try { Process.Start(new ProcessStartInfo("cmd.exe") { WorkingDirectory = path, UseShellExecute = true }); }
+        catch (Exception ex) { Notifier.Error("Open a terminal", ex.Message); }
+    }
+
     private void Browse()
     {
         var dlg = new OpenFolderDialog { Title = "Folder that holds your git clones" };
@@ -783,7 +929,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
         {
             found = await Task.Run(() => RepoScanner.Find(root)
                 .Select(p => (p, RepoScanner.DisplayName(root, p), RepoScanner.ReadBranch(p), RepoVersion.Read(p),
-                              RepoUpdatePlanner.Plan(p, configs.FirstOrDefault(c => RepoScanner.SamePath(c.Path, p)), tools))).ToList());
+                              PlanFor(p, configs.FirstOrDefault(c => RepoScanner.SamePath(c.Path, p)), tools))).ToList());
         }
         catch (Exception ex)
         {

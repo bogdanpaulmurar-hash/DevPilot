@@ -10,7 +10,12 @@ public sealed record RepoAction(string Name, RepoCommand? Command, RepoActionKin
     public bool IsPull => Kind == RepoActionKind.Pull;
     public bool IsUpdate => Kind == RepoActionKind.Update;
 
+    /// <summary>Only one copy of a repository that has a cloud and a local copy; null = every copy.</summary>
+    public RepoCopyKind? Only { get; init; }
+
     public static RepoAction Pull() => new("git pull", null, RepoActionKind.Pull);
+    public static RepoAction Pull(RepoCopyKind only) =>
+        new(only == RepoCopyKind.Cloud ? "Pull the cloud copy" : "Pull the local copy", null, RepoActionKind.Pull) { Only = only };
     public static RepoAction Update() => new("Update", null, RepoActionKind.Update);
 }
 
@@ -75,12 +80,22 @@ public static class RepoConfigs
             }
             item.ToolIds = (item.ToolIds ?? []).Where(i => !string.IsNullOrWhiteSpace(i)).Distinct().ToList();
             item.InstallCommand = item.InstallCommand?.Trim() ?? string.Empty;
+            item.CloudPath = CleanPath(item.CloudPath);
+            item.LocalPath = CleanPath(item.LocalPath);
             if (!Enum.IsDefined(item.Pull)) item.Pull = PullButton.Auto;
             bool useless = item.Pull == PullButton.Auto && item.UpdateEnabled && item.RestartTools
-                           && item.InstallCommand.Length == 0 && item.Commands.Count == 0 && item.ToolIds.Count == 0;
+                           && item.InstallCommand.Length == 0 && item.Commands.Count == 0 && item.ToolIds.Count == 0
+                           && item.CloudPath.Length == 0 && item.LocalPath.Length == 0;
             // The first entry for a folder wins.
             if (item.Path.Length > 0 && !useless && seenPaths.Add(item.Path)) kept.Add(item);
         }
         s.Items = kept;
+    }
+
+    /// <summary>A typed or pasted folder: trimmed, quotes removed, normalised; empty stays empty.</summary>
+    public static string CleanPath(string? path)
+    {
+        var p = (path ?? string.Empty).Trim().Trim('"').Trim();
+        return p.Length == 0 ? string.Empty : RepoScanner.Normalize(p);
     }
 }
