@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.22.1
+- Fix: *Cloud path* looked impossible to set. The field was empty by default, and picking the clone's own folder (the one on the synced drive) stored nothing and cleared the field again. It now always shows the cloud copy in use (by default this clone); picking or typing another folder changes it, and clearing the field or picking this clone shows the default again.
+
 ## 2.22.0
 - **Clone from repository**: a repository without a local copy shows a *Clone from repository* button (also in the ⋯ menu). DevPilot knows the repository from its cloud copy (its `origin` remote and branch). It never clones silently: a menu offers the local drives of this PC, found at run time (C first, then D, then others; the synced drive is left out), each with the folder it would get (`D:\Dev\<name>`) and the free space, or *Choose another folder…*. The folder you pick is saved as the repository's Local path and the clone starts. If the clone fails, the path is forgotten again.
 - With a Local path already set but still empty, the button clones straight into it.

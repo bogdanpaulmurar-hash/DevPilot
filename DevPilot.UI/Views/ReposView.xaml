@@ -104,7 +104,7 @@
                                                     </Grid.RowDefinitions>
                                                     <TextBlock Text="Cloud path" VerticalAlignment="Center"/>
                                                     <TextBox Grid.Column="1" FontFamily="{StaticResource MonoFont}" Text="{Binding CloudPathSetting, UpdateSourceTrigger=LostFocus}"
-                                                             ToolTip="The clone on the synced drive. Empty = this clone (the one found in the folder above)."/>
+                                                             ToolTip="The clone on the synced drive. By default this clone (the one found in the folder above); type or browse another folder to use a different cloud copy."/>
                                                     <Button Grid.Column="2" Content="Browse…" Margin="6,0,0,0" Command="{Binding BrowseCloudCommand}"/>
                                                     <TextBlock Grid.Row="1" Text="Local path" VerticalAlignment="Center" Margin="0,6,0,0"/>
                                                     <TextBox Grid.Row="1" Grid.Column="1" Margin="0,6,0,0" FontFamily="{StaticResource MonoFont}" Text="{Binding LocalPath, UpdateSourceTrigger=LostFocus}"
