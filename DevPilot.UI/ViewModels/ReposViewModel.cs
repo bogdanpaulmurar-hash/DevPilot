@@ -120,12 +120,20 @@ public sealed class RepoRowVM : ObservableObject
         AddCommandCommand = new RelayCommand(AddCommand);
         ReinstallCommand = new RelayCommand(() => owner.RunInBackground(this, RepoAction.Update(), RepoUpdateMode.ReinstallOnly));
         MoreCommand = new RelayCommand(() => owner.ShowMoreActions(this));
+        CloneCommand = new RelayCommand(() => owner.CloneFromRepository(this));
         BrowseLocalCommand = new RelayCommand(() => { if (ReposViewModel.PickFolder("Local copy: the folder the application runs from", LocalPath) is { } f) LocalPath = f; });
         BrowseCloudCommand = new RelayCommand(() => { if (ReposViewModel.PickFolder("Cloud copy: the clone on the synced drive", CloudPathSetting) is { } f) CloudPathSetting = f; });
         _localVersion = HasLocal ? RepoVersion.Read(LocalCopyPath!) : RepoVersionInfo.None;
     }
 
     public ICommand MoreCommand { get; }
+    public ICommand CloneCommand { get; }
+
+    /// <summary>No local copy yet (none set, or its folder is still empty): offer "Clone from repository".</summary>
+    public bool ShowClone => !HasLocal || NeedsClone;
+    public string CloneTip => HasLocal
+        ? $"Clone the cloud copy into the local folder: {LocalCopyPath}"
+        : "Clone this repository to a local folder. DevPilot asks which drive first, then saves it as the Local path.";
     public ICommand BrowseLocalCommand { get; }
     public ICommand BrowseCloudCommand { get; }
 
@@ -191,6 +199,8 @@ public sealed class RepoRowVM : ObservableObject
         OnPropertyChanged(nameof(LocalVersion));
         OnPropertyChanged(nameof(LocalVersionTip));
         OnPropertyChanged(nameof(NeedsClone));
+        OnPropertyChanged(nameof(ShowClone));
+        OnPropertyChanged(nameof(CloneTip));
         OnPropertyChanged(nameof(CopiesSummary));
         OnPropertyChanged(nameof(InstallPath));
         Edited();
@@ -221,6 +231,8 @@ public sealed class RepoRowVM : ObservableObject
                 OnPropertyChanged(nameof(LocalVersion));
                 OnPropertyChanged(nameof(LocalVersionTip));
                 OnPropertyChanged(nameof(NeedsClone));
+                OnPropertyChanged(nameof(ShowClone));
+                OnPropertyChanged(nameof(CloneTip));
                 OnPropertyChanged(nameof(CopiesSummary));
             }
         }
@@ -350,6 +362,7 @@ public sealed class RepoRowVM : ObservableObject
             if (!value) { _runningName = null; _step = null; Manual = false; }
             RefreshStatus();
             OnPropertyChanged(nameof(CanRun));
+            OnPropertyChanged(nameof(CanRunAny));
         }
     }
 
@@ -439,7 +452,7 @@ public sealed class RepoRowVM : ObservableObject
         OnPropertyChanged(nameof(CanRun));
     }
 
-    internal void RefreshCanRun() => OnPropertyChanged(nameof(CanRun));
+    internal void RefreshCanRun() { OnPropertyChanged(nameof(CanRun)); OnPropertyChanged(nameof(CanRunAny)); }
 
     /// <summary>Works out again what Update would do (after an edit or when the tools changed).</summary>
     internal void RefreshPlan()
@@ -856,6 +869,9 @@ public sealed class ReposViewModel : ObservableObject, IPage
         {
             items.Add(FlyoutItem.Action(row.HasLocal ? "Pull both copies" : "git pull", Glyphs.Sync, () => Run(RepoAction.Pull()),
                 detail: row.HasLocal && row.NeedsClone ? "clones local" : string.Empty));
+            if (row.ShowClone)
+                items.Add(FlyoutItem.Action("Clone from repository", Glyphs.Download, () => CloneFromRepository(row),
+                    detail: row.HasLocal ? string.Empty : "asks which drive"));
             if (row.HasLocal)
             {
                 items.Add(FlyoutItem.Action("Pull the cloud copy", Glyphs.Sync, () => Run(RepoAction.Pull(RepoCopyKind.Cloud))));
@@ -880,6 +896,67 @@ public sealed class ReposViewModel : ObservableObject, IPage
                 detail: row.HasLocal ? "local copy" : string.Empty));
         items.Add(FlyoutItem.Action("Settings of this repository", Glyphs.Settings, () => row.IsExpanded = true));
         ToolMenuWindow.ShowAtCursor(items, row.Name, row.HasBranch ? row.Branch : null, _config.Current.Hub);
+    }
+
+    /// <summary>
+    /// "Clone from repository": the repository is known from its cloud copy (its origin remote). With a Local path set
+    /// and still empty, it clones there. Without one, it never clones silently: a menu offers the local drives (C, then D,
+    /// then others; never the synced drive) with the folder each would get, or any folder the user picks. The chosen
+    /// folder becomes the Local path.
+    /// </summary>
+    internal void CloneFromRepository(RepoRowVM row)
+    {
+        if (_repos.IsRunning || row.Busy)
+        {
+            Notifier.Info("Repositories", "Something is already running on this repository.");
+            return;
+        }
+        if (!RepoScanner.IsRepo(row.CloudCopyPath))
+        {
+            Notifier.Error("Clone from repository", "The cloud copy is not a git repository, so there is nothing to clone from: " + row.CloudCopyPath);
+            return;
+        }
+        if (row.HasLocal)
+        {
+            RunInBackground(row, RepoAction.Pull(RepoCopyKind.Local));
+            return;
+        }
+
+        var name = System.IO.Path.GetFileName(row.CloudCopyPath.TrimEnd('\\', '/'));
+        var items = new List<FlyoutItem> { FlyoutItem.Header("Clone to which drive?") };
+        var choices = LocalDrives.Choices(name, row.CloudCopyPath, LocalDrives.Detect());
+        for (int i = 0; i < choices.Count; i++)
+        {
+            var c = choices[i];
+            items.Add(FlyoutItem.Action($"{c.Letter}  {c.Path}", Glyphs.Download, () => StartClone(row, c.Path),
+                detail: c.FreeText, bold: i == 0));
+        }
+        if (choices.Count == 0) items.Add(FlyoutItem.Info("No other local drive found: choose a folder."));
+        items.Add(FlyoutItem.Separator());
+        items.Add(FlyoutItem.Action("Choose another folder…", Glyphs.FolderOpen, () =>
+        {
+            if (PickFolder("Folder to clone into (an empty folder, or a folder to put the clone in)", string.Empty) is not { } picked) return;
+            StartClone(row, RepoCopies.CanClone(picked) ? picked : System.IO.Path.Combine(picked, name));
+        }));
+        ToolMenuWindow.ShowAtCursor(items, row.Name, "Nothing is cloned until you pick one", _config.Current.Hub);
+    }
+
+    /// <summary>Saves the folder as the Local path and clones into it; a failed clone forgets the path again.</summary>
+    private async void StartClone(RepoRowVM row, string target)
+    {
+        try
+        {
+            target = RepoConfigs.CleanPath(target);
+            if (!RepoCopies.CanClone(target))
+            {
+                Notifier.Error("Clone from repository", "That folder has files and is not a repository, so DevPilot does not clone into it: " + target);
+                return;
+            }
+            row.LocalPath = target;
+            await RunActionAsync(row, RepoAction.Pull(RepoCopyKind.Local));
+            if (!RepoScanner.IsRepo(target)) row.LocalPath = string.Empty;
+        }
+        catch (Exception ex) { Notifier.Error("Clone from repository", ex.Message); }
     }
 
     internal static void OpenTerminal(string path)

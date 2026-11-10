@@ -2,6 +2,15 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.22.0 — Clone from repository
+
+1. A repository whose gear has an empty *Local path* shows *Clone from repository* on the row. Click it → a menu lists your local drives (C first, then D, others), each with `<drive>\Dev\<name>` and free space; the synced drive is not listed. Nothing is cloned yet.
+2. Pick a drive → the row shows "Pulling…", the folder gets the clone on the same branch, the gear's *Local path* now holds that folder and the row shows "local <version>".
+3. Click it on another repository and choose *Choose another folder…* → an empty folder is cloned into directly; a folder with files gets a sub-folder named after the repository.
+4. Pick a folder with files that is not a repository (or one that is not writable) → no clone, the message says why, *Local path* stays empty.
+5. Type a *Local path* by hand (empty folder) → the button now clones straight there, without the menu.
+6. Once cloned, the button disappears.
+
 ## 2.21.0 — Cloud and local copy
 
 1. Repositories > gear on a Python tool (for example ScreenPilot) > *Local path* = an empty or new folder (e.g. `C:\Apps\ScreenPilot`) → the hint says the local copy is not cloned yet; the row shows "local not cloned".

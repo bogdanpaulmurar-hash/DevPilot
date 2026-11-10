@@ -79,6 +79,8 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
                                                 <Button Style="{StaticResource IconButton}" Content="&#xE838;" Command="{Binding OpenCommand}" ToolTip="Open folder"/>
+                                                <Button Content="Clone from repository" Margin="0,0,4,0" Command="{Binding CloneCommand}" ToolTip="{Binding CloneTip}"
+                                                        Visibility="{Binding ShowClone, Converter={StaticResource BoolToVis}}" IsEnabled="{Binding CanRunAny}"/>
                                                 <Button Style="{StaticResource IconButton}" Content="&#xE712;" Command="{Binding MoreCommand}"
                                                         ToolTip="More actions: pull one copy, clone the local copy, Update, Reinstall, commands, folders, terminal"/>
                                                 <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE713;" IsChecked="{Binding IsExpanded}" ToolTip="Settings of this repository: copies, Update, commands"/>

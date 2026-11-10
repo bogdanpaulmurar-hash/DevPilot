@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.22.0
+- **Clone from repository**: a repository without a local copy shows a *Clone from repository* button (also in the ⋯ menu). DevPilot knows the repository from its cloud copy (its `origin` remote and branch). It never clones silently: a menu offers the local drives of this PC, found at run time (C first, then D, then others; the synced drive is left out), each with the folder it would get (`D:\Dev\<name>`) and the free space, or *Choose another folder…*. The folder you pick is saved as the repository's Local path and the clone starts. If the clone fails, the path is forgotten again.
+- With a Local path already set but still empty, the button clones straight into it.
+- Core: `LocalDrives`. Tests: `LocalDrivesTests` (drive letters are Windows-only).
+
 ## 2.21.0
 - **Cloud and local copy per repository**: the gear of a repository has *Cloud path* (empty = the clone found in the folder, usually the one on the synced drive) and *Local path* (where the application runs from). With a local path, *Pull* and *Update* run on both copies: the cloud copy is only pulled; the local copy is pulled, installed, and the tools that run from it are closed and started again. A local path that does not exist yet (or an empty folder) is cloned from the cloud copy's remote and branch on the next Pull or Update; a folder with files that is not a repository is never touched. Without a local path nothing changes.
 - **More actions (⋯)** on every row: pull both copies, pull only the cloud or only the local copy (or clone it), Update, Reinstall, the repository's commands, open the cloud or local folder, open a terminal in the copy that runs, and its settings.

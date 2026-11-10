@@ -53,6 +53,7 @@ With a local path:
 - **Update** pulls both; the install step runs in the local copy and only the tools that run from the local copy are closed and started again. A problem on the cloud copy is reported but does not stop the install of the local copy.
 - **Reinstall** installs the local copy again, without pulling.
 - A local path that does not exist yet, or an empty folder, is **cloned** from the cloud copy's `origin` and current branch on the next Pull or Update. A folder with files that is not a repository is never written to.
+- **Clone from repository**: a repository without a local copy shows this button (and a ⋯ menu entry). DevPilot never clones silently: it lists the local drives of this PC (C first, then D, then others; the synced drive is left out) with the folder each would get (`D:\Dev\<name>`) and the free space, or lets you choose any folder. The folder you pick is saved as the Local path, then the clone starts. Drives are read at run time, so another laptop with other drives gets its own list.
 - A fresh clone has only the files in git: a `.venv`, a local config or a `.env` that are not committed have to be created there once (for example by running the install script).
 - Point the DevPilot tool at the local copy so Update finds it by path.
 
