@@ -130,8 +130,11 @@ public sealed class RepoSyncService : IDisposable
     /// <summary>
     /// The sign-in fix (see <see cref="RepoSignIn"/>): a visible window runs <c>git fetch</c> in each existing copy and
     /// clones a local copy that is still missing, and DevPilot waits for it. Nothing in a working tree is changed.
+    /// <paramref name="account"/>: sign in to the remote's site with this account for this repository; it is saved in
+    /// the own git settings of each copy (<c>credential.https://host.username</c>), so it wins over an account set
+    /// for the whole PC.
     /// </summary>
-    public async Task<RepoSignInResult> SignInAsync(string repo, CancellationToken ct = default)
+    public async Task<RepoSignInResult> SignInAsync(string repo, string? account = null, CancellationToken ct = default)
     {
         if (_signIn is not { } window) return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, "No sign-in window is available.");
         var key = RepoScanner.Normalize(repo);
@@ -143,11 +146,13 @@ public sealed class RepoSyncService : IDisposable
             var cloud = RepoCopies.CloudPath(repo, cfg);
             var git = GitRunner.GitPath;
             var commands = new List<string>();
+            string? url = RepoScanner.IsRepo(cloud) ? await GetRemoteUrlAsync(cloud, ct).ConfigureAwait(false) : null;
+            string? key = !string.IsNullOrWhiteSpace(account) && RepoRemote.Account(url) is { } site ? RepoRemote.UsernameKey(site.Site) : null;
             foreach (var copy in RepoCopies.All(repo, cfg))
             {
                 if (copy.Kind == RepoCopyKind.Local && RepoCopies.NeedsClone(copy.Path))
                 {
-                    if (!RepoScanner.IsRepo(cloud) || await GetRemoteUrlAsync(cloud, ct).ConfigureAwait(false) is not { } url) continue;
+                    if (url is null) continue;
                     try
                     {
                         if (Path.GetDirectoryName(RepoScanner.Normalize(copy.Path)) is { Length: > 0 } parent) Directory.CreateDirectory(parent);
@@ -156,9 +161,18 @@ public sealed class RepoSyncService : IDisposable
                     {
                         return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, ex.Message);
                     }
-                    commands.Add(RepoSignIn.Clone(git, url, RepoCopies.CloneBranch(cloud), RepoScanner.Normalize(copy.Path)));
+                    commands.Add(RepoSignIn.Clone(git, url, RepoCopies.CloneBranch(cloud), RepoScanner.Normalize(copy.Path),
+                        key is null ? null : $"{key}={account!.Trim()}"));
                 }
-                else if (RepoScanner.IsRepo(copy.Path)) commands.Add(RepoSignIn.Fetch(git, copy.Path));
+                else if (RepoScanner.IsRepo(copy.Path))
+                {
+                    if (key is not null)
+                    {
+                        var set = await Task.Run(() => _git.RunAsync(copy.Path, ["config", "--local", key, account!.Trim()], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+                        _logger.LogInformation("Account for {Site} in {Copy} set to {Account}: exit {Exit}", key, copy.Path, account, set.ExitCode);
+                    }
+                    commands.Add(RepoSignIn.Fetch(git, copy.Path));
+                }
             }
             if (commands.Count == 0)
                 return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, "No copy of this repository is a git clone with a remote.");

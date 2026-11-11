@@ -718,6 +718,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
             var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
             string? url = await _repos.GetRemoteUrlAsync(row.Path);
             string? plain = RepoRemote.StripUser(url);
+            string? account = null;
             if (plain is not null)
             {
                 var text = $"{row.Name}: the remote address names a user, so git asks for that account's password.\n\n" +
@@ -741,6 +742,20 @@ public sealed class ReposViewModel : ObservableObject, IPage
                     return;
                 }
             }
+            else if (!row.LastWasCommand && RepoRemote.Account(url) is { } site && RepoRemote.AttemptedUser(row.Transcript) is { } tried
+                     && !string.Equals(tried, site.Owner, StringComparison.OrdinalIgnoreCase))
+            {
+                // The git configuration of the PC names another account for the site than the one the repository belongs to.
+                var text = $"{row.Name}: git signs in to {site.Site} as \"{tried}\" (set in the git configuration of this PC), " +
+                           $"and that does not work for this repository. The repository belongs to \"{site.Owner}\".\n\n" +
+                           $"Yes: use \"{site.Owner}\" for this repository only, then open a window to sign in; in the browser, sign in as \"{site.Owner}\". " +
+                           $"To undo, in the repository: git config --unset {RepoRemote.UsernameKey(site.Site)}\n" +
+                           $"No: keep \"{tried}\" and open the sign-in window.\nCancel: do nothing.";
+                var answer = owner is null ? MessageBox.Show(text, "Fix sign-in", MessageBoxButton.YesNoCancel, MessageBoxImage.Question)
+                                           : MessageBox.Show(owner, text, "Fix sign-in", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (answer == MessageBoxResult.Cancel) return;
+                if (answer == MessageBoxResult.Yes) account = site.Owner;
+            }
             else
             {
                 var text = row.LastWasCommand
@@ -759,7 +774,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
                 await RunActionAsync(row, new RepoAction(name, new RepoCommand { Name = name, CommandLine = last.CommandLine, Mode = RepoCommandMode.Window }));
                 return;
             }
-            await SignInAndRetryAsync(row);
+            await SignInAndRetryAsync(row, account);
         }
         catch (Exception ex) { Notifier.Error("Fix sign-in", ex.Message); }
     }
@@ -768,7 +783,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
     /// Signs in to git in a visible window (which also clones a local copy that is still missing), waits for it, then
     /// runs the pull or Update again in the background and says so when the sign-in still does not hold there.
     /// </summary>
-    private async Task SignInAndRetryAsync(RepoRowVM row)
+    private async Task SignInAndRetryAsync(RepoRowVM row, string? account = null)
     {
         if (_repos.IsRunning || row.Busy)
         {
@@ -778,7 +793,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
         bool wasUpdate = row.LastWasUpdate;
         row.SetRunning("the sign-in window");
         RepoSignInResult signIn;
-        try { signIn = await _repos.SignInAsync(row.Path); }
+        try { signIn = await _repos.SignInAsync(row.Path, account); }
         finally { row.Busy = false; }
         row.RefreshCopies();
         switch (signIn.Outcome)
@@ -795,8 +810,8 @@ public sealed class ReposViewModel : ObservableObject, IPage
         await RunActionAsync(row, wasUpdate ? RepoAction.Update() : RepoAction.Pull());
         if (row.CanFix && !row.LocalChangesProblem)
             Notifier.Error($"{row.Name}: the sign-in is not kept",
-                "git signed in in the window, but still cannot in the background, so the sign-in is not being saved. " +
-                "In a terminal, 'git config --global credential.helper' should print 'manager'. Open Full output for what git said.");
+                "git signed in in the window, but still cannot in the background: the sign-in was not saved, or it was made with another account " +
+                "than the one git asks for. Open Full output for what git said; 'git config --global credential.helper' should print 'manager'.");
     }
 
     /// <summary>

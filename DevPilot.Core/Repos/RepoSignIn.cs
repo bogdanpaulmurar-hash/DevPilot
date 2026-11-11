@@ -30,9 +30,13 @@ public static partial class RepoSignIn
     /// <summary><c>git -C "copy" fetch</c>: contacts the remote (so git signs in) and changes no file of the working tree.</summary>
     public static string Fetch(string git, string copy) => $"{Exe(git)} -C {Quote(copy)} fetch";
 
-    /// <summary><c>git clone --branch b -- "url" "target"</c>, the same clone the background run does.</summary>
-    public static string Clone(string git, string url, string branch, string target) =>
-        Exe(git) + " clone" + (string.IsNullOrWhiteSpace(branch) ? string.Empty : " --branch " + Quote(branch.Trim())) + $" -- {Quote(url)} {Quote(target)}";
+    /// <summary>
+    /// <c>git clone --branch b -- "url" "target"</c>, the same clone the background run does. <paramref name="config"/>
+    /// ("key=value") is used for the clone and written into the new clone's own settings.
+    /// </summary>
+    public static string Clone(string git, string url, string branch, string target, string? config = null) =>
+        Exe(git) + " clone" + (string.IsNullOrWhiteSpace(config) ? string.Empty : " -c " + Quote(config.Trim()))
+        + (string.IsNullOrWhiteSpace(branch) ? string.Empty : " --branch " + Quote(branch.Trim())) + $" -- {Quote(url)} {Quote(target)}";
 
     /// <summary>
     /// One cmd.exe line: every command runs even when an earlier one failed. All fine: the window closes by itself with

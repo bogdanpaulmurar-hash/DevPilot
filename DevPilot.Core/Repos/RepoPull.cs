@@ -216,6 +216,8 @@ public sealed class RepoPull(IGitRunner git)
             return "The remote says the repository does not exist for the account git is signed in with (a private repository of another account?). Use Fix… to try in a window.";
         if (Has("Permission denied (publickey"))
             return "The remote refused the SSH key. Use Fix… to try in a window.";
+        if (RepoRemote.AttemptedUser(all) is { } user)
+            return $"git tried to sign in as \"{user}\" (set in the git configuration of this PC) and has no saved sign-in for that account. Use Fix… to choose the account and sign in.";
         if (Has("terminal prompts disabled") || Has("interactivity has been disabled"))
             return "git has no saved sign-in for the remote and cannot ask in the background. Use Fix… to sign in once in a window.";
         return "Sign-in to the remote failed. Use Fix… to sign in once in a window.";

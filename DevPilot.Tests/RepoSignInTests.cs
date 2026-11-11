@@ -77,6 +77,47 @@ public sealed class RepoSignInTests : IDisposable
         Assert.Contains("Fix…", message);
     }
 
+    // ── Which account ───────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("https://example.invalid/me/app.git", "https://example.invalid", "me")]
+    [InlineData("https://Example.invalid/Me/app", "https://example.invalid", "Me")]
+    [InlineData("https://other@example.invalid/me/app.git/", "https://example.invalid", "me")]
+    public void The_address_tells_the_site_and_the_account_that_owns_the_repository(string url, string site, string owner)
+    {
+        var account = RepoRemote.Account(url);
+        Assert.NotNull(account);
+        Assert.Equal(site, account.Value.Site);
+        Assert.Equal(owner, account.Value.Owner);
+        Assert.Equal($"credential.{site}.username", RepoRemote.UsernameKey(account.Value.Site));
+    }
+
+    [Theory]
+    [InlineData("git@example.invalid:me/app.git")]
+    [InlineData("https://example.invalid/app.git")]
+    [InlineData("https://example.invalid/me/app.git & calc")]
+    [InlineData("")]
+    public void An_address_without_a_plain_owner_gives_no_account(string url) => Assert.Null(RepoRemote.Account(url));
+
+    [Fact]
+    public void The_account_git_tried_is_read_from_its_output()
+    {
+        const string output = "Cloning into 'D:\\Dev\\app'...\nfatal: Cannot prompt because user interactivity has been disabled.\n" +
+                              "fatal: could not read Password for 'https://someone-else@example.invalid': terminal prompts disabled";
+        Assert.Equal("someone-else", RepoRemote.AttemptedUser(output));
+        Assert.Null(RepoRemote.AttemptedUser("fatal: could not read Username for 'https://example.invalid': terminal prompts disabled"));
+        Assert.Null(RepoRemote.AttemptedUser(""));
+
+        var message = RepoPull.Describe(RepoPullStatus.AuthFailed, "", output);
+        Assert.Contains("\"someone-else\"", message);
+        Assert.Contains("Fix…", message);
+    }
+
+    [Fact]
+    public void A_clone_can_carry_a_setting_into_the_new_clone() =>
+        Assert.Equal("git clone -c \"credential.https://example.invalid.username=me\" --branch \"main\" -- \"https://example.invalid/me/app.git\" \"D:\\Dev\\app\"",
+            RepoSignIn.Clone("git", "https://example.invalid/me/app.git", "main", @"D:\Dev\app", "credential.https://example.invalid.username=me"));
+
     [Fact]
     public void A_detached_cloud_copy_clones_the_default_branch()
     {
@@ -162,6 +203,23 @@ public sealed class RepoSignInTests : IDisposable
         Assert.False(Directory.Exists(local));
         // Nothing in a working tree is touched by DevPilot itself: it only asked for the address.
         Assert.Equal(new[] { "remote get-url origin" }, git.Calls);
+    }
+
+    [Fact]
+    public async Task A_chosen_account_is_saved_in_each_copy_and_given_to_the_clone()
+    {
+        var cloud = Repo("app");
+        var local = Path.Combine(_root, "apps", "app");
+        var settings = new AppSettings();
+        settings.Repos.Items.Add(new RepoConfig { Path = cloud, LocalPath = local });
+        var git = new FakeGit();
+        var window = new FakeWindow(new WindowRun(0));
+
+        var r = await Service(settings, git, window).SignInAsync(cloud, "me");
+
+        Assert.Equal(RepoSignInOutcome.SignedIn, r.Outcome);
+        Assert.Equal(new[] { "remote get-url origin", "config --local credential.https://example.invalid.username me" }, git.Calls);
+        Assert.Contains("clone -c \"credential.https://example.invalid.username=me\" --branch \"main\"", Assert.Single(window.Lines));
     }
 
     [Fact]

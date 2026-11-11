@@ -99,6 +99,8 @@ Tools found by path (working folder, program or arguments inside the repository)
 ## Sign-in
 Background runs never ask for a sign-in (nobody would see the question), so a missing one ends as "Sign-in failed". *Fix…* opens a console window where git may ask (Git Credential Manager can open a browser page). The window runs `git fetch` in each existing copy, which signs in and changes no file, and clones a local copy that is still missing. DevPilot waits for the window, then runs the pull or Update again by itself. If a step fails, the window stays open until a key is pressed, so the reason can be read. A clone that stops at a sign-in opens the same question right away and keeps the chosen folder as the Local path.
 
+**Another account on this PC.** If the git configuration of the PC names an account for the site (`credential.https://<site>.username`, or `credential.username`) and the repository belongs to a different one, git keeps asking for the first account and a browser sign-in with the second does not help. The row then says which account git tried, and *Fix…* offers to use the repository owner's account for this repository only. That is saved in the repository's own git settings (each copy, and a new clone), where it wins over the setting of the PC. To undo it, in the repository: `git config --unset credential.https://<site>.username`.
+
 If the sign-in works in the window but the next background run still fails, git is not saving it: `git config --global credential.helper` should print `manager`. "The repository does not exist for the account" means git is signed in with an account that cannot open that repository.
 
 ## Log
