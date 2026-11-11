@@ -65,6 +65,10 @@ public static class RepoCopies
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
     }
 
+    /// <summary>The branch a clone of <paramref name="source"/> checks out: its current branch; empty (the remote's default) on a detached HEAD.</summary>
+    public static string CloneBranch(string source) =>
+        RepoScanner.ReadBranch(source) is { Length: > 0 } b && b != "detached" ? b : string.Empty;
+
     /// <summary>A copy that is set but not cloned yet (missing or empty folder).</summary>
     public static bool NeedsClone(string path) => !RepoScanner.IsRepo(path) && CanClone(path);
 
@@ -90,7 +94,7 @@ public static class RepoCopies
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return R(target, RepoPullStatus.Failed, ex.Message); }
 
         var args = new List<string> { "clone" };
-        var branch = RepoScanner.ReadBranch(source);
+        var branch = CloneBranch(source);
         if (branch.Length > 0) args.AddRange(["--branch", branch]);
         args.AddRange(["--", url, RepoScanner.Normalize(target)]);
         var run = await git.RunAsync(parent, args, CloneTimeout, ct).ConfigureAwait(false);

@@ -201,11 +201,27 @@ public sealed class RepoPull(IGitRunner git)
         RepoPullStatus.NoUpstream => "The current branch does not track a remote branch. Nothing to pull.",
         RepoPullStatus.Diverged => "Local and remote commits differ, so a fast-forward is not possible. Nothing changed; pull or rebase by hand.",
         RepoPullStatus.UnsafeOwnership => "git does not trust this folder (other owner). Run once: git config --global --add safe.directory \"<folder>\"",
-        RepoPullStatus.AuthFailed => "Sign-in to the remote failed. Run git pull once in a terminal to sign in.",
+        RepoPullStatus.AuthFailed => AuthMessage(stdout, stderr),
         RepoPullStatus.Offline => "The remote cannot be reached (offline, VPN or proxy).",
         RepoPullStatus.NotARepo => "The folder is not a git repository.",
         _ => LastLine(stderr, stdout),
     };
+
+    /// <summary>Why the sign-in failed, in words that tell the three usual cases apart; Fix… is the way out of each.</summary>
+    public static string AuthMessage(string stdout, string stderr)
+    {
+        var all = stdout + "\n" + stderr;
+        bool Has(string s) => all.Contains(s, StringComparison.OrdinalIgnoreCase);
+        if (Has("Repository not found"))
+            return "The remote says the repository does not exist for the account git is signed in with (a private repository of another account?). Use Fix… to try in a window.";
+        if (Has("Permission denied (publickey"))
+            return "The remote refused the SSH key. Use Fix… to try in a window.";
+        if (RepoRemote.AttemptedUser(all) is { } user)
+            return $"git tried to sign in as \"{user}\" (set in the git configuration of this PC) and has no saved sign-in for that account. Use Fix… to choose the account and sign in.";
+        if (Has("terminal prompts disabled") || Has("interactivity has been disabled"))
+            return "git has no saved sign-in for the remote and cannot ask in the background. Use Fix… to sign in once in a window.";
+        return "Sign-in to the remote failed. Use Fix… to sign in once in a window.";
+    }
 
     /// <summary>"3 files changed, 10 insertions(+), 2 deletions(-)" from the pull output, if present.</summary>
     public static string ChangeSummary(string stdout)

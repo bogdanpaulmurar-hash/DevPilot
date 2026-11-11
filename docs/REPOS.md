@@ -92,9 +92,19 @@ Tools found by path (working folder, program or arguments inside the repository)
 | Skipped: no upstream | The branch does not track a remote branch (or HEAD is detached) | `git branch -u origin/<branch>` or switch branch |
 | Skipped: diverged | Local and remote commits differ | Pull or rebase by hand |
 | Not trusted by git | "dubious ownership": the folder belongs to another account (common on synced drives) | Run once: `git config --global --add safe.directory "<folder>"` |
-| Sign-in failed | The remote needs a sign-in | Run `git pull` once in a terminal to sign in |
+| Sign-in failed | The remote needs a sign-in git cannot ask for in the background (the message says which kind) | Click *Fix…*: see *Sign-in* below |
 | Remote unreachable | Offline, VPN or proxy | Try again later |
 | git not found | Git for Windows is not installed | Install it and restart DevPilot |
+
+## Sign-in
+Background runs never ask for a sign-in (nobody would see the question), so a missing one ends as "Sign-in failed". *Fix…* opens a console window where git may ask (Git Credential Manager can open a browser page). The window runs `git fetch` in each existing copy, which signs in and changes no file, and clones a local copy that is still missing. DevPilot waits for the window, then runs the pull or Update again by itself. If a step fails, the window stays open until a key is pressed, so the reason can be read. A clone that stops at a sign-in opens the same question right away and keeps the chosen folder as the Local path.
+
+**Another account on this PC.** If the git configuration of the PC names an account for the site (`credential.https://<site>.username`, or `credential.username`) and the repository belongs to a different one, git keeps asking for the first account and a browser sign-in with the second does not help. The row then says which account git tried, and *Fix…* offers to use the repository owner's account for this repository only. That is saved in the repository's own git settings (each copy, and a new clone), where it wins over the setting of the PC. To undo it, in the repository: `git config --unset credential.https://<site>.username`.
+
+If the sign-in works in the window but the next background run still fails, git is not saving it: `git config --global credential.helper` should print `manager`. "The repository does not exist for the account" means git is signed in with an account that cannot open that repository.
+
+## Log
+The bottom of the Repositories page shows the path of the log file (`%LOCALAPPDATA%\DevPilot\logs\devpilot.log`) and *Show the file*. Failed pulls and clones are logged with what git answered; addresses are written without user names or tokens. Send this file when something does not work.
 
 ## Synced drives (Google Drive, OneDrive)
 Let the sync finish before pulling, and work on a repository from one PC at a time; a pull while the drive is still syncing `.git` can damage the clone. DevPilot cannot tell when the sync has finished.

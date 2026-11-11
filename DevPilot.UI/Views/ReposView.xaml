@@ -217,6 +217,17 @@
                               Content="Automatic pulls notify only when something changed or needs attention"/>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0" TextWrapping="Wrap"
                                Text="Clones inside a synced drive (Google Drive, OneDrive): let the sync finish before a pull, and work on a repository from one PC at a time. If git reports 'dubious ownership', run the command shown under that repository once."/>
+                    <TextBlock Text="Log" Style="{StaticResource FieldLabel}" FontWeight="SemiBold" Margin="0,14,0,0"/>
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding LogPath, Mode=OneWay}" IsReadOnly="True" FontFamily="{StaticResource MonoFont}"
+                                 ToolTip="Every pull, clone and sign-in is written here with what git answered (never a password). Send this file when something does not work."/>
+                        <Button Grid.Column="1" Content="Show the file" Margin="6,0,0,0" Command="{Binding ShowLogCommand}"
+                                ToolTip="Opens the folder with the log file selected, ready to attach"/>
+                    </Grid>
                 </StackPanel>
             </Border>
         </StackPanel>

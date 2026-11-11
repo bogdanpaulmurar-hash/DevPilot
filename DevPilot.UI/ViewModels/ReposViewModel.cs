@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Presets;
 using DevPilot.Core.Repos;
@@ -197,7 +198,14 @@ public sealed class RepoRowVM : ObservableObject
         }
     }
 
-    private void CopiesChanged()
+    /// <summary>The copies changed on disk (a clone appeared): read them again without marking the settings edited.</summary>
+    internal void RefreshCopies()
+    {
+        CopiesChanged(edited: false);
+        RefreshPlan();
+    }
+
+    private void CopiesChanged(bool edited = true)
     {
         _localVersion = HasLocal ? RepoVersion.Read(LocalCopyPath!) : RepoVersionInfo.None;
         OnPropertyChanged(nameof(CloudPathSetting));
@@ -210,7 +218,7 @@ public sealed class RepoRowVM : ObservableObject
         OnPropertyChanged(nameof(CloneTip));
         OnPropertyChanged(nameof(CopiesSummary));
         OnPropertyChanged(nameof(InstallPath));
-        Edited();
+        if (edited) Edited();
     }
 
     internal ReposViewModel Owner { get; }
@@ -279,6 +287,9 @@ public sealed class RepoRowVM : ObservableObject
     public bool LocalChangesProblem => CommandIsNewer
         ? _command is { Status: RepoCommandStatus.Skipped } && RepoPull.IsLocalChangesText(_command.OutputTail)
         : _pull is { Status: RepoPullStatus.LocalChanges };
+
+    /// <summary>The last action was one of the repository's own commands (not a pull, Update or Reinstall).</summary>
+    internal bool LastWasCommand => CommandIsNewer && LastCommand is not null && _command!.Name is not ("Update" or "Reinstall");
 
     /// <summary>The last action was an Update (so it has to install after the fix pulled).</summary>
     internal bool LastWasUpdate => CommandIsNewer && _command!.Name == "Update";
@@ -546,6 +557,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
     public ObservableCollection<RepoRowVM> Items { get; } = [];
     public ICommand BrowseCommand { get; }
     public ICommand OpenRootCommand { get; }
+    public ICommand ShowLogCommand { get; } = new RelayCommand(ShowLog);
     public ICommand RescanCommand { get; }
     public ICommand PullAllCommand { get; }
     public ICommand SelectAllCommand { get; }
@@ -706,6 +718,7 @@ public sealed class ReposViewModel : ObservableObject, IPage
             var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
             string? url = await _repos.GetRemoteUrlAsync(row.Path);
             string? plain = RepoRemote.StripUser(url);
+            string? account = null;
             if (plain is not null)
             {
                 var text = $"{row.Name}: the remote address names a user, so git asks for that account's password.\n\n" +
@@ -723,23 +736,82 @@ public sealed class ReposViewModel : ObservableObject, IPage
                         Notifier.Error("Fix sign-in", "git did not accept the new address, or something else is running on this repository.");
                         return;
                     }
-                    var again = row.LastCommand is { } c ? new RepoAction(RepoConfigs.DisplayName(c), c) : RepoAction.Pull();
+                    var again = row.LastWasCommand && row.LastCommand is { } c ? new RepoAction(RepoConfigs.DisplayName(c), c)
+                              : row.LastWasUpdate ? RepoAction.Update() : RepoAction.Pull();
                     await RunActionAsync(row, again);
                     return;
                 }
             }
+            else if (!row.LastWasCommand && RepoRemote.Account(url) is { } site && RepoRemote.AttemptedUser(row.Transcript) is { } tried
+                     && !string.Equals(tried, site.Owner, StringComparison.OrdinalIgnoreCase))
+            {
+                // The git configuration of the PC names another account for the site than the one the repository belongs to.
+                var text = $"{row.Name}: git signs in to {site.Site} as \"{tried}\" (set in the git configuration of this PC), " +
+                           $"and that does not work for this repository. The repository belongs to \"{site.Owner}\".\n\n" +
+                           $"Yes: use \"{site.Owner}\" for this repository only, then open a window to sign in; in the browser, sign in as \"{site.Owner}\". " +
+                           $"To undo, in the repository: git config --unset {RepoRemote.UsernameKey(site.Site)}\n" +
+                           $"No: keep \"{tried}\" and open the sign-in window.\nCancel: do nothing.";
+                var answer = owner is null ? MessageBox.Show(text, "Fix sign-in", MessageBoxButton.YesNoCancel, MessageBoxImage.Question)
+                                           : MessageBox.Show(owner, text, "Fix sign-in", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (answer == MessageBoxResult.Cancel) return;
+                if (answer == MessageBoxResult.Yes) account = site.Owner;
+            }
             else
             {
-                var text = $"{row.Name}: git needs a sign-in. DevPilot opens a window and runs the action once; sign in there and git remembers it.\n\nOpen the window?";
+                var text = row.LastWasCommand
+                    ? $"{row.Name}: git needs a sign-in. DevPilot opens a window and runs the command once; sign in there and git remembers it.\n\nOpen the window?"
+                    : $"{row.Name}: git needs a sign-in. DevPilot opens a window where git can ask (a browser page may open): sign in there." +
+                      (row.NeedsClone ? " The local copy is cloned in that window." : string.Empty) +
+                      " When the window closes, DevPilot runs the action again.\n\nOpen the window?";
                 var answer = owner is null ? MessageBox.Show(text, "Fix sign-in", MessageBoxButton.OKCancel, MessageBoxImage.Question)
                                            : MessageBox.Show(owner, text, "Fix sign-in", MessageBoxButton.OKCancel, MessageBoxImage.Question);
                 if (answer != MessageBoxResult.OK) return;
             }
-            var line = row.LastCommand?.CommandLine ?? "git pull --ff-only";
-            var name = row.LastCommand is { } last ? RepoConfigs.DisplayName(last) : "git pull";
-            await RunActionAsync(row, new RepoAction(name, new RepoCommand { Name = name, CommandLine = line, Mode = RepoCommandMode.Window }));
+            if (row.LastWasCommand && row.LastCommand is { } last)
+            {
+                // One of the repository's own commands: only that command knows what it needs, so it runs in a window.
+                var name = RepoConfigs.DisplayName(last);
+                await RunActionAsync(row, new RepoAction(name, new RepoCommand { Name = name, CommandLine = last.CommandLine, Mode = RepoCommandMode.Window }));
+                return;
+            }
+            await SignInAndRetryAsync(row, account);
         }
         catch (Exception ex) { Notifier.Error("Fix sign-in", ex.Message); }
+    }
+
+    /// <summary>
+    /// Signs in to git in a visible window (which also clones a local copy that is still missing), waits for it, then
+    /// runs the pull or Update again in the background and says so when the sign-in still does not hold there.
+    /// </summary>
+    private async Task SignInAndRetryAsync(RepoRowVM row, string? account = null)
+    {
+        if (_repos.IsRunning || row.Busy)
+        {
+            Notifier.Info("Repositories", "Something is already running on this repository.");
+            return;
+        }
+        bool wasUpdate = row.LastWasUpdate;
+        row.SetRunning("the sign-in window");
+        RepoSignInResult signIn;
+        try { signIn = await _repos.SignInAsync(row.Path, account); }
+        finally { row.Busy = false; }
+        row.RefreshCopies();
+        switch (signIn.Outcome)
+        {
+            case RepoSignInOutcome.Busy:
+                Notifier.Info("Repositories", signIn.Detail);
+                return;
+            case RepoSignInOutcome.SignedIn:
+                break;
+            default:
+                Notifier.Error($"{row.Name}: sign-in did not work", signIn.Detail + $" Details: {App.LogFile}");
+                return;
+        }
+        await RunActionAsync(row, wasUpdate ? RepoAction.Update() : RepoAction.Pull());
+        if (row.CanFix && !row.LocalChangesProblem)
+            Notifier.Error($"{row.Name}: the sign-in is not kept",
+                "git signed in in the window, but still cannot in the background: the sign-in was not saved, or it was made with another account " +
+                "than the one git asks for. Open Full output for what git said; 'git config --global credential.helper' should print 'manager'.");
     }
 
     /// <summary>
@@ -857,10 +929,22 @@ public sealed class ReposViewModel : ObservableObject, IPage
     /// <summary>A folder picker; null when cancelled. Starts in <paramref name="current"/> or its parent.</summary>
     internal static string? PickFolder(string title, string current)
     {
-        var dlg = new OpenFolderDialog { Title = title };
-        var start = Directory.Exists(current) ? current : System.IO.Path.GetDirectoryName(current);
-        if (!string.IsNullOrEmpty(start) && Directory.Exists(start)) dlg.InitialDirectory = start;
-        return dlg.ShowDialog() == true ? dlg.FolderName : null;
+        try
+        {
+            var dlg = new OpenFolderDialog { Title = title };
+            var start = Directory.Exists(current) ? current : System.IO.Path.GetDirectoryName(current);
+            if (!string.IsNullOrEmpty(start) && Directory.Exists(start)) dlg.InitialDirectory = start;
+            // Never let the dialog pick its own owner: that is the active window, which can be a menu that closes
+            // itself as soon as the dialog takes the focus, and a dialog whose owner is destroyed takes DevPilot down.
+            var owner = Application.Current?.Windows.OfType<Views.MainWindow>()
+                .FirstOrDefault(w => w.IsVisible && w.WindowState != WindowState.Minimized);
+            return (owner is null ? dlg.ShowDialog() : dlg.ShowDialog(owner)) == true ? dlg.FolderName : null;
+        }
+        catch (Exception ex)
+        {
+            Notifier.Error("Choose a folder", ex.Message);
+            return null;
+        }
     }
 
     /// <summary>
@@ -942,13 +1026,26 @@ public sealed class ReposViewModel : ObservableObject, IPage
         items.Add(FlyoutItem.Separator());
         items.Add(FlyoutItem.Action("Choose another folder…", Glyphs.FolderOpen, () =>
         {
-            if (PickFolder("Folder to clone into (an empty folder, or a folder to put the clone in)", string.Empty) is not { } picked) return;
-            StartClone(row, RepoCopies.CanClone(picked) ? picked : System.IO.Path.Combine(picked, name));
+            // The folder dialog opens only after this menu has closed (the menu closes itself when it loses the focus).
+            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => ChooseCloneFolder(row, name)));
         }));
         ToolMenuWindow.ShowAtCursor(items, row.Name, "Nothing is cloned until you pick one", _config.Current.Hub);
     }
 
-    /// <summary>Saves the folder as the Local path and clones into it; a failed clone forgets the path again.</summary>
+    private void ChooseCloneFolder(RepoRowVM row, string name)
+    {
+        try
+        {
+            if (PickFolder("Folder to clone into (an empty folder, or a folder to put the clone in)", string.Empty) is not { } picked) return;
+            StartClone(row, RepoCopies.CanClone(picked) ? picked : System.IO.Path.Combine(picked, name));
+        }
+        catch (Exception ex) { Notifier.Error("Clone from repository", ex.Message); }
+    }
+
+    /// <summary>
+    /// Saves the folder as the Local path and clones into it. A clone that stops at a sign-in goes on in the sign-in
+    /// window (the path is kept for it); any other failed clone forgets the path again.
+    /// </summary>
     private async void StartClone(RepoRowVM row, string target)
     {
         try
@@ -961,9 +1058,25 @@ public sealed class ReposViewModel : ObservableObject, IPage
             }
             row.LocalPath = target;
             await RunActionAsync(row, RepoAction.Pull(RepoCopyKind.Local));
-            if (!RepoScanner.IsRepo(target)) row.LocalPath = string.Empty;
+            if (RepoScanner.IsRepo(target)) return;
+            if (row.PullResult is { Status: RepoPullStatus.AuthFailed }) FixSignIn(row);
+            else row.LocalPath = string.Empty;
         }
         catch (Exception ex) { Notifier.Error("Clone from repository", ex.Message); }
+    }
+
+    public string LogPath => App.LogFile;
+
+    /// <summary>Shows the log file selected in Explorer, ready to be attached or sent.</summary>
+    private static void ShowLog()
+    {
+        try
+        {
+            var log = App.LogFile;
+            if (File.Exists(log)) Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{log}\"") { UseShellExecute = true });
+            else Notifier.Info("Log", "Nothing has been logged yet: " + log);
+        }
+        catch (Exception ex) { Notifier.Error("Log", ex.Message); }
     }
 
     internal static void OpenTerminal(string path)

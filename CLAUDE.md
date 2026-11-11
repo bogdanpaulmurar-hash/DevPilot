@@ -31,6 +31,7 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 - Settings over special cases: groups, colours, symbols and sizes are configurable, nothing hardcoded per tool (ScreenPilot's spotlight card is the only deliberate exception).
 - Keep logic in Core so it stays testable without WPF.
 - Update on DevPilot's own repo hands over to `scripts\install.cmd` in its own window, then exits. Pull repositories: never merge, rebase or reset; never stash on its own, skip dirty repos (only *Fix…*, after the user chose, stashes and restores). git runs hidden with `LC_ALL=C` so its output can be classified. Repository commands run through `cmd.exe` in the clone; a command and a pull never run on one repository at once.
+- A dialog is never opened from inside a menu or flyout that closes on losing focus (it becomes the dialog's owner and its close kills the process): defer it until the menu is gone and give it the main window as owner. git never asks in a hidden run; a sign-in happens only in the visible window of *Fix…* (`RepoSignIn`).
 - Test steps per version live in `TESTING.md`.
 - `v1-legacy` is the old version; `ci-shots` holds CI UI screenshots. Work on `main` or a feature branch + PR.
 - Code, comments, commits and docs in English; replies to the user in Romanian, short.

@@ -27,9 +27,11 @@ public sealed class RepoSyncService : IDisposable
     private Timer? _timer;
     private bool _running;
 
-    public RepoSyncService(IConfigStore config, IGitRunner git, ICommandRunner commands, IToolControl tools, ILogger<RepoSyncService>? logger = null, ActivityTracker? activity = null)
+    public RepoSyncService(IConfigStore config, IGitRunner git, ICommandRunner commands, IToolControl tools, ILogger<RepoSyncService>? logger = null,
+        ActivityTracker? activity = null, ISignInWindow? signIn = null)
     {
         _activity = activity;
+        _signIn = signIn;
         _config = config;
         _commands = commands;
         _tools = tools;
@@ -39,6 +41,7 @@ public sealed class RepoSyncService : IDisposable
     }
 
     private readonly ActivityTracker? _activity;
+    private readonly ISignInWindow? _signIn;
 
     public RepoSettings Settings => _config.Current.Repos;
     public bool IsRunning => _running;
@@ -120,6 +123,71 @@ public sealed class RepoSyncService : IDisposable
             var run = await Task.Run(() => _git.RunAsync(repo, ["remote", "set-url", "origin", url], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
             _logger.LogInformation("Remote of {Repo} changed to a user-less address: exit {Exit}", repo, run.ExitCode);
             return run.ExitCode == 0;
+        }
+        finally { End(key); }
+    }
+
+    /// <summary>
+    /// The sign-in fix (see <see cref="RepoSignIn"/>): a visible window runs <c>git fetch</c> in each existing copy and
+    /// clones a local copy that is still missing, and DevPilot waits for it. Nothing in a working tree is changed.
+    /// <paramref name="account"/>: sign in to the remote's site with this account for this repository; it is saved in
+    /// the own git settings of each copy (<c>credential.https://host.username</c>), so it wins over an account set
+    /// for the whole PC.
+    /// </summary>
+    public async Task<RepoSignInResult> SignInAsync(string repo, string? account = null, CancellationToken ct = default)
+    {
+        if (_signIn is not { } window) return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, "No sign-in window is available.");
+        var key = RepoScanner.Normalize(repo);
+        if (!TryBegin(key, out var refusal)) return new RepoSignInResult(RepoSignInOutcome.Busy, refusal);
+        try
+        {
+            using var scope = _activity?.Begin($"Sign-in · {Path.GetFileName(repo.TrimEnd('\\', '/'))}");
+            var cfg = RepoConfigs.Find(Settings, repo);
+            var cloud = RepoCopies.CloudPath(repo, cfg);
+            var git = GitRunner.GitPath;
+            var commands = new List<string>();
+            string? url = RepoScanner.IsRepo(cloud) ? await GetRemoteUrlAsync(cloud, ct).ConfigureAwait(false) : null;
+            string? key = !string.IsNullOrWhiteSpace(account) && RepoRemote.Account(url) is { } site ? RepoRemote.UsernameKey(site.Site) : null;
+            foreach (var copy in RepoCopies.All(repo, cfg))
+            {
+                if (copy.Kind == RepoCopyKind.Local && RepoCopies.NeedsClone(copy.Path))
+                {
+                    if (url is null) continue;
+                    try
+                    {
+                        if (Path.GetDirectoryName(RepoScanner.Normalize(copy.Path)) is { Length: > 0 } parent) Directory.CreateDirectory(parent);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, ex.Message);
+                    }
+                    commands.Add(RepoSignIn.Clone(git, url, RepoCopies.CloneBranch(cloud), RepoScanner.Normalize(copy.Path),
+                        key is null ? null : $"{key}={account!.Trim()}"));
+                }
+                else if (RepoScanner.IsRepo(copy.Path))
+                {
+                    if (key is not null)
+                    {
+                        var set = await Task.Run(() => _git.RunAsync(copy.Path, ["config", "--local", key, account!.Trim()], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+                        _logger.LogInformation("Account for {Site} in {Copy} set to {Account}: exit {Exit}", key, copy.Path, account, set.ExitCode);
+                    }
+                    commands.Add(RepoSignIn.Fetch(git, copy.Path));
+                }
+            }
+            if (commands.Count == 0)
+                return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, "No copy of this repository is a git clone with a remote.");
+
+            _logger.LogInformation("Sign-in window for {Repo}: {Commands}", repo, RepoSignIn.Redact(string.Join(" ; ", commands)));
+            WindowRun run;
+            try { run = await Task.Run(() => window.RunAsync(cloud, RepoSignIn.Script(commands), RepoSignIn.Timeout, ct), ct).ConfigureAwait(false); }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { run = new WindowRun(-1, Error: ex.Message); }
+            var result = run.Error is not null ? new RepoSignInResult(RepoSignInOutcome.CouldNotStart, run.Error)
+                       : run.TimedOut ? new RepoSignInResult(RepoSignInOutcome.TimedOut, "The sign-in window was still open after 15 minutes; DevPilot stopped waiting for it.")
+                       : run.ExitCode == 0 ? new RepoSignInResult(RepoSignInOutcome.SignedIn)
+                       : new RepoSignInResult(RepoSignInOutcome.Failed, "A step in the sign-in window failed (the window showed why).");
+            _logger.LogInformation("Sign-in window for {Repo}: {Outcome} (exit {Exit}) {Detail}", repo, result.Outcome, run.ExitCode, result.Detail);
+            return result;
         }
         finally { End(key); }
     }
@@ -467,8 +535,10 @@ public sealed class RepoSyncService : IDisposable
                 _config.Touch(ConfigArea.Repos);
             }
             _logger.LogInformation("git pull on {Count} repositories: {Summary}", results.Count, RepoPull.Summary(results.ToList()));
+            // What git printed goes to the log too (addresses without user names), so a failure can be diagnosed from the file.
             foreach (var r in results.Where(r => !r.IsOk))
-                _logger.LogWarning("git pull {Repo}: {Status} {Message}", r.Path, r.Status, r.Message);
+                _logger.LogWarning("git pull {Repo}: {Status} {Message}\n{Output}", r.Path, r.Status, r.Message,
+                    RepoSignIn.Redact(RepoCommandRunner.LastLines(r.Output, 12)));
             return results;
         }
         finally
