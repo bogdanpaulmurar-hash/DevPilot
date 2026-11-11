@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.23.1
+- Fix: 2.23.0 did not build. In the sign-in fix a local variable for the chosen account had the same name as the repository key in the same method (`CS0136`). Renamed; no change in behaviour. If an Update to 2.23.0 stopped with "Build failed", Update again.
+
 ## 2.23.0
 - Fix: *Clone from repository* > *Choose another folder…* closed DevPilot without a message. The folder dialog was opened from inside the drive menu and took that menu as its owner; the menu closes itself when it loses the focus, and a dialog whose owner is destroyed ends the process. The dialog now opens after the menu has closed, owned by the main window, and a failure there is reported instead of fatal.
 - Fix: *Fix…* for a failed sign-in did not help a clone. It ran `git pull` in the cloud copy in a window DevPilot did not wait for, never cloned the local copy and never tried again, and a failed clone had already forgotten its folder. Now *Fix…* opens a window where git can ask (Git Credential Manager may open a browser page), runs `git fetch` in each existing copy (signs in, changes no file) and clones the local copy that is missing; DevPilot waits for the window and then runs the pull or Update again by itself. A step that fails keeps the window open so the reason can be read.

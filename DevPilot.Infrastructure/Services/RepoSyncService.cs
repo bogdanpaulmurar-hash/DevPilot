@@ -147,7 +147,7 @@ public sealed class RepoSyncService : IDisposable
             var git = GitRunner.GitPath;
             var commands = new List<string>();
             string? url = RepoScanner.IsRepo(cloud) ? await GetRemoteUrlAsync(cloud, ct).ConfigureAwait(false) : null;
-            string? key = !string.IsNullOrWhiteSpace(account) && RepoRemote.Account(url) is { } site ? RepoRemote.UsernameKey(site.Site) : null;
+            string? accountKey = !string.IsNullOrWhiteSpace(account) && RepoRemote.Account(url) is { } site ? RepoRemote.UsernameKey(site.Site) : null;
             foreach (var copy in RepoCopies.All(repo, cfg))
             {
                 if (copy.Kind == RepoCopyKind.Local && RepoCopies.NeedsClone(copy.Path))
@@ -162,14 +162,14 @@ public sealed class RepoSyncService : IDisposable
                         return new RepoSignInResult(RepoSignInOutcome.CouldNotStart, ex.Message);
                     }
                     commands.Add(RepoSignIn.Clone(git, url, RepoCopies.CloneBranch(cloud), RepoScanner.Normalize(copy.Path),
-                        key is null ? null : $"{key}={account!.Trim()}"));
+                        accountKey is null ? null : $"{accountKey}={account!.Trim()}"));
                 }
                 else if (RepoScanner.IsRepo(copy.Path))
                 {
-                    if (key is not null)
+                    if (accountKey is not null)
                     {
-                        var set = await Task.Run(() => _git.RunAsync(copy.Path, ["config", "--local", key, account!.Trim()], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
-                        _logger.LogInformation("Account for {Site} in {Copy} set to {Account}: exit {Exit}", key, copy.Path, account, set.ExitCode);
+                        var saved = await Task.Run(() => _git.RunAsync(copy.Path, ["config", "--local", accountKey, account!.Trim()], RepoPull.StatusTimeout, ct), ct).ConfigureAwait(false);
+                        _logger.LogInformation("Account for {Site} in {Copy} set to {Account}: exit {Exit}", accountKey, copy.Path, account, saved.ExitCode);
                     }
                     commands.Add(RepoSignIn.Fetch(git, copy.Path));
                 }
