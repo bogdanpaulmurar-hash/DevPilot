@@ -70,6 +70,12 @@ public partial class App : Application
             Notifier.Error("DevPilot", ex.Exception.Message);
             ex.Handled = true;
         };
+        // An exception outside the UI thread ends the process: at least leave the reason in the log.
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+        {
+            try { _log.LogCritical(ex.ExceptionObject as Exception, "Unhandled exception, DevPilot closes (terminating={Terminating})", ex.IsTerminating); }
+            catch (Exception) { /* nothing left to report to */ }
+        };
         TaskScheduler.UnobservedTaskException += (_, ex) =>
         {
             _log.LogWarning(ex.Exception, "Unobserved task exception");
@@ -215,6 +221,7 @@ public partial class App : Application
         s.AddSingleton<BackupService>();
         s.AddSingleton<IGitRunner, GitRunner>();
         s.AddSingleton<ICommandRunner, ShellCommandRunner>();
+        s.AddSingleton<ISignInWindow, SignInWindow>();
         s.AddSingleton<IToolControl, ToolControl>();
         s.AddSingleton<RepoSyncService>();
         s.AddSingleton<IHotkeyManager, HotkeyManager>();

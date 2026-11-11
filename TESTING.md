@@ -2,6 +2,15 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.23.0 — Clone, other folder and sign-in
+
+1. Repositories > *Clone from repository* on a row without a local copy > *Choose another folder…* → the folder dialog opens over the main window and DevPilot stays open. Cancel → nothing happens.
+2. Same, pick an empty folder (or a folder with files: the clone goes into a sub-folder named after the repository) → the clone runs and the row shows "local <version>".
+3. On a repository whose clone ends in "Sign-in failed" (AutoPilot): the question "git needs a sign-in… Open the window?" appears by itself → OK → a console window opens, a browser page may ask for the sign-in → the window shows the fetch and the clone, says "Done" and closes → the row pulls again by itself and shows "local <version>". The gear's *Local path* holds the folder.
+4. Same, but close the browser page or cancel the sign-in → the window stays open with git's error until a key is pressed; the row keeps *Fix…* and the Local path, so *Fix…* can be tried again.
+5. A pull (not a clone) that ends in "Sign-in failed" → *Fix…* → OK → the window only fetches, closes, and the pull runs again.
+6. Bottom of the Repositories page: the *Log* line shows the path of `devpilot.log`; *Show the file* opens the folder with the file selected. After a failed pull the file has a "git pull … AuthFailed" line followed by what git printed, with no user name or token in the addresses.
+
 ## 2.22.0 — Clone from repository
 
 1. A repository whose gear has an empty *Local path* shows *Clone from repository* on the row. Click it → a menu lists your local drives (C first, then D, others), each with `<drive>\Dev\<name>` and free space; the synced drive is not listed. Nothing is cloned yet.
