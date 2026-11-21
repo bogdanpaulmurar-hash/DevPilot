@@ -215,6 +215,8 @@ public partial class App : Application
         s.AddSingleton<IConnectionSource, TcpTableReader>();
         s.AddSingleton<EgressMonitorService>();
         s.AddSingleton<KillSwitchService>();
+        s.AddSingleton<IPageOpener, PageOpener>();
+        s.AddSingleton<IToolCli, ToolCli>();
         s.AddSingleton<ILauncher, Launcher>();
         s.AddSingleton<IKeepAwakeService, KeepAwakeService>();
         s.AddSingleton<IStartupManager, StartupManager>();
@@ -248,6 +250,7 @@ public partial class App : Application
         s.AddSingleton<AppearanceViewModel>();
         s.AddSingleton<SettingsViewModel>();
         s.AddSingleton<GuideViewModel>();
+        s.AddSingleton<ZonePilotViewModel>();
         s.AddSingleton<MainViewModel>();
         return s.BuildServiceProvider();
     }

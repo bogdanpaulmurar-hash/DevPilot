@@ -25,6 +25,7 @@
         <DataTemplate DataType="{x:Type vm:AppearanceViewModel}"><views:AppearanceView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:GuideViewModel}"><views:GuideView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ZonePilotViewModel}"><views:ZonePilotView/></DataTemplate>
 
         <Style x:Key="NavList" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
             <Setter Property="ItemTemplate">

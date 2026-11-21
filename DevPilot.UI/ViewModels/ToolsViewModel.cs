@@ -222,6 +222,10 @@ public sealed class ToolsViewModel : ObservableObject, IPage
             var src = Path.Combine(path, "src");
             if (path.Length > 0 && Directory.Exists(Path.Combine(src, preset.PythonModule))) path = src;
         }
+        else if (ToolPresets.InstalledPath(preset).Length > 0)
+        {
+            // Installed where the preset expects it: no dialog, the path keeps its %VARIABLES% (ToolPresets.Create).
+        }
         else
         {
             var dlg = new OpenFileDialog
@@ -359,6 +363,7 @@ public sealed class ActionEditorVM : ObservableObject
         ActionKind.Folder => @"C:\… or {ToolDir}\…",
         ActionKind.File => @"File to open, e.g. {ToolDir}\config.json",
         ActionKind.Command => "Program, e.g. notepad.exe",
+        ActionKind.Page => "DevPilot page, e.g. zonepilot",
         _ => string.Empty,
     };
     public string DisplayGlyph => string.IsNullOrWhiteSpace(Model.Glyph) ? Glyphs.ForAction(Model.Kind) : Model.Glyph;
@@ -399,6 +404,7 @@ public sealed class ToolEditorVM : ObservableObject
         new(ActionKind.Url, "Open a web page"),
         new(ActionKind.Folder, "Open a folder"),
         new(ActionKind.File, "Open a file"),
+        new(ActionKind.Page, "Open a DevPilot page"),
     ];
 
     public static IReadOnlyList<GlyphInfo> GlyphCatalogue => Glyphs.Catalogue;
@@ -424,6 +430,9 @@ public sealed class ToolEditorVM : ObservableObject
     public ICommand DetectCommand { get; }
     public ICommand ApplyPresetCommand { get; }
     public ICommand LoadManifestCommand { get; }
+    /// <summary>Opens the ZonePilot page (same as the tool's Configure… option).</summary>
+    public ICommand ConfigureZonePilotCommand { get; }
+    public bool IsZonePilot => Preset?.Key == ToolPresets.ZonePilot.Key;
 
     public ToolEditorVM(ToolEntry model, ToolsViewModel owner, IConfigStore config, ILauncher launcher, IProcessMonitor monitor)
     {
@@ -435,6 +444,11 @@ public sealed class ToolEditorVM : ObservableObject
         foreach (var a in model.Actions) Actions.Add(new ActionEditorVM(a));
 
         BrowsePathCommand = new RelayCommand(BrowsePath);
+        ConfigureZonePilotCommand = new AsyncCommand(async () =>
+        {
+            var r = await _launcher.RunActionAsync(Model, new ToolAction { Label = "Configure…", Kind = ActionKind.Page, Value = ToolPresets.ZonePilotPage });
+            if (!r.Success) Notifier.Error("ZonePilot", r.Error ?? "The page could not be opened.");
+        });
         BrowseWorkDirCommand = new RelayCommand(() =>
         {
             var dlg = new OpenFolderDialog { Title = "Working folder" };

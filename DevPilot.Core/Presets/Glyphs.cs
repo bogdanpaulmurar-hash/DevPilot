@@ -109,6 +109,7 @@ public static class Glyphs
         ActionKind.Folder => Folder,
         ActionKind.File => Document,
         ActionKind.Command => Terminal,
+        ActionKind.Page => Settings,
         _ => Play,
     };
 

@@ -53,7 +53,7 @@ If `winget` reports *0x8a15000f* (source data missing), install the **.NET 8 SDK
 
 ## 3. First start
 
-1. DevPilot opens on **Tools & groups**. Click **Add → Your known tools** and pick ScreenPilot, FocusPilot, NexusX, regTester or AutoPilot DC; choose the script / exe / project folder when asked.
+1. DevPilot opens on **Tools & groups**. Click **Add → Your known tools** and pick ScreenPilot, FocusPilot, NexusX, regTester, AutoPilot DC or ZonePilot; choose the script / exe / project folder when asked (ZonePilot installed by its `scripts\install.cmd` is found without asking).
    - ScreenPilot and NexusX are started as Python modules: choose the project folder (DevPilot uses `src` automatically if it exists). If they use a virtual environment, set **Interpreter** to that venv's `pythonw.exe`. ScreenPilot installed with its `install.ps1` is found automatically (`%LOCALAPPDATA%\ScreenPilot\venv`).
 2. Create your own groups (**Group**) and move tools with the arrows or the *Group* field.
 3. Open **Startup & conflicts** → **Take over all**: the tools stop starting with Windows on their own and DevPilot starts them instead.

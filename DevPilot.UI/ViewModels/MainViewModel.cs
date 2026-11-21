@@ -21,10 +21,13 @@ public sealed class MainViewModel : ObservableObject
     public ActivityViewModel Activity { get; }
     public ObservableCollection<NavItem> Pages { get; }
     public ObservableCollection<NavItem> FooterPages { get; }
+    /// <summary>Pages of one tool, opened from that tool (its Configure… option), not listed in the sidebar.</summary>
+    public IReadOnlyList<NavItem> ToolPages { get; }
     public string Version => "v" + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0");
 
     public MainViewModel(IConfigStore config, OverviewViewModel overview, ToolsViewModel tools, KeepAwakeViewModel keepAwake,
-        StartupViewModel startup, MonitorViewModel monitor, GuardViewModel guard, ReposViewModel repos, AppearanceViewModel appearance, SettingsViewModel settings, GuideViewModel guide, ActivityViewModel activity)
+        StartupViewModel startup, MonitorViewModel monitor, GuardViewModel guard, ReposViewModel repos, AppearanceViewModel appearance, SettingsViewModel settings, GuideViewModel guide, ActivityViewModel activity,
+        ZonePilotViewModel zonePilot)
     {
         _config = config;
         Activity = activity;
@@ -44,11 +47,15 @@ public sealed class MainViewModel : ObservableObject
             new NavItem { Key = "settings", Title = "Settings", Glyph = Glyphs.Settings, Page = settings },
             new NavItem { Key = "guide", Title = "Guide", Glyph = Glyphs.Info, Page = guide },
         ];
+        ToolPages =
+        [
+            new NavItem { Key = ToolPresets.ZonePilotPage, Title = "ZonePilot", Glyph = ToolPresets.ZonePilot.Glyph, Page = zonePilot },
+        ];
         _selected = Find(config.Current.Window.LastPage) ?? Pages[0];
     }
 
     public NavItem? Find(string? key) =>
-        Pages.Concat(FooterPages).FirstOrDefault(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase));
+        Pages.Concat(FooterPages).Concat(ToolPages).FirstOrDefault(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase));
 
     public NavItem Selected
     {
@@ -79,7 +86,7 @@ public sealed class MainViewModel : ObservableObject
 
     public void Navigate(string? key)
     {
-        if (Find(key) is { } item) Selected = item;
+        if (Find(key) is { } item && item != _selected) Selected = item;
         else if (_selected.Page is IPage p) p.OnShown();
     }
 }

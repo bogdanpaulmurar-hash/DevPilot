@@ -54,7 +54,7 @@ public class ToolEntry
     /// <summary>Shown as the large spotlight card at the top of the hub.</summary>
     public bool Spotlight { get; set; }
 
-    /// <summary>Known tool this entry was created from (screenpilot, focuspilot, nexusx, regtester, autopilot) — empty for custom tools.</summary>
+    /// <summary>Known tool this entry was created from (screenpilot, focuspilot, nexusx, regtester, autopilot, zonepilot) — empty for custom tools.</summary>
     public string Preset { get; set; } = string.Empty;
 
     public List<ToolAction> Actions { get; set; } = [];

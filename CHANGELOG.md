@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.24.0
+- **ZonePilot as a managed tool**: *Add → Your known tools → ZonePilot*. Installed by ZonePilot's `scripts\install.cmd`, it is found at `%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe` without a file dialog (the path keeps `%LOCALAPPDATA%`, so the config works on another PC). The preset sets `start` / `start --autostart`, `--no-tray` when DevPilot owns the tray, process match `ZonePilot`, autostart take-over of its `ZonePilot` Run entry, tray/keep-awake/autostart through `DEVPILOT_MANAGED` and `DEVPILOT_SUPPRESS` (ZonePilot reads them), and the options of its `devpilot.tool.json`: Editor, Settings, the six layouts, Reload, Stop, settings file and log folder. Its logo comes from the manifest installed next to the exe; group and *Show in the hub* are set in the editor as for any tool.
+- **ZonePilot page (Configure…)**: a new hub option opens a DevPilot page that edits `%APPDATA%\ZonePilot\settings.json`: default layout, a layout per monitor (applied with `ZonePilot apply <layout> --monitor <n>`), drag on/off and the key to hold, hotkeys on/off and each hotkey (validated like ZonePilot does). *Save and reload* changes only those fields, keeps everything else in the file, writes it atomically and calls `ZonePilot reload`. Also reachable from the tool editor (*Configure ZonePilot…*).
+- New action kind **Page** (opens a DevPilot page for the tool), allowed in `devpilot.tool.json` too; older DevPilot versions do not know it.
+- Core: `ZonePilotSettings`, `IToolCli`, `IPageOpener`, `ToolPreset.DefaultPath`; Infrastructure: `ToolCli`; UI: `ZonePilotViewModel` / `ZonePilotView`, `PageOpener`. Tests: `ZonePilotIntegrationTests`. Not run locally (no .NET on the build box); CI on Windows decides.
+
 ## 2.23.1
 - Fix: 2.23.0 did not build. In the sign-in fix a local variable for the chosen account had the same name as the repository key in the same method (`CS0136`). Renamed; no change in behaviour. If an Update to 2.23.0 stopped with "Build failed", Update again.
 

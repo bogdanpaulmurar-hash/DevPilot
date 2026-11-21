@@ -23,7 +23,8 @@ public sealed record ToolPreset(
     bool SupportsSuppressEnv,
     Func<List<ToolAction>> Actions,
     string Notes,
-    string[]? Interpreters = null);
+    string[]? Interpreters = null,
+    string DefaultPath = "");
 
 /// <summary>Catalogue of the user's own tools (actions mirror their native tray menus).</summary>
 public static class ToolPresets
@@ -188,7 +189,64 @@ public static class ToolPresets
         Actions: () => [],
         Notes: "Keeps the PC awake only while a flow runs; that does not conflict with DevPilot.");
 
-    public static readonly IReadOnlyList<ToolPreset> All = [ScreenPilot, FocusPilot, NexusX, RegTester, AutoPilot];
+    /// <summary>Page key of DevPilot's ZonePilot Configure page (an action of kind <see cref="ActionKind.Page"/>).</summary>
+    public const string ZonePilotPage = "zonepilot";
+
+    /// <summary>
+    /// ZonePilot (window layouts, WPF + CLI). Mirrors its devpilot.tool.json, plus <c>Configure…</c>, which opens
+    /// DevPilot's page for its settings.json. It reads DEVPILOT_MANAGED / DEVPILOT_SUPPRESS (docs/DEVPILOT.md there).
+    /// </summary>
+    public static readonly ToolPreset ZonePilot = new(
+        Key: "zonepilot",
+        Name: "ZonePilot",
+        Description: "Window layouts: snap windows into zones with Shift+drag or hotkeys",
+        Kind: ToolKind.Executable,
+        Glyph: Glyphs.Parse("E8A0"),
+        PythonModule: "",
+        DefaultArguments: "start",
+        AutoStartArguments: "start --autostart",
+        NoTrayArguments: "--no-tray",
+        ProcessMatch: "ZonePilot",
+        HealthUrl: "",
+        Spotlight: false,
+        PathHints: ["zonepilot"],
+        StartupNames: ["ZonePilot"],
+        HasOwnKeepAwake: false,
+        HasOwnTray: true,
+        SupportsSuppressEnv: true,
+        Actions: () =>
+        [
+            A("Configure…", Glyphs.Settings, ActionKind.Page, value: ZonePilotPage, section: "ZonePilot", featured: true),
+            A("Editor", Glyphs.Parse("E70F"), ActionKind.Arguments, args: "editor", section: "ZonePilot", featured: true),
+            A("Settings", Glyphs.Parse("E713"), ActionKind.Arguments, args: "settings", section: "ZonePilot"),
+            new ToolAction { Kind = ActionKind.Separator },
+            A("Left / right", "", ActionKind.Arguments, args: "apply columns-2", section: "Layouts"),
+            A("Top / bottom", "", ActionKind.Arguments, args: "apply rows-2", section: "Layouts"),
+            A("Grid 2 x 2", "", ActionKind.Arguments, args: "apply grid-2x2", section: "Layouts"),
+            A("Grid 3 x 2", "", ActionKind.Arguments, args: "apply grid-3x2", section: "Layouts"),
+            A("Three columns", "", ActionKind.Arguments, args: "apply columns-3", section: "Layouts"),
+            A("Focus", "", ActionKind.Arguments, args: "apply focus", section: "Layouts"),
+            new ToolAction { Kind = ActionKind.Separator },
+            A("Reload settings", Glyphs.Parse("E72C"), ActionKind.Arguments, args: "reload", section: "Control"),
+            A("Stop", Glyphs.Parse("E71A"), ActionKind.Arguments, args: "stop", section: "Control"),
+            new ToolAction { Kind = ActionKind.Separator },
+            A("Settings file", Glyphs.Document, ActionKind.File, value: @"{AppData}\ZonePilot\settings.json", section: "Files"),
+            A("Log folder", Glyphs.Folder, ActionKind.Folder, value: @"{LocalAppData}\ZonePilot\logs", section: "Files"),
+        ],
+        Notes: "Installed by scripts\\install.cmd to %LOCALAPPDATA%\\Programs\\ZonePilot (with devpilot.tool.json and its logo). "
+             + "Reads DEVPILOT_SUPPRESS: no own tray icon and no Run entry while DevPilot owns them; it never keeps the PC awake. "
+             + "Configure… edits its settings.json and reloads it.",
+        DefaultPath: @"%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe");
+
+    public static readonly IReadOnlyList<ToolPreset> All = [ScreenPilot, FocusPilot, NexusX, RegTester, AutoPilot, ZonePilot];
+
+    /// <summary>The preset's default install location with variables expanded, when the file exists there; else empty.</summary>
+    public static string InstalledPath(ToolPreset preset)
+    {
+        if (string.IsNullOrWhiteSpace(preset.DefaultPath)) return string.Empty;
+        var path = Environment.ExpandEnvironmentVariables(preset.DefaultPath);
+        return File.Exists(path) ? path : string.Empty;
+    }
 
     public static ToolPreset? Find(string? key) =>
         string.IsNullOrWhiteSpace(key) ? null : All.FirstOrDefault(p => p.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
@@ -208,6 +266,9 @@ public static class ToolPresets
     public static ToolEntry Create(ToolPreset preset, string path = "", string groupId = "")
     {
         var t = new ToolEntry { Name = preset.Name, GroupId = groupId };
+        // Without a picked file, a preset with a fixed install location points there (kept with its %VARIABLES%,
+        // so the same config works on another PC).
+        if (string.IsNullOrWhiteSpace(path)) path = preset.DefaultPath;
         SetTarget(t, preset, path);
         Apply(t, preset, overwriteUserFields: true);
         return t;
