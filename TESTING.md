@@ -2,6 +2,18 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.24.0 — ZonePilot
+
+1. Install ZonePilot with `scripts\install.cmd` in its repository. DevPilot > Tools & groups > *Add → Your known tools → ZonePilot* → no file dialog; the editor shows Path `%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe`, Arguments `start`, *Known tool: ZonePilot* with *Configure ZonePilot…*. The hub row shows the ZonePilot logo when the row shows logos.
+2. Start it from the hub → no ZonePilot tray icon (DevPilot owns it); `ZonePilot status` in a terminal shows `managedByDevPilot: true` and `suppressed` with tray, keepawake, autostart. Switch the tool to *Keep the tool's own tray icon*, restart → ZonePilot's icon appears.
+3. Hover the row → Configure…, Editor, Settings, Layouts (six), Reload settings, Stop, Settings file, Log folder. *Grid 2 x 2* → windows on the monitor snap to that layout; *Stop* → the row shows stopped.
+4. *Configure…* → the hub closes and the main window shows the ZonePilot page with the current default layout, one row per monitor, the drag key and the hotkeys.
+5. Change the default layout, set monitor 2 to *Focus*, drag key to *Ctrl*, editor hotkey to `Win+Alt+Z` → *Save and reload* → the message says saved, reloaded and "Per-monitor layouts applied (1)". Ctrl+drag shows zones; Win+Alt+Z opens the editor; `settings.json` still has your custom layouts, accent and excluded processes.
+6. Type `Z` as a hotkey → red hint "Add Ctrl, Alt, Shift or Win…" and Save says "Not saved". Empty a hotkey → saved as switched off.
+7. Set monitor 2 back to *Default layout* → Save → its entry is gone from `monitorLayouts` and it follows the default layout.
+8. Stop ZonePilot, change something, Save → "ZonePilot is not running: it uses the new settings at its next start"; start it → the change is there.
+9. Break `settings.json` (delete a brace) → Refresh → the page says it cannot be read and *Save and reload* is disabled; the file is untouched.
+
 ## 2.23.0 — Clone, other folder and sign-in
 
 1. Repositories > *Clone from repository* on a row without a local copy > *Choose another folder…* → the folder dialog opens over the main window and DevPilot stays open. Cancel → nothing happens.

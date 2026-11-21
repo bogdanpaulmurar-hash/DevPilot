@@ -66,6 +66,7 @@ When you hover a tool, DevPilot shows its *actions*. Each action is one of:
 | `Command` | Any program (`value`) with `arguments`. |
 | `Url` | A web page — ideal for tools with a local web UI (regTester). |
 | `Folder` / `File` | Opens a folder or a file. |
+| `Page` | Opens one of DevPilot's own pages for the tool (`value` = page key). Today only `zonepilot`. |
 | `Separator` | A divider. |
 
 `value` and `arguments` may use `{ToolDir}`, `{Home}`, `{Pictures}`, `{Documents}`, `{Desktop}`, `{AppData}`, `{LocalAppData}` and `%VARIABLES%`.
@@ -130,6 +131,16 @@ Each logo is read once, scaled to a 64 px PNG and cached in `%LOCALAPPDATA%\DevP
 | FocusPilot | not yet | Keep-awake is on by default and it registers its own autostart; needs the checks above. |
 | NexusX | not yet | Needs the tray check; `--minimized` already exists. |
 | AutoPilot DC | — | Keeps the PC awake only while a flow runs: no conflict. |
+| ZonePilot | yes | Preset *ZonePilot*: `ZonePilot.exe` from `%LOCALAPPDATA%\Programs\ZonePilot` (no file dialog when it is installed there), `start` / `start --autostart`, `--no-tray` when DevPilot owns the tray, process match `ZonePilot`, the options of its `devpilot.tool.json` (Editor, Settings, layouts, Reload, Stop, settings file, log folder) plus *Configure…*. Its logo comes from the manifest next to the exe. Never keeps the PC awake. |
+
+### ZonePilot: Configure page
+
+*Configure…* (hub option, or *Configure ZonePilot…* in the tool editor) opens a DevPilot page for `%APPDATA%\ZonePilot\settings.json`:
+
+- default layout, drag on/off and the key to hold (`Shift`, `Ctrl`, `Alt`, `None`), hotkeys on/off and each hotkey (checked with ZonePilot's rules; empty switches one off);
+- one layout per monitor, or *Default layout*. Monitors and layouts (with custom ones) come from `ZonePilot layouts`.
+
+*Save and reload* reads the file again, changes only those fields (other keys, comments aside, stay), writes it atomically and runs `ZonePilot reload`; then each changed monitor gets `ZonePilot apply <layout> --monitor <n>` (after the reload, so the running app does not write its older copy over the file). A monitor set back to *Default layout* loses its `monitorLayouts` entry in the file. When ZonePilot is not running, the file is still saved and `apply` stores the layout for its next start. An unreadable `settings.json` is never overwritten.
 
 Until a tool reads the variables, its own tray icon stays (Windows 11 can hide it in the overflow area) and DevPilot's *Startup & conflicts* page removes its autostart entry again whenever the tool re-creates it.
 

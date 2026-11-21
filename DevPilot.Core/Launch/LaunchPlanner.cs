@@ -87,6 +87,8 @@ public static class LaunchPlanner
             }
             case ActionKind.Separator:
                 throw new InvalidOperationException("A separator cannot be launched.");
+            case ActionKind.Page:
+                throw new InvalidOperationException("This option opens a DevPilot page; it is not started as a program.");
             default:
                 return Build(tool, PathTokens.Expand(action.Arguments, tool), isMain: false);
         }

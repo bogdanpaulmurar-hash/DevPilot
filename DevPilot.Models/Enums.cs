@@ -84,6 +84,8 @@ public enum ActionKind
     File,
     /// <summary>A visual separator between actions.</summary>
     Separator,
+    /// <summary>Opens one of DevPilot's own pages for this tool (Value = page key, e.g. <c>zonepilot</c>).</summary>
+    Page,
 }
 
 public enum KeepAwakeMode

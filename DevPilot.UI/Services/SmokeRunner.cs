@@ -60,6 +60,12 @@ public static class SmokeRunner
                 report.AppendLine($"page {item.Key}: ok");
             }
 
+            // ZonePilot page of a tool (opened by its Configure… option; ZonePilot is not installed on CI)
+            main.Navigate(DevPilot.Core.Presets.ToolPresets.ZonePilotPage);
+            await Settle(1500);
+            Capture(FindMain(), Path.Combine(outDir, "page-zonepilot.png"));
+            report.AppendLine("page zonepilot: ok");
+
             // Repositories page with one command being edited, and the hub's repositories panel
             var repos = App.GetService<ReposViewModel>();
             main.Navigate("repos");
@@ -233,6 +239,7 @@ public static class SmokeRunner
         var nx = ToolPresets.Create(ToolPresets.NexusX, @"C:\src\NexusX", dev.Id);
         nx.Tray = TrayMode.DevPilotIcon;
         var ap = ToolPresets.Create(ToolPresets.AutoPilot, @"C:\Tools\AutoPilot\AutoPilotDC.exe", dev.Id);
+        var zp = ToolPresets.Create(ToolPresets.ZonePilot, groupId: dev.Id); // default install path, not installed on CI
         var sep = new ToolEntry { Kind = ToolKind.Separator, SeparatorStyle = SeparatorStyle.Label, Name = "Utilities", Color = "#D9A441", GroupId = dev.Id };
         var np = new ToolEntry
         {
@@ -246,7 +253,7 @@ public static class SmokeRunner
             GroupId = folders.Id, Folder = new FolderOptions { ExpandInHub = true, MaxItems = 12 },
         };
         var docs = new ToolEntry { Name = "Project wiki", Kind = ToolKind.Url, Path = "https://github.com/", GroupId = folders.Id, Italic = true, LabelMode = HubLabelMode.TextOnly };
-        s.Tools.AddRange([sp, fp, rt, nx, ap, sep, np, calc, winFolder, docs]);
+        s.Tools.AddRange([sp, fp, rt, nx, ap, zp, sep, np, calc, winFolder, docs]);
         Normalizer.Normalize(s);
         config.Touch(ConfigArea.All);
     }

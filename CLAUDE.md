@@ -18,7 +18,7 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 
 ## Map
 - `DevPilot.Models` — config and tool models
-- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, Detection (project folder scan), Repos (git clone scan + fast-forward pull), Guard (egress policy, scanner, approval gate, monitor logic), Help (editor texts), KeepAwake, Startup, Typer
+- `DevPilot.Core` — logic without Windows UI: Config, Backup, Hub, Folders, Launch, Presets, Detection (project folder scan), Repos (git clone scan + fast-forward pull), Guard (egress policy, scanner, approval gate, monitor logic), Help (editor texts), Integrations (ZonePilot settings.json + CLI for its Configure page), KeepAwake, Startup, Typer
 - `DevPilot.Infrastructure` — Windows services: config store, launcher, process monitor, keep-awake, startup manager, hotkeys
 - `DevPilot.UI` — WPF: tray hub, flyouts, main window pages (Views / ViewModels / Themes)
 - `docs/INSTALL.md`, `docs/TYPER.md`, `docs/INTEGRATION.md` (how a tool becomes DevPilot-aware, incl. the `network` block), `docs/GUARD.md` (Egress Guard), `docs/REPOS.md` (Pull repositories)
@@ -26,7 +26,7 @@ Windows hub (C# WPF, .NET 8) that starts, groups and controls the user's other t
 
 ## Rules
 - DevPilot is the single owner of keep-awake and start-with-Windows. Managed tools get `DEVPILOT_MANAGED=1` and `DEVPILOT_SUPPRESS=tray,keepawake,autostart`; never break a tool that runs without DevPilot.
-- Tools describe their options in an optional `devpilot.tool.json` (see INTEGRATION.md). Keep the format backward compatible: ScreenPilot, AutoMailCAT and AutoTemplates already ship one.
+- Tools describe their options in an optional `devpilot.tool.json` (see INTEGRATION.md). Keep the format backward compatible: ScreenPilot, AutoMailCAT, AutoTemplates and ZonePilot already ship one. Action kind `Page` opens a DevPilot page (only `zonepilot`), routed through `IPageOpener`, deferred until the flyout is gone.
 - Egress Guard: findings, logs and exports never contain matched text or deny terms; `policy.local.json` (`%APPDATA%\DevPilot\`) stays machine-local and uncommitted; fail open in monitor mode.
 - Settings over special cases: groups, colours, symbols and sizes are configurable, nothing hardcoded per tool (ScreenPilot's spotlight card is the only deliberate exception).
 - Keep logic in Core so it stays testable without WPF.

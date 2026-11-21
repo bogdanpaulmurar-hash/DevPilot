@@ -15,12 +15,15 @@ public sealed class Launcher : ILauncher
     private readonly IProcessMonitor _monitor;
     private readonly IGuardGate? _gate;
     private readonly ActivityTracker? _activity;
+    private readonly IPageOpener? _pages;
 
     public event EventHandler<ToolEntry>? ToolStarted;
 
-    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor, IGuardGate? gate = null, ActivityTracker? activity = null)
+    public Launcher(ILogger<Launcher> logger, IProcessMonitor monitor, IGuardGate? gate = null, ActivityTracker? activity = null,
+        IPageOpener? pages = null)
     {
         _activity = activity;
+        _pages = pages;
         _logger = logger;
         _monitor = monitor;
         _gate = gate;
@@ -67,6 +70,14 @@ public sealed class Launcher : ILauncher
 
     public Task<LaunchResult> RunActionAsync(ToolEntry tool, ToolAction action)
     {
+        if (action.Kind == ActionKind.Page)
+        {
+            var page = action.Value.Trim();
+            _logger.LogInformation("Action {Tool} / {Action}: page {Page}", tool.Name, action.Label, page);
+            return Task.FromResult(_pages?.Open(page, tool) == true
+                ? LaunchResult.Ok(0)
+                : LaunchResult.Fail($"DevPilot has no page '{page}'."));
+        }
         LaunchPlan plan;
         try { plan = LaunchPlanner.ForAction(tool, action); }
         catch (Exception ex) { return Task.FromResult(LaunchResult.Fail(ex.Message)); }
