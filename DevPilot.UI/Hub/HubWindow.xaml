@@ -168,6 +168,20 @@
                     <TextBlock Text="DevPilot" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Tools pinned to the top bar (Tools & groups > "Button in the hub's top bar"): a click opens their options -->
+                    <ItemsControl ItemsSource="{Binding HeaderTools}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type hub:HubToolVM}">
+                                <Button Style="{StaticResource IconButton}" Content="{Binding Glyph}" ToolTip="{Binding ToolTipText}"
+                                        Click="HeaderTool_Click"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Width="1" Height="16" Margin="4,0" VerticalAlignment="Center" Background="{DynamicResource BorderBrush}"
+                            Visibility="{Binding HasHeaderTools, Converter={StaticResource BoolToVis}}"/>
                     <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE706;" IsChecked="{Binding KeepAwakeOn}" ToolTip="{Binding KeepAwakeStatus}"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE895;" Command="{Binding OpenReposCommand}" ToolTip="Repositories: pull and run commands"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE765;" Command="{Binding OpenTyperCommand}" ToolTip="Virtual Typer: type the clipboard into the focused field"/>

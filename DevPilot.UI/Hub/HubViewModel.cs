@@ -33,6 +33,9 @@ public sealed class HubViewModel : ObservableObject
 
     public FlyoutBuilder Flyouts { get; }
     public ObservableCollection<HubGroupVM> Groups { get; } = [];
+    /// <summary>Tools pinned to the top bar (buttons that open their options).</summary>
+    public ObservableCollection<HubToolVM> HeaderTools { get; } = [];
+    public bool HasHeaderTools => HeaderTools.Count > 0;
 
     public ICommand ToggleKeepAwakeCommand { get; }
     public ICommand OpenMainCommand { get; }
@@ -133,6 +136,9 @@ public sealed class HubViewModel : ObservableObject
     {
         var s = _config.Current;
         Groups.Clear();
+        HeaderTools.Clear();
+        foreach (var t in HubHeader.Pinned(s))
+            HeaderTools.Add(new HubToolVM(t, s.Hub, Flyouts.HasFlyout(t), RowTheme.Current()));
         SpotlightVM? spotlight = null;
         int count = 0;
         var theme = RowTheme.Current();

@@ -53,6 +53,8 @@ public class ToolEntry
     public bool Italic { get; set; }
     /// <summary>Shown as the large spotlight card at the top of the hub.</summary>
     public bool Spotlight { get; set; }
+    /// <summary>Also a button in the hub's top bar (opens the tool's options); at most two tools are shown there.</summary>
+    public bool PinToHubHeader { get; set; }
 
     /// <summary>Known tool this entry was created from (screenpilot, focuspilot, nexusx, regtester, autopilot, zonepilot) — empty for custom tools.</summary>
     public string Preset { get; set; } = string.Empty;

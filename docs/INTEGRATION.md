@@ -131,7 +131,7 @@ Each logo is read once, scaled to a 64 px PNG and cached in `%LOCALAPPDATA%\DevP
 | FocusPilot | not yet | Keep-awake is on by default and it registers its own autostart; needs the checks above. |
 | NexusX | not yet | Needs the tray check; `--minimized` already exists. |
 | AutoPilot DC | — | Keeps the PC awake only while a flow runs: no conflict. |
-| ZonePilot | yes | Preset *ZonePilot*: `ZonePilot.exe` from `%LOCALAPPDATA%\Programs\ZonePilot` (no file dialog when it is installed there), `start` / `start --autostart`, `--no-tray` when DevPilot owns the tray, process match `ZonePilot`, the options of its `devpilot.tool.json` (Editor, Settings, layouts, Reload, Stop, settings file, log folder) plus *Configure…*. Its logo comes from the manifest next to the exe. Never keeps the PC awake. |
+| ZonePilot | yes | Preset *ZonePilot*: `ZonePilot.exe` from `%LOCALAPPDATA%\Programs\ZonePilot` (no file dialog when it is installed there), `start` / `start --autostart`, `--no-tray` when DevPilot owns the tray, process match `ZonePilot`, the options of its `devpilot.tool.json` (Editor, Settings, layouts, Reload, Stop, settings file, log folder) plus *Configure…*. Its logo comes from the manifest next to the exe. It also gets a button in the hub's top bar (*Button in the hub's top bar*, at most two tools) that opens its options. Never keeps the PC awake. |
 
 ### ZonePilot: Configure page
 
