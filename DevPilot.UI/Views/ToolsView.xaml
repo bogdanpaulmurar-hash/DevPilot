@@ -427,7 +427,9 @@
                             <WrapPanel Margin="0,10,0,0">
                                 <CheckBox Content="Bold" IsChecked="{Binding Bold}" Margin="0,0,24,0"/>
                                 <CheckBox Content="Italic" IsChecked="{Binding Italic}" Margin="0,0,24,0"/>
-                                <CheckBox Content="Spotlight card at the top of the hub (one tool)" IsChecked="{Binding Model.Spotlight}"/>
+                                <CheckBox Content="Spotlight card at the top of the hub (one tool)" IsChecked="{Binding Model.Spotlight}" Margin="0,0,24,0"/>
+                                <CheckBox Content="Button in the hub's top bar (up to two tools)" IsChecked="{Binding Model.PinToHubHeader}"
+                                          ToolTip="Next to the Repositories button; a click opens the tool's options"/>
                             </WrapPanel>
                             <TextBlock Text="Preview" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
                             <Border Style="{StaticResource PreviewSurface}" Margin="0,4,0,0">

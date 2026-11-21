@@ -1,3 +1,4 @@
+using DevPilot.Core.Hub;
 using DevPilot.Core.Integrations;
 using DevPilot.Core.Interfaces;
 using DevPilot.Core.Launch;
@@ -62,6 +63,32 @@ public class ZonePilotIntegrationTests
         // A picked file wins over the default location.
         Assert.Equal(@"D:\Apps\ZonePilot.exe", ToolPresets.Create(ToolPresets.ZonePilot, @"D:\Apps\ZonePilot.exe").Path);
         Assert.Equal("zonepilot", ToolPresets.Recognise(new ToolEntry { Path = @"C:\x\ZonePilot.exe" })?.Key);
+    }
+
+    [Fact]
+    public void Hub_top_bar_shows_pinned_tools_in_hub_order_at_most_two()
+    {
+        var s = new AppSettings();
+        var g1 = new ToolGroup { Title = "A", Order = 0 };
+        var g2 = new ToolGroup { Title = "B", Order = 1 };
+        var hidden = new ToolGroup { Title = "H", Order = 2, Hidden = true };
+        s.Groups.AddRange([g1, g2, hidden]);
+
+        var zp = ToolPresets.Create(ToolPresets.ZonePilot, groupId: g2.Id);
+        Assert.True(zp.PinToHubHeader); // the preset pins ZonePilot
+        Assert.False(ToolPresets.Create(ToolPresets.RegTester, @"C:\r\regtester.py").PinToHubHeader);
+
+        var a = new ToolEntry { Name = "a", GroupId = g1.Id, Order = 1, PinToHubHeader = true };
+        var b = new ToolEntry { Name = "b", GroupId = g1.Id, Order = 0, PinToHubHeader = true };
+        var notPinned = new ToolEntry { Name = "n", GroupId = g1.Id };
+        var hiddenTool = new ToolEntry { Name = "h", GroupId = g1.Id, Hidden = true, PinToHubHeader = true };
+        var inHiddenGroup = new ToolEntry { Name = "x", GroupId = hidden.Id, PinToHubHeader = true };
+        var sep = new ToolEntry { Kind = ToolKind.Separator, GroupId = g1.Id, PinToHubHeader = true };
+        s.Tools.AddRange([zp, a, b, notPinned, hiddenTool, inHiddenGroup, sep]);
+
+        Assert.Equal(new[] { "b", "a" }, HubHeader.Pinned(s).Select(t => t.Name));
+        b.PinToHubHeader = false;
+        Assert.Equal(new[] { "a", "ZonePilot" }, HubHeader.Pinned(s).Select(t => t.Name));
     }
 
     [Fact]

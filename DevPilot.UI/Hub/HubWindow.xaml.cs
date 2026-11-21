@@ -193,6 +193,14 @@ public partial class HubWindow : Window
         _flyouts.OpenNow(fe, _vm.Flyouts.ForTool(tool.Model), tool.Name, Subtitle(tool));
     }
 
+    /// <summary>A tool pinned to the top bar: its options open at once, as with a right-click on its row.</summary>
+    private void HeaderTool_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.DataContext is not HubToolVM tool) return;
+        e.Handled = true;
+        _flyouts.OpenNow(fe, _vm.Flyouts.ForTool(tool.Model), tool.Name, Subtitle(tool));
+    }
+
     private void GroupHeader_MouseEnter(object sender, MouseEventArgs e) => _flyouts.Schedule(null, null);
 
     private void SpotHeader_MouseEnter(object sender, MouseEventArgs e)

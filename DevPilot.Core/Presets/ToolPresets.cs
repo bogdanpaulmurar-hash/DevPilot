@@ -24,7 +24,8 @@ public sealed record ToolPreset(
     Func<List<ToolAction>> Actions,
     string Notes,
     string[]? Interpreters = null,
-    string DefaultPath = "");
+    string DefaultPath = "",
+    bool PinToHubHeader = false);
 
 /// <summary>Catalogue of the user's own tools (actions mirror their native tray menus).</summary>
 public static class ToolPresets
@@ -236,7 +237,8 @@ public static class ToolPresets
         Notes: "Installed by scripts\\install.cmd to %LOCALAPPDATA%\\Programs\\ZonePilot (with devpilot.tool.json and its logo). "
              + "Reads DEVPILOT_SUPPRESS: no own tray icon and no Run entry while DevPilot owns them; it never keeps the PC awake. "
              + "Configure… edits its settings.json and reloads it.",
-        DefaultPath: @"%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe");
+        DefaultPath: @"%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe",
+        PinToHubHeader: true);
 
     public static readonly IReadOnlyList<ToolPreset> All = [ScreenPilot, FocusPilot, NexusX, RegTester, AutoPilot, ZonePilot];
 
@@ -333,6 +335,7 @@ public static class ToolPresets
         {
             t.Kind = p.Kind;
             t.Spotlight = p.Spotlight;
+            t.PinToHubHeader = p.PinToHubHeader;
             t.Tray = p.HasOwnTray ? TrayMode.HubOnly : TrayMode.Native;
         }
         else if (p.Kind == ToolKind.Python && isScript)

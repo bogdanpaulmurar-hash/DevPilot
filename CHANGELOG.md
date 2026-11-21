@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.25.0
+- **Tool buttons in the hub's top bar**: a tool can also be a button in the top bar, left of the keep-awake and Repositories buttons, with a thin divider. A click opens its options at once (as a right-click on its row), so a tool is reachable without looking for it in the list. Set per tool in *Tools & groups > Look in the hub > Button in the hub's top bar*; at most two tools are shown (hub order), so the bar keeps its title and buttons on a narrow hub.
+- The ZonePilot preset turns it on: its button opens Start, the layouts and *Configure…*. A ZonePilot entry added with 2.24.0 needs the box ticked once.
+- Core: `HubHeader`, `ToolEntry.PinToHubHeader`, `ToolPreset.PinToHubHeader`. Tests in `ZonePilotIntegrationTests`. Not run locally (no .NET on the build box); CI on Windows decides.
+
 ## 2.24.0
 - **ZonePilot as a managed tool**: *Add → Your known tools → ZonePilot*. Installed by ZonePilot's `scripts\install.cmd`, it is found at `%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe` without a file dialog (the path keeps `%LOCALAPPDATA%`, so the config works on another PC). The preset sets `start` / `start --autostart`, `--no-tray` when DevPilot owns the tray, process match `ZonePilot`, autostart take-over of its `ZonePilot` Run entry, tray/keep-awake/autostart through `DEVPILOT_MANAGED` and `DEVPILOT_SUPPRESS` (ZonePilot reads them), and the options of its `devpilot.tool.json`: Editor, Settings, the six layouts, Reload, Stop, settings file and log folder. Its logo comes from the manifest installed next to the exe; group and *Show in the hub* are set in the editor as for any tool.
 - **ZonePilot page (Configure…)**: a new hub option opens a DevPilot page that edits `%APPDATA%\ZonePilot\settings.json`: default layout, a layout per monitor (applied with `ZonePilot apply <layout> --monitor <n>`), drag on/off and the key to hold, hotkeys on/off and each hotkey (validated like ZonePilot does). *Save and reload* changes only those fields, keeps everything else in the file, writes it atomically and calls `ZonePilot reload`. Also reachable from the tool editor (*Configure ZonePilot…*).

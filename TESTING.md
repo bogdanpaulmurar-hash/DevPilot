@@ -2,6 +2,14 @@
 
 Manual test steps per version (what you do → what should happen). Automated tests run in GitHub Actions.
 
+## 2.25.0 — Tool buttons in the top bar
+
+1. Add ZonePilot from the preset → the hub's top bar shows its symbol before the keep-awake button, then a thin divider. Hover → its name and description.
+2. Click it → its options open at once (Start or Stop, Configure…, layouts…), next to the hub; pick *Grid 2 x 2* → it runs.
+3. Tools & groups > another tool > *Button in the hub's top bar* → a second button appears. Tick a third tool → still two buttons (the first two in hub order). Untick → the button goes away.
+4. Hide the tool or its group → its button goes away. With no pinned tool there is no divider.
+5. Narrowest hub width (Appearance): the title "DevPilot" and all buttons stay on one line.
+
 ## 2.24.0 — ZonePilot
 
 1. Install ZonePilot with `scripts\install.cmd` in its repository. DevPilot > Tools & groups > *Add → Your known tools → ZonePilot* → no file dialog; the editor shows Path `%LOCALAPPDATA%\Programs\ZonePilot\ZonePilot.exe`, Arguments `start`, *Known tool: ZonePilot* with *Configure ZonePilot…*. The hub row shows the ZonePilot logo when the row shows logos.
